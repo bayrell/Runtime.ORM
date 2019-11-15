@@ -168,6 +168,21 @@ struct OrmQuery extends CoreStruct
 	
 	
 	/**
+	 * Add filter
+	 */
+	lambda OrmQuery filter(Dict filter, OrmQuery q)
+	{
+		string where_str = filter
+			.keys()
+			.map(string (string field_name) => field_name ~ "=:" ~ field_name)
+			.join(" and ")
+		;
+		return q.copy({ "where_str": where_str, "where_params": filter });
+	}
+	
+	
+	
+	/**
 	 * Add values
 	 */
 	lambda OrmQuery values(Dict values, OrmQuery q)
