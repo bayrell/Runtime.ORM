@@ -29,10 +29,13 @@ struct OrmQuery extends CoreStruct
 	static const string QUERY_INSERT = "insert";
 	static const string QUERY_UPDATE = "update";
 	static const string QUERY_DELETE = "delete";
+	static const string QUERY_INSERT_OR_UPDATE = "insert_or_update";
 	
 	Collection<string> fields = null;
 	Collection<string> join = null;
 	Dict<primitive> data = null;
+	Dict<primitive> data_pk = null;
+	Dict<primitive> data_insert = null;
 	Dict<primitive> where_params = null;
 	string kind = "";
 	string where_str = "";
@@ -70,7 +73,7 @@ struct OrmQuery extends CoreStruct
 	{
 		if (fields == null) fields = ["*"];
 		return q.copy({
-			"kind": "select",
+			"kind": static::QUERY_SELECT,
 			"table_name": table_name,
 			"fields": fields,
 		});
@@ -84,7 +87,7 @@ struct OrmQuery extends CoreStruct
 	lambda OrmQuery insert(string table_name, OrmQuery q)
 	{
 		return q.copy({
-			"kind": "insert",
+			"kind": static::QUERY_INSERT,
 			"table_name": table_name,
 		});
 	}
@@ -97,7 +100,7 @@ struct OrmQuery extends CoreStruct
 	lambda OrmQuery update(string table_name, OrmQuery q)
 	{
 		return q.copy({
-			"kind": "update",
+			"kind": static::QUERY_UPDATE,
 			"table_name": table_name,
 		});
 	}
@@ -110,7 +113,20 @@ struct OrmQuery extends CoreStruct
 	lambda OrmQuery delete(string table_name, OrmQuery q)
 	{
 		return q.copy({
-			"kind": "delete",
+			"kind": static::QUERY_DELETE,
+			"table_name": table_name,
+		});
+	}
+	
+	
+	
+	/**
+	 * Insert or update query
+	 */
+	lambda OrmQuery insertOrUpdate(string table_name, OrmQuery q)
+	{
+		return q.copy({
+			"kind": static::QUERY_INSERT_OR_UPDATE,
 			"table_name": table_name,
 		});
 	}
@@ -188,6 +204,26 @@ struct OrmQuery extends CoreStruct
 	lambda OrmQuery values(Dict values, OrmQuery q)
 	{
 		return q.copy({ "data": values });
+	}
+	
+	
+	
+	/**
+	 * Add values
+	 */
+	lambda OrmQuery valuesPk(Dict values_pk, OrmQuery q)
+	{
+		return q.copy({ "data_pk": values_pk });
+	}
+	
+	
+	
+	/**
+	 * Add values
+	 */
+	lambda OrmQuery valuesInsert(Dict values_insert, OrmQuery q)
+	{
+		return q.copy({ "data_insert": values_insert });
 	}
 	
 	
