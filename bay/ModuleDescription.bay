@@ -18,13 +18,11 @@
 
 namespace Runtime.ORM;
 
-use Runtime.Interfaces.AssetsInterface;
-use Runtime.Interfaces.ContextInterface;
 use Runtime.Interfaces.ModuleDescriptionInterface;
 use Runtime.Annotations.Provider;
 
 
-class ModuleDescription implements ModuleDescriptionInterface, AssetsInterface
+class ModuleDescription implements ModuleDescriptionInterface
 {
 	
 	
@@ -32,7 +30,7 @@ class ModuleDescription implements ModuleDescriptionInterface, AssetsInterface
 	 * Returns module name
 	 * @return string
 	 */
-	lambda string getModuleName() => "Runtime.ORM";
+	pure string getModuleName() => "Runtime.ORM";
 	
 	
 	
@@ -40,7 +38,7 @@ class ModuleDescription implements ModuleDescriptionInterface, AssetsInterface
 	 * Returns module name
 	 * @return string
 	 */
-	lambda string getModuleVersion() => "0.8.0";
+	pure string getModuleVersion() => "0.8.0";
 	
 	
 	
@@ -48,7 +46,7 @@ class ModuleDescription implements ModuleDescriptionInterface, AssetsInterface
 	 * Returns required modules
 	 * @return Map<string, string>
 	 */
-	lambda Map<string> requiredModules() =>
+	pure Map<string> requiredModules() =>
 	{
 		'Runtime': '*',
 	};
@@ -58,7 +56,7 @@ class ModuleDescription implements ModuleDescriptionInterface, AssetsInterface
 	/**
 	 * Returns enities
 	 */
-	lambda Collection<Dict> entities() => 
+	pure Collection<Dict> entities() => 
 	[
 		/* Declare DataProviderInterface */
 		new Provider{ "name": "Runtime.ORM.DataProviderInterface", "kind": "interface" },
@@ -70,7 +68,7 @@ class ModuleDescription implements ModuleDescriptionInterface, AssetsInterface
 	 * Returns module files load order
 	 * @return Collection<string>
 	 */
-	lambda Collection<string> assets() => 
+	pure Collection<string> assets() => 
 	[
 		"Runtime.ORM/DataProviderInterface",
 		"Runtime.ORM/OrmQuery",
@@ -98,7 +96,7 @@ class ModuleDescription implements ModuleDescriptionInterface, AssetsInterface
 	/**
 	 * Returns sync loaded files
 	 */		
-	lambda Vector<string> resources() => null;
+	pure Vector<string> resources() => null;
 	
 	
 	

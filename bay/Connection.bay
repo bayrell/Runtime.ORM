@@ -16,17 +16,32 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM.Annotations;
+namespace Runtime.ORM;
 
-use Runtime.CoreStruct;
+use Runtime.ORM.Cursor;
+use Runtime.ORM.ProviderInterface;
 
 
-struct FieldFilter extends CoreStruct
+class Connection
 {
 	
+	
 	/**
-	 * Do filter
+	 * Returns true if connected
 	 */
-	lambda primitive filter(FieldFilter f, primitive value) => value;
+	bool connected() => false;
+	
+	
+	
+	/**
+	 * Connect by provider
+	 */
+	async static Connection connect(ProviderInterface p) => null;
+	
+	
+	/**
+	 * Prepares SQL and return Cursor for execute
+	 */
+	async Cursor prepare(string sql) => null;
 	
 }

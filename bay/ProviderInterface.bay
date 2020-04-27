@@ -19,11 +19,10 @@
 namespace Runtime.ORM;
 
 use Runtime.CoreStruct;
-use Runtime.ORM.OrmQuery;
-use Runtime.ORM.OrmResult;
+use Runtime.ORM.Cursor;
 
 
-interface DataProviderInterface
+interface ProviderInterface
 {
 	
 	/**
@@ -32,28 +31,33 @@ interface DataProviderInterface
 	string getHash();
 	
 	
+	/**
+	 * Execute query
+	 */
+	static fn<Cursor, ProviderInterface> query(string sql, Dict arr);
+	
+	
 	
 	/**
 	 * Returns table name with prefix
 	 */
+	/*
 	static string getTableName(string table_name, DataProviderInterface provider);
-	
+	*/
 	
 	
 	/**
 	 * Convert value
 	 */
+	/*
 	lambda primitive fromDatabaseValueWithAnnotations(Collection<CoreStruct> annotations, primitive value);
 	lambda primitive fromDatabaseValue(string class_name, string field_name, primitive value);
 	lambda primitive fromDatabase(Dict row, string class_name);
 	lambda primitive toDatabaseValueWithAnnotations(Collection<CoreStruct> annotations, primitive value);
 	lambda primitive toDatabaseValue(string class_name, string field_name, primitive value);
 	lambda primitive toDatabase(Dict row, string class_name);
+	*/
 	
 	
-	/**
-	 * Execute query
-	 */
-	static async OrmResult query(OrmQuery q, DataProviderInterface provider);
 	
 }

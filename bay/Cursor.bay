@@ -16,11 +16,27 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM.Annotations;
-
-use Runtime.CoreStruct;
+namespace Runtime.ORM;
 
 
-struct PrimaryKey extends CoreStruct
+class Cursor
 {
+	
+	/**
+	 * Execute query
+	 */
+	async Cursor execute(Dict args) => null;
+	
+	
+	/**
+	 * Fetch next row
+	 */
+	async Dict fetch() => null;
+	
+	
+	/**
+	 * Close cursor
+	 */
+	async void close(){}
+	
 }
