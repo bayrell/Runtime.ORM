@@ -28,7 +28,7 @@ interface ProviderInterface
 	/**
 	 * Returns hash
 	 */
-	string getHash();
+	static string getHash(ProviderInterface p);
 	
 	
 	/**

@@ -59,7 +59,7 @@ class ModuleDescription implements ModuleDescriptionInterface
 	pure Collection<Dict> entities() => 
 	[
 		/* Declare DataProviderInterface */
-		new Provider{ "name": "Runtime.ORM.ProviderInterface", "kind": "interface" },
+		new Provider{ "name": "Runtime.ORM.ProviderInterface", "kind": Provider::KIND_INTERFACE },
 	];
 	
 	
