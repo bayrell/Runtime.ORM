@@ -22,19 +22,19 @@ use Runtime.CoreStruct;
 use Runtime.ORM.Cursor;
 
 
-interface ProviderInterface
+interface ORMProviderInterface
 {
 	
 	/**
 	 * Returns hash
 	 */
-	static string getHash(ProviderInterface p);
+	static string getHash(ORMProviderInterface p);
 	
 	
 	/**
 	 * Execute query
 	 */
-	static fn<Cursor, ProviderInterface> query(string sql, Dict arr);
+	static fn<Cursor, ORMProviderInterface> query(string sql, Dict arr = null);
 	
 	
 	
