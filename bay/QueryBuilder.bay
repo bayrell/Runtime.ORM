@@ -56,6 +56,18 @@ struct QueryBuilder extends CoreStruct
 	
 	
 	/**
+	 * Set fields
+	 */
+	pure QueryBuilder fields(Collection fields) =>
+		QueryBuilder (QueryBuilder q) use (fields) => q.copy
+		{
+			"_fields": fields,
+		}
+	;
+	
+	
+	
+	/**
 	 * Add offset
 	 */
 	pure QueryBuilder offset(int page, int limit) =>
