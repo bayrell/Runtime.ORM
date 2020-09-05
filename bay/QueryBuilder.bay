@@ -18,10 +18,10 @@
 
 namespace Runtime.ORM;
 
-use Runtime.CoreStruct;
+use Runtime.BaseStruct;
 
 
-struct QueryBuilder extends CoreStruct
+struct QueryBuilder extends BaseStruct
 {
 	static const string QUERY_SELECT = "select";
 	static const string QUERY_INSERT = "insert";
@@ -44,8 +44,8 @@ struct QueryBuilder extends CoreStruct
 	/**
 	 * Select query
 	 */
-	pure QueryBuilder select(string table_name, string prefix = "") =>
-		QueryBuilder (QueryBuilder q) use (table_name, prefix) => q.copy
+	QueryBuilder select(string table_name, string prefix = "") =>
+		this.copy
 		{
 			"_kind": static::QUERY_SELECT,
 			"_fields": ["*"],
@@ -58,8 +58,8 @@ struct QueryBuilder extends CoreStruct
 	/**
 	 * Set fields
 	 */
-	pure QueryBuilder fields(Collection fields) =>
-		QueryBuilder (QueryBuilder q) use (fields) => q.copy
+	QueryBuilder fields(Collection fields) =>
+		this.copy
 		{
 			"_fields": fields,
 		}
@@ -70,8 +70,8 @@ struct QueryBuilder extends CoreStruct
 	/**
 	 * Add offset
 	 */
-	pure QueryBuilder offset(int page, int limit) =>
-		QueryBuilder (QueryBuilder q) use (page, limit) => q.copy
+	QueryBuilder offset(int page, int limit) =>
+		this.copy
 		{
 			"_start": page * limit,
 			"_limit": limit,
@@ -83,8 +83,8 @@ struct QueryBuilder extends CoreStruct
 	/**
 	 * Set order
 	 */
-	pure QueryBuilder order(Collection<Collection<string>> order) =>
-		QueryBuilder (QueryBuilder q) use (order) => q.copy
+	QueryBuilder order(Collection<Collection<string>> order) =>
+		this.copy
 		{
 			"_order": order,
 		}
@@ -95,10 +95,10 @@ struct QueryBuilder extends CoreStruct
 	/**
 	 * Add order
 	 */
-	pure QueryBuilder addOrder(string field_name, string order) =>
-		QueryBuilder (QueryBuilder q) use (field_name, order) => q.copy
+	QueryBuilder addOrder(string field_name, string order) =>
+		this.copy
 		{
-			"_order": q._order != null ? q._order.pushIm([field_name, order]) : [ [field_name, order] ]
+			"_order": this._order != null ? this._order.pushIm([field_name, order]) : [ [field_name, order] ]
 		}
 	;
 	
@@ -107,8 +107,8 @@ struct QueryBuilder extends CoreStruct
 	/**
 	 * Add where
 	 */
-	pure QueryBuilder where(Dict where) =>
-		QueryBuilder (QueryBuilder q) use (where) => q.copy
+	QueryBuilder where(Dict where) =>
+		this.copy
 		{
 			"_where": where,
 		}

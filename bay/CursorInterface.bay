@@ -19,24 +19,6 @@
 namespace Runtime.ORM;
 
 
-class Cursor
+interface CursorInterface
 {
-	
-	/**
-	 * Execute query
-	 */
-	async Cursor execute(Dict args) => null;
-	
-	
-	/**
-	 * Fetch next row
-	 */
-	async Dict fetch() => null;
-	
-	
-	/**
-	 * Close cursor
-	 */
-	async void close(){}
-	
 }

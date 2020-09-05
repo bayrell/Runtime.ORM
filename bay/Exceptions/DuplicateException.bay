@@ -18,7 +18,6 @@
 
 namespace Runtime.ORM.Exceptions;
 
-use Runtime.RuntimeConstant;
 use Runtime.ORM.Exceptions.OrmException;
 
 
@@ -31,7 +30,7 @@ class DuplicateException extends OrmException
 	{
 		parent(
 			message, 
-			RuntimeConstant::ERROR_DUPLICATE, 
+			rtl::ERROR_DUPLICATE,
 			prev
 		);
 	}
