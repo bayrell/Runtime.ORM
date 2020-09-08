@@ -38,7 +38,7 @@ struct QueryBuilder extends BaseStruct
 	Dict<string> _where = null;
 	int _start = -1;
 	int _limit = -1;
-	
+	bool _found_rows = false;
 	
 	
 	/**
@@ -68,9 +68,9 @@ struct QueryBuilder extends BaseStruct
 	
 	
 	/**
-	 * Add offset
+	 * Add page
 	 */
-	QueryBuilder offset(int page, int limit) =>
+	QueryBuilder page(int page, int limit) =>
 		this.copy
 		{
 			"_start": page * limit,
