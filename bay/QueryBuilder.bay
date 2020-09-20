@@ -19,6 +19,9 @@
 namespace Runtime.ORM;
 
 use Runtime.BaseStruct;
+use Runtime.ORM.ConnectionInterface as Connection;
+use Runtime.ORM.CursorInterface as Cursor;
+use Runtime.ORM.DriverInterface as ORMDriver;
 
 
 struct QueryBuilder extends BaseStruct
@@ -29,27 +32,52 @@ struct QueryBuilder extends BaseStruct
 	static const string QUERY_DELETE = "delete";
 	static const string QUERY_INSERT_OR_UPDATE = "insert_or_update";
 	
+	string _orm_class_name = "";
 	string _kind = "";
 	string _table_name = "";
 	string _table_name_alias = "";
 	Collection<string> _fields = null;
 	Collection<string> _join = null;
 	Collection<Collection<string>> _order = null;
-	Dict<string> _where = null;
+	Collection<list> _filter = null;
 	int _start = -1;
 	int _limit = -1;
+	bool _as_record = true;
 	bool _found_rows = false;
 	
 	
 	/**
 	 * Select query
 	 */
-	QueryBuilder select(string table_name, string prefix = "") =>
+	QueryBuilder orm(string class_name) =>
+		this.copy
+		{
+			"_orm_class_name": class_name,
+		}
+	;
+	
+	
+	/**
+	 * As record
+	 */
+	QueryBuilder asRecord(bool value) =>
+		this.copy
+		{
+			"_as_record": value,
+		}
+	;
+	
+	
+	
+	/**
+	 * Select query
+	 */
+	QueryBuilder select(string table_name) =>
 		this.copy
 		{
 			"_kind": static::QUERY_SELECT,
 			"_fields": ["*"],
-			"_table_name": prefix ~ table_name,
+			"_table_name": table_name,
 		}
 	;
 	
@@ -81,6 +109,43 @@ struct QueryBuilder extends BaseStruct
 	
 	
 	/**
+	 * Set offset
+	 */
+	QueryBuilder offset(int start, int limit) =>
+		this.copy
+		{
+			"_start": start,
+			"_limit": limit,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set start
+	 */
+	QueryBuilder start(int start) =>
+		this.copy
+		{
+			"_start": start,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set limit
+	 */
+	QueryBuilder limit(int limit) =>
+		this.copy
+		{
+			"_limit": limit,
+		}
+	;
+	
+	
+	
+	/**
 	 * Set order
 	 */
 	QueryBuilder order(Collection<Collection<string>> order) =>
@@ -105,14 +170,96 @@ struct QueryBuilder extends BaseStruct
 	
 	
 	/**
-	 * Add where
+	 * Add filter
 	 */
-	QueryBuilder where(Dict where) =>
+	QueryBuilder filter(Collection<list> filter) =>
 		this.copy
 		{
-			"_where": where,
+			"_filter": filter,
 		}
 	;
 	
+	
+	
+	/**
+	 * From database
+	 */
+	Dict fromDatabase(Dict item)
+	{
+		/* From database */
+		if (this._orm_class_name != "")
+		{
+			fn fromDatabase = rtl::method(this._orm_class_name, "fromDatabase");
+			item = await fromDatabase(item);
+		}
+		
+		/* Convert to record */
+		if (this._orm_class_name != "" and this._as_record)
+		{
+			fn newInstance = rtl::method(this._orm_class_name, "newInstance");
+			Dict prev_item = item;
+			item = newInstance(item);
+			item <= _old_item <= prev_item;
+		}
+		
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Get connection
+	 */
+	async Connection connect(Dict settings = null)
+	{
+		string driver_name = settings["driver"] |> default string classof ORMDriver;
+		ORMDriver orm = @.getDriver(driver_name);
+		Connection conn = await orm.connect(settings);
+		return conn;
+	}
+	
+	
+	
+	/**
+	 * Execute query
+	 */
+	async Cursor execute(Dict settings = null)
+	{
+		Connection conn = await this.connect(settings);
+		Cursor cursor = await conn.execute(this, settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Fetch one
+	 */
+	async Dict one(Dict settings = null)
+	{
+		Cursor cursor = await this.execute(settings);
+		Dict item = await cursor.fetchOne();
+		await cursor.close();
+		
+		if (item != null) item = this.fromDatabase(item);
+		
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Fetch all
+	 */
+	async Dict all(Dict settings = null)
+	{
+		Cursor cursor = await this.execute(settings);
+		Collection<Dict> items = await cursor.fetchAll();
+		await cursor.close();
+		
+		items = items.map( method this.fromDatabase );
+		
+		return items;
+	}
 	
 }
