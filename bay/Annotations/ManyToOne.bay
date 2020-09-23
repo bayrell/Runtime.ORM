@@ -24,7 +24,7 @@ use Runtime.BaseStruct;
 struct ManyToOne extends BaseStruct
 {
 	string class_name = "";
-	string key = "";
 	string delete = "";
 	string update = "";
+	Dict keys = null;
 }

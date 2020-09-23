@@ -16,14 +16,15 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM.Annotations;
+namespace Runtime.ORM;
 
 use Runtime.BaseStruct;
 
 
-struct ManyToMany extends BaseStruct
+struct ForeignKey extends BaseStruct
 {
-	string class_name = "";
-	string sub_class_name = "";
-	Dict keys = null;
+	string api_name = "";
+	Collection<Dict> keys = null;
+	Collection<Dict> options = null;
+	Collection<Dict> many_to_many = null;
 }

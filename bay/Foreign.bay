@@ -18,27 +18,447 @@
 
 namespace Runtime.ORM;
 
+use Runtime.lib;
 use Runtime.BaseStruct;
+use Runtime.IntrospectionClass;
+use Runtime.IntrospectionInfo;
+use Runtime.RuntimeUtils;
+use Runtime.ORM.ConnectionInterface as Connection;
+use Runtime.ORM.CursorInterface as Cursor;
+use Runtime.ORM.DriverInterface as ORMDriver;
+use Runtime.ORM.Foreign;
+use Runtime.ORM.ForeignKey;
+use Runtime.ORM.QueryBuilder;
+use Runtime.ORM.Record;
+use Runtime.ORM.Annotations.AutoIncrement;
+use Runtime.ORM.Annotations.CoreType;
+use Runtime.ORM.Annotations.ManyToMany;
+use Runtime.ORM.Annotations.ManyToOne;
+use Runtime.ORM.Annotations.Primary;
 
 
 struct Foreign extends BaseStruct
 {
-	Collection<Dict> keys = null;
-	Collection<Dict> options = null;
-	Collection<Dict> many_to_many = null;
+	string class_name = "";
+	Primary primary_key = null;
+	IntrospectionClass class_info = null;
+	Dict<ManyToOne> settings_many_to_one = null;
+	Dict<ManyToMany> settings_many_to_many = null;
+	Dict<Foreign> fields = {};
+	
+	
+	
+	/**
+	 * Map attrs
+	 */
+	pure fn mappingAttrs(Dict item, Dict mapping)
+	{
+		Map new_item = new Map();
+		Collection<string> mapping_keys = mapping.keys();
+		for (int i=0; i<mapping_keys.count(); i++)
+		{
+			string old_field_name = mapping_keys[i];
+			string new_field_name = mapping[old_field_name];
+			var value = item[old_field_name];
+			new_item.set(new_field_name, value);
+		}
+		return new_item.toDict();
+	}
+	
+	
+	
+	/**
+	 * Set class name
+	 */
+	pure Foreign init(string class_name)
+	{
+		Foreign foreign = new Foreign();
+		foreign <= class_name <= class_name;
+		foreign <= class_info <= RuntimeUtils::getClassIntrospectionWithParents(class_name);
+		
+		Collection fields = foreign.class_info.fields.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			Collection annotations = foreign.class_info.fields[field_api_name];
+			
+			/* Many To One */
+			ManyToOne many_to_one = annotations.findItem( lib::isInstance(classof ManyToOne) );
+			if (many_to_one)
+			{
+				foreign <= settings_many_to_one <= { field_api_name } <= many_to_one;
+			}
+			
+			/* Many To Many */
+			ManyToMany many_to_many = annotations.findItem( lib::isInstance(classof ManyToMany) );
+			if (many_to_many)
+			{
+				foreign <= settings_many_to_many <= { field_api_name } <= many_to_many;
+			}
+		}
+		
+		return foreign;
+	}
+	
 	
 	
 	/**
 	 * Create foreign
 	 */
-	pure Dict<Foreign> createForeign(Dict<Foreign> foreigns, string field_api_name)
+	pure Foreign createForeign(Foreign foreign, string field_api_name)
 	{
-		if (not foreigns.has(field_api_name))
+		if (not foreign.fields.has(field_api_name))
 		{
-			foreigns = foreigns.setIm(field_api_name, new Foreign());
+			foreign <= fields <= foreign.fields.setIm(field_api_name, new Foreign());
 		}
-		return foreigns;
+		return foreign;
 	}
 	
 	
+	
+	/**
+	 * Add Many To One
+	 */
+	pure Foreign addManyToOne(Foreign foreign, Record item, string field_api_name)
+	{
+		ManyToOne many_to_one = foreign["settings_many_to_one", field_api_name];
+		if (not many_to_one) return foreign;
+		
+		ForeignKey foreign_key = foreign["fields", field_api_name];
+		Collection foreign_keys = foreign_key["keys"] |> default Collection [];
+		Dict foreign_value = item.toDict().intersect( many_to_one.keys.keys() );
+		
+		int pos = foreign_keys.find( lib::equalAttrs(foreign_value) );
+		if (pos == -1)
+		{
+			foreign <= fields <= { field_api_name } <= "keys" <= foreign_keys.pushIm(foreign_value);
+		}
+		
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Add Many To Many
+	 */
+	pure Foreign addManyToMany(Foreign foreign, Record item, string field_api_name)
+	{
+		ManyToOne many_to_many = foreign["settings_many_to_many", field_api_name];
+		if (not many_to_many) return foreign;
+		
+		ForeignKey foreign_key = foreign["fields", field_api_name];
+		Collection foreign_keys = foreign_key["keys"] |> default Collection [];
+		Dict foreign_value = item.toDict().intersect( many_to_many.keys.keys() );
+		
+		int pos = foreign_keys.find( lib::equalAttrs(foreign_value) );
+		if (pos == -1)
+		{
+			foreign <= fields <= { field_api_name } <= "keys" <= foreign_keys.pushIm(foreign_value);
+		}
+		
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Add One To Many
+	 */
+	pure Foreign addOneToMany(Foreign foreign, Record item, string field_api_name)
+	{
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Add item
+	 */
+	pure Record addItem(Foreign foreign, Record item)
+	{
+		if (item == null) return foreign;
+		Collection fields = foreign.class_info.fields.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			foreign = static::addManyToOne(foreign, item, field_api_name);
+			foreign = static::addManyToMany(foreign, item, field_api_name);
+			foreign = static::addOneToMany(foreign, item, field_api_name);
+		}
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Load options
+	 */
+	static async Foreign loadOptions(Foreign foreign, string field_api_name, Dict db_settings = null)
+	{
+		ManyToOne many_to_one = foreign["settings_many_to_one", field_api_name];
+		ManyToOne many_to_many = foreign["settings_many_to_many", field_api_name];
+		
+		string class_name = "";
+		if (many_to_one) class_name = many_to_one.class_name;
+		if (many_to_many) class_name = many_to_many.class_name;
+		
+		if (class_name == "") return foreign;
+		
+		/* Get all options */
+		Collection options =
+			class_name
+			|> lib::method("select")
+			|> lib::apply()
+			|> await .all(db_settings)
+		;
+		
+		foreign <= fields <= { field_api_name } <= "options" <= options;
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Load options
+	 */
+	static async Foreign loadManyToMany(Foreign foreign, string field_api_name, Dict db_settings = null)
+	{
+		ManyToOne many_to_many = foreign["settings_many_to_many", field_api_name];
+		if (not many_to_many) return foreign;
+		
+		string class_name = many_to_many.class_name;
+		string sub_class_name = many_to_many.sub_class_name;
+		
+		/* Get filter */
+		Collection filter =
+			foreign["fields", field_api_name, "keys"]
+			|> default Collection []
+			|> lib::map
+			(
+				Collection (Dict item) use (many_to_many)
+				{
+					Vector res = new Vector();
+					item = static::mappingAttrs(item, many_to_many.keys);
+					item.each
+					(
+						void (var value, string key) use (res)
+						{
+							res.push([key, "=", value]);
+						}
+					);
+					return res.toCollection();
+				}
+			)
+		;
+		
+		/* Get many to many items */
+		Collection many_to_many =
+			sub_class_name
+			|> lib::method("select")
+			|> lib::apply()
+			|> .filter([ ["\$or", filter] ])
+			|> await .all(db_settings)
+		;
+		
+		/* Add result */
+		foreign <= fields <= { field_api_name } <= "many_to_many" <= many_to_many;
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Load full dictionary
+	 */
+	static async Foreign loadFullDictionary
+	(Foreign foreign, Collection<string> allow_fields = null, Dict db_settings = null)
+	{
+		Collection fields = foreign.class_info.fields.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			if (allow_fields != null and allow_fields.indexOf(field_api_name) == -1) continue;
+			foreign = await static::loadOptions(foreign, field_api_name, db_settings);
+			foreign = await static::loadManyToMany(foreign, field_api_name, db_settings);
+		}
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Load part dictionary
+	 */
+	static async Foreign loadPartDictionary(Foreign foreign, Collection<string> fields = null)
+	{
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Process item Many To One
+	 */
+	pure Record processItemManyToOne(Foreign foreign, Record item, string field_api_name)
+	{
+		ManyToOne many_to_one = foreign["settings_many_to_one", field_api_name];
+		if (not many_to_one) return item;
+		
+		string class_name = many_to_one.class_name;
+		Dict foreign_value = static::mappingAttrs(item, many_to_one.keys);
+		
+		/* Find foreign item */
+		Record foreign_item = foreign["fields", field_api_name, "options"]
+			|> .findItem( lib::equalAttrs(foreign_value) )
+		;
+		item <= { field_api_name } <= foreign_item;
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Process item Many To Many
+	 */
+	pure Record processItemManyToMany(Foreign foreign, Record item, string field_api_name)
+	{
+		ManyToMany many_to_many = foreign["settings_many_to_many", field_api_name];
+		if (not many_to_many) return item;
+		
+		string class_name = many_to_many.class_name;
+		Dict foreign_value = static::mappingAttrs(item, many_to_many.keys);
+		
+		/* Find foreign items */
+		Dict<Record> fields = foreign["fields", field_api_name, "many_to_many"]
+			|> lib::filter( lib::equalAttrs(foreign_value) )
+		;
+		item <= { field_api_name } <= fields;
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Process item
+	 */
+	pure Record processItem(Foreign foreign, Record item, Collection<string> allow_fields = null)
+	{
+		Collection fields = foreign.class_info.fields.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			if (allow_fields != null and allow_fields.indexOf(field_api_name) == -1) continue;
+			item = static::processItemManyToOne(foreign, item, field_api_name);
+			item = static::processItemManyToMany(foreign, item, field_api_name);
+		}
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Save many to many
+	 */
+	static async Foreign saveManyToMany(Foreign foreign, Record item, string field_api_name, Dict db_settings = null)
+	{
+		ManyToMany many_to_many = foreign["settings_many_to_many", field_api_name];
+		if (not many_to_many) return foreign;
+		
+		Collection<Dict> new_values = item[field_api_name] |> default Collection [];
+		string class_name = many_to_many.class_name;
+		string sub_class_name = many_to_many.sub_class_name;
+		
+		/* Get primary key of sub class */
+		Primary sub_class_primary_key = sub_class_name |> lib::applyMethod("getPrimaryKeyAnnotation");
+		
+		/* Mapping key */
+		Dict many_to_many_key = static::mappingAttrs(item, many_to_many.keys);
+		
+		/* Filter new values */
+		new_values = new_values.filter( lib::equalAttrs(many_to_many_key) );
+		
+		/* Get filter */
+		Vector filter = new Vector();
+		many_to_many_key.each
+		(
+			void (var value, string key) use (filter)
+			{
+				filter.push([key, "=", value]);
+			}
+		);
+		filter = filter.toCollection();
+		
+		/* Get sub class methods */
+		fn create = rtl::method(sub_class_name, "create");
+		fn change = rtl::method(sub_class_name, "change");
+		fn getDiffCoreTypes = rtl::method(sub_class_name, "getDiffCoreTypes");
+		fn getPrimaryKey = rtl::method(sub_class_name, "getPrimaryKey");
+		fn delete = rtl::method(sub_class_name, "delete");
+		fn save = rtl::method(sub_class_name, "save");
+		fn select = rtl::method(sub_class_name, "select");
+		fn update = rtl::method(sub_class_name, "update");
+		
+		/* Get many to many items */
+		Collection many_to_many =
+			select()
+			|> .filter(filter)
+			|> await .all(db_settings)
+		;
+		
+		/* Update keys */
+		for (int j=0; j<new_values.count(); j++)
+		{
+			Dict new_value = new_values[j].toDict();
+			Dict new_value_key = new_value.intersect(sub_class_primary_key.keys);
+			int index = many_to_many.find( lib::equalAttrs( new_value_key ) );
+			
+			if (index == -1)
+			{
+				await create(new_value, db_settings);
+			}
+			else
+			{
+				Record new_item = many_to_many[index];
+				Dict new_item_pk = getPrimaryKey(new_item);
+				Dict diff = getDiffCoreTypes(new_item, new_value);
+				diff = diff.removeKeys( sub_class_primary_key.keys );
+				await update(new_item_pk, diff, db_settings);
+			}
+		}
+		
+		/* Remove keys */
+		for (int j=0; j<many_to_many.count(); j++)
+		{
+			Dict old_item = many_to_many[j].toDict();
+			Dict old_item_key = old_item.intersect(sub_class_primary_key.keys);
+			int index = new_values.find( lib::equalAttrs( old_item_key ) );
+			if (index == -1)
+			{
+				await delete(old_item_key, db_settings);
+			}
+		}
+		
+		return foreign;
+	}
+	
+	
+	
+	/**
+	 * Save many to many
+	 */
+	static async Foreign save
+	(
+		Foreign foreign, Dict item, Collection<string> allow_fields = null, Dict db_settings = null
+	)
+	{
+		Collection fields = foreign.class_info.fields.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			if (allow_fields != null and allow_fields.indexOf(field_api_name) == -1) continue;
+			await static::saveManyToMany(foreign, item, field_api_name, db_settings);
+		}
+		return foreign;
+	}
 }
