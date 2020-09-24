@@ -21,9 +21,11 @@ namespace Runtime.ORM.Annotations;
 use Runtime.BaseStruct;
 
 
-struct ManyToMany extends BaseStruct
+struct ForeignKey extends BaseStruct
 {
+	string name = "";
 	string class_name = "";
-	string sub_class_name = "";
-	Dict keys = null;
+	string delete = "";
+	string update = "";
+	Collection<Dict> keys = null;
 }

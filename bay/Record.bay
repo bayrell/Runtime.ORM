@@ -62,6 +62,19 @@ struct Record extends BaseStruct
 	
 	
 	/**
+	 * Connect to database
+	 */
+	static async Connection connect(Dict db_settings = null)
+	{
+		/* Connect to Database */
+		string driver_name = db_settings["driver"] |> default string classof ORMDriver;
+		Connection conn = @.getDriver(driver_name) |> await .connect(db_settings);
+		return conn;
+	}
+	
+	
+	
+	/**
 	 * Select
 	 */
 	pure QueryBuilder select()
@@ -324,9 +337,8 @@ struct Record extends BaseStruct
 		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
 		bool has_auto_increment = false;
 		
-		/* Get ORM driver */
-		string driver_name = db_settings["driver"] |> default string classof ORMDriver;
-		Connection conn = @.getDriver(driver_name) |> await .connect(db_settings);
+		/* Connect to database */
+		Connection conn = await static::connect(db_settings);
 		string table_name = static::table_name();
 		
 		/* Remove autoincrements keys */
@@ -400,9 +412,8 @@ struct Record extends BaseStruct
 			Collection<list> filter = static::getFilterByPrimaryKey(old_pk);
 			if (filter)
 			{
-				/* Get ORM driver */
-				string driver_name = db_settings["driver"] |> default string classof ORMDriver;
-				Connection conn = @.getDriver(driver_name) |> await .connect(db_settings);
+				/* Connect to database */
+				Connection conn = await static::connect(db_settings);
 				string table_name = static::table_name();
 				
 				/* Update query */
@@ -465,9 +476,8 @@ struct Record extends BaseStruct
 		Collection<list> filter = static::getFilterByPrimaryKey(pk);
 		if (filter)
 		{
-			/* Get ORM driver */
-			string driver_name = db_settings["driver"] |> default string classof ORMDriver;
-			Connection conn = @.getDriver(driver_name) |> await .connect(db_settings);
+			/* Connect to database */
+			Connection conn = await static::connect(db_settings);
 			string table_name = static::table_name();
 			
 			/* Delete query */
