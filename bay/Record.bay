@@ -75,6 +75,27 @@ struct Record extends BaseStruct
 	
 	
 	/**
+	 * Returns field's annotations
+	 */
+	static Collection<BaseStruct> getFieldAnnotations(string field_name)
+	{
+		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
+		Collection fields = info.fields.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			if (field_api_name == field_name)
+			{
+				Collection annotations = info.fields[field_api_name];
+				return annotations;
+			}
+		}
+		return null;
+	}
+	
+	
+	
+	/**
 	 * Select
 	 */
 	pure QueryBuilder select()
@@ -341,7 +362,7 @@ struct Record extends BaseStruct
 		Connection conn = await static::connect(db_settings);
 		string table_name = static::table_name();
 		
-		/* Remove autoincrements keys */
+		/* Remove virtual keys */
 		Collection fields = info.fields.keys();
 		for (int i=0; i<fields.count(); i++)
 		{
@@ -362,6 +383,17 @@ struct Record extends BaseStruct
 			{
 				update = update.removeIm(field_api_name);
 				has_auto_increment = true;
+			}
+		}
+		
+		/* Remove another keys */
+		Collection update_keys = update.keys();
+		for (int i=0; i<update_keys.count(); i++)
+		{
+			string field_api_name = update_keys[i];
+			if (not info.fields.has(field_api_name))
+			{
+				update = update.removeIm(field_api_name);
 			}
 		}
 		
@@ -406,6 +438,35 @@ struct Record extends BaseStruct
 	 */
 	static async void update(Dict old_pk, Dict update, Dict db_settings = null)
 	{
+		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
+		
+		/* Remove virtual keys */
+		Collection fields = info.fields.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			var value = update[field_api_name];
+			Collection annotations = info.fields[field_api_name];
+			
+			/* Remove if not CoreType */
+			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
+			if (core_type == null)
+			{
+				update = update.removeIm(field_api_name);
+			}
+		}
+		
+		/* Remove another keys */
+		Collection update_keys = update.keys();
+		for (int i=0; i<update_keys.count(); i++)
+		{
+			string field_api_name = update_keys[i];
+			if (not info.fields.has(field_api_name))
+			{
+				update = update.removeIm(field_api_name);
+			}
+		}
+		
 		/* If has changes */
 		if (update.keys().count() > 0)
 		{
@@ -441,6 +502,9 @@ struct Record extends BaseStruct
 			old_item = await static::findItemByKey(new_pk, db_settings);
 			if (old_item != null) old_pk = static::getPrimaryKey(old_item);
 		}
+		
+		/* Convert to database */
+		new_item = static::toDatabase(new_item);
 		
 		/* Get diff */
 		Dict update = static::getDiffCoreTypes(old_item, new_item);

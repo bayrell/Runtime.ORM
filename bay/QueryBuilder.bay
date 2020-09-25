@@ -37,7 +37,7 @@ struct QueryBuilder extends BaseStruct
 	string _table_name = "";
 	string _table_name_alias = "";
 	Collection<string> _fields = null;
-	Collection<string> _join = null;
+	Collection<Dict> _join = null;
 	Collection<Collection<string>> _order = null;
 	Collection<list> _filter = null;
 	int _start = -1;
@@ -72,12 +72,13 @@ struct QueryBuilder extends BaseStruct
 	/**
 	 * Select query
 	 */
-	QueryBuilder select(string table_name) =>
+	QueryBuilder select(string table_name, string alias_name = "") =>
 		this.copy
 		{
 			"_kind": static::QUERY_SELECT,
 			"_fields": ["*"],
 			"_table_name": table_name,
+			"_table_name_alias": alias_name,
 		}
 	;
 	
@@ -182,6 +183,77 @@ struct QueryBuilder extends BaseStruct
 	
 	
 	/**
+	 * Add filter
+	 */
+	QueryBuilder prependFilter(list filter) =>
+		this.copy
+		{
+			"_filter": this._filter != null ? this._filter.prependIm(filter) : [ filter ]
+		}
+	;
+	
+	
+	
+	/**
+	 * Add filter
+	 */
+	QueryBuilder appendFilter(list filter) =>
+		this.copy
+		{
+			"_filter": this._filter != null ? this._filter.appendIm(filter) : [ filter ]
+		}
+	;
+	
+	
+	
+	/**
+	 * Add filter
+	 */
+	QueryBuilder addFilter(list filter) => this.appendFilter(filter);
+	
+	
+	
+	/**
+	 * Inner join
+	 */
+	QueryBuilder innerJoin(string table_name, string alias_name, string where)
+	{
+		Dict join =
+		{
+			"kind": "inner",
+			"table_name": table_name,
+			"alias_name": alias_name,
+			"where": where,
+		};
+		return this.copy
+		{
+			"_join": this._join != null ? this._join.pushIm(join) : [ join ]
+		}
+	}
+	
+	
+	
+	/**
+	 * Left join
+	 */
+	QueryBuilder leftJoin(string table_name, string alias_name, string where)
+	{
+		Dict join =
+		{
+			"kind": "left",
+			"table_name": table_name,
+			"alias_name": alias_name,
+			"where": where,
+		};
+		return this.copy
+		{
+			"_join": this._join != null ? this._join.pushIm(join) : [ join ]
+		}
+	}
+	
+	
+	
+	/**
 	 * From database
 	 */
 	Dict fromDatabase(Dict item)
@@ -210,11 +282,11 @@ struct QueryBuilder extends BaseStruct
 	/**
 	 * Get connection
 	 */
-	async Connection connect(Dict settings = null)
+	async Connection connect(Dict db_settings = null)
 	{
-		string driver_name = settings["driver"] |> default string classof ORMDriver;
+		string driver_name = db_settings["driver"] |> default string classof ORMDriver;
 		ORMDriver orm = @.getDriver(driver_name);
-		Connection conn = await orm.connect(settings);
+		Connection conn = await orm.connect(db_settings);
 		return conn;
 	}
 	
@@ -223,10 +295,10 @@ struct QueryBuilder extends BaseStruct
 	/**
 	 * Execute query
 	 */
-	async Cursor execute(Dict settings = null)
+	async Cursor execute(Dict db_settings = null)
 	{
-		Connection conn = await this.connect(settings);
-		Cursor cursor = await conn.execute(this, settings);
+		Connection conn = await this.connect(db_settings);
+		Cursor cursor = await conn.execute(this, db_settings);
 		return cursor;
 	}
 	
@@ -235,9 +307,9 @@ struct QueryBuilder extends BaseStruct
 	/**
 	 * Fetch one
 	 */
-	async Dict one(Dict settings = null)
+	async Dict one(Dict db_settings = null)
 	{
-		Cursor cursor = await this.execute(settings);
+		Cursor cursor = await this.execute(db_settings);
 		Dict item = await cursor.fetchOne();
 		await cursor.close();
 		
@@ -251,9 +323,9 @@ struct QueryBuilder extends BaseStruct
 	/**
 	 * Fetch all
 	 */
-	async Dict all(Dict settings = null)
+	async Dict all(Dict db_settings = null)
 	{
-		Cursor cursor = await this.execute(settings);
+		Cursor cursor = await this.execute(db_settings);
 		Collection<Dict> items = await cursor.fetchAll();
 		await cursor.close();
 		

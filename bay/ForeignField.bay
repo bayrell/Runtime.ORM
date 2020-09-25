@@ -27,4 +27,6 @@ struct ForeignKey extends BaseStruct
 	Collection<Dict> keys = null;
 	Collection<Dict> options = null;
 	Collection<Dict> many_to_many = null;
+	Collection<Dict> old_values = null;
+	Collection<Dict> new_values = null;
 }

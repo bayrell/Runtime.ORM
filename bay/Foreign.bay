@@ -94,7 +94,7 @@ struct Foreign extends BaseStruct
 	 */
 	static async Foreign loadOptions
 	(
-		Foreign foreign, string class_name, string field_name,
+		Foreign foreign, string field_name, string class_name,
 		Dict db_settings = null
 	)
 	{
@@ -119,7 +119,7 @@ struct Foreign extends BaseStruct
 	 */
 	pure Foreign addItem
 	(
-		Foreign foreign, Record item, string class_name, string field_name, string key_name
+		Foreign foreign, Record item, string field_name, string class_name, string key_name
 	)
 	{
 		ForeignKey foreign_key = static::getForeignKey(class_name, key_name);
@@ -147,7 +147,7 @@ struct Foreign extends BaseStruct
 	 */
 	pure Foreign loadManyToMany
 	(
-		Foreign foreign, string class_name, string field_name, string key_name,
+		Foreign foreign, string field_name, string class_name, string key_name,
 		Dict db_settings = null
 	)
 	{
@@ -199,7 +199,7 @@ struct Foreign extends BaseStruct
 	 */
 	pure Dict processManyToMany
 	(
-		Foreign foreign, Dict item, string class_name, string field_name, string key_name,
+		Foreign foreign, Dict item, string field_name, string class_name, string key_name,
 		Dict db_settings = null
 	)
 	{
@@ -225,7 +225,7 @@ struct Foreign extends BaseStruct
 	pure Foreign saveManyToMany
 	(
 		Foreign foreign, Dict item, Collection new_values,
-		string class_name, string field_name, string key_name,
+		string field_name, string class_name, string key_name,
 		Dict db_settings = null
 	)
 	{
@@ -257,24 +257,31 @@ struct Foreign extends BaseStruct
 		fn change = rtl::method(class_name, "change");
 		fn getDiffCoreTypes = rtl::method(class_name, "getDiffCoreTypes");
 		fn getPrimaryKey = rtl::method(class_name, "getPrimaryKey");
+		fn toDatabase = rtl::method(class_name, "toDatabase");
 		fn delete = rtl::method(class_name, "delete");
 		fn save = rtl::method(class_name, "save");
 		fn select = rtl::method(class_name, "select");
 		fn update = rtl::method(class_name, "update");
 		
 		/* Get many to many items */
-		Collection<Record> many_to_many =
+		Collection<Record> old_values =
 			select()
 			|> .filter(filter)
 			|> await .all(db_settings)
 		;
+		
+		/* Add old values */
+		foreign <= fields <= { field_name } <= "old_values" <= old_values;
 		
 		/* Update keys */
 		for (int j=0; j<new_values.count(); j++)
 		{
 			Dict new_value = new_values[j].toDict();
 			Dict new_value_key = new_value.intersect(class_primary_key.keys);
-			int index = many_to_many.find( lib::equalAttrs( new_value_key ) );
+			int index = old_values.find( lib::equalAttrs( new_value_key ) );
+			
+			/* Convert to database */
+			new_value = toDatabase(new_value);
 			
 			if (index == -1)
 			{
@@ -282,18 +289,18 @@ struct Foreign extends BaseStruct
 			}
 			else
 			{
-				Record new_item = many_to_many[index];
-				Dict new_item_pk = getPrimaryKey(new_item);
-				Dict diff = getDiffCoreTypes(new_item, new_value);
+				Record old_item = old_values[index].toDict();
+				Dict old_item_pk = getPrimaryKey(old_item);
+				Dict diff = getDiffCoreTypes(old_item, new_value);
 				diff = diff.removeKeys( class_primary_key.keys );
-				await update(new_item_pk, diff, db_settings);
+				await update(old_item_pk, diff, db_settings);
 			}
 		}
 		
 		/* Remove keys */
-		for (int j=0; j<many_to_many.count(); j++)
+		for (int j=0; j<old_values.count(); j++)
 		{
-			Dict old_item = many_to_many[j].toDict();
+			Dict old_item = old_values[j].toDict();
 			Dict old_item_key = old_item.intersect(class_primary_key.keys);
 			int index = new_values.find( lib::equalAttrs( old_item_key ) );
 			if (index == -1)
@@ -301,6 +308,9 @@ struct Foreign extends BaseStruct
 				await delete(old_item_key, db_settings);
 			}
 		}
+		
+		/* Add new values */
+		foreign <= fields <= { field_name } <= "new_values" <= new_values;
 		
 		return foreign;
 	}
