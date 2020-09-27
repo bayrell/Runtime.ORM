@@ -51,6 +51,7 @@ struct Record extends BaseStruct
 	 * Returns table name
 	 */
 	pure string table_name() => "";
+	pure string getTableName() => static::table_name();
 	
 	
 	
