@@ -524,10 +524,9 @@ struct Record extends BaseStruct
 		}
 		
 		/* Find created item */
-		new_item = await static::findItemByKey(new_pk, db_settings);
+		Record res = await static::findItemByKey(new_pk, db_settings);
 		
-		if (new_item != null) item = new_item;
-		return item;
+		return res;
 	}
 	
 	
