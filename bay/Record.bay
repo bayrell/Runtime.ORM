@@ -105,6 +105,7 @@ struct Record extends BaseStruct
 		QueryBuilder q = new QueryBuilder()
 			|> .select(table_name)
 			|> .orm(static::getCurrentClassName())
+			|> .asRecord(true)
 		;
 		return q;
 	}
