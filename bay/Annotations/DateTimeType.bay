@@ -19,26 +19,31 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
+use Runtime.ORM.Annotations.CoreType;
 use Runtime.ORM.ConnectionInterface as Connection;
 
 
-struct CoreType extends BaseStruct
+struct DateTimeType extends CoreType
 {
-	var default = "";
-	string comment = "";
-	bool nullable = false;
-	
 	
 	/**
 	 * Process item from database
 	 */
-	static async var fromDatabase(CoreType type, Connection conn, Dict item, string field_name) => item;
+	static async var fromDatabase(CoreType type, Connection conn, Dict item, string field_name)
+	{
+		item <= field_name <= await conn.fromDatabase("datetime", item[field_name]);
+		return item;
+	}
 	
 	
 	
 	/**
 	 * Process item to database
 	 */
-	static async var toDatabase(CoreType type, Connection conn, Dict item, string field_name) => item;
+	static async var toDatabase(CoreType type, Connection conn, Dict item, string field_name)
+	{
+		item <= field_name <= await conn.toDatabase("datetime", item[field_name]);
+		return item;
+	}
 	
 }

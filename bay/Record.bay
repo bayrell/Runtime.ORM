@@ -245,7 +245,7 @@ struct Record extends BaseStruct
 	/**
 	 * Process item from database
 	 */
-	static async Dict fromDatabase(Dict item)
+	static async Dict fromDatabase(Connection conn, Dict item)
 	{
 		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
 		Collection fields = info.fields.keys();
@@ -257,7 +257,7 @@ struct Record extends BaseStruct
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
-				item = core_type::fromDatabase(core_type, item, field_api_name);
+				item = core_type::fromDatabase(core_type, conn, item, field_api_name);
 			}
 		}
 		return item;
@@ -268,7 +268,7 @@ struct Record extends BaseStruct
 	/**
 	 * Process item to database
 	 */
-	static async Dict toDatabase(Dict item)
+	static async Dict toDatabase(Connection conn, Dict item)
 	{
 		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
 		Collection fields = info.fields.keys();
@@ -280,7 +280,7 @@ struct Record extends BaseStruct
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
-				item = core_type::toDatabase(core_type, item, field_api_name);
+				item = core_type::toDatabase(core_type, conn, item, field_api_name);
 			}
 		}
 		return item;
@@ -399,6 +399,9 @@ struct Record extends BaseStruct
 			}
 		}
 		
+		/* Convert to database */
+		update = static::toDatabase(conn, update);
+		
 		/* Create query */
 		int last_id = null;
 		Cursor cursor = await conn.insert(table_name, update, db_settings);
@@ -479,6 +482,9 @@ struct Record extends BaseStruct
 				Connection conn = await static::connect(db_settings);
 				string table_name = static::table_name();
 				
+				/* Convert to database */
+				update = static::toDatabase(conn, update);
+				
 				/* Update query */
 				Cursor cursor = await conn.update(table_name, filter, update, db_settings);
 				await cursor.close();
@@ -504,9 +510,6 @@ struct Record extends BaseStruct
 			old_item = await static::findItemByKey(new_pk, db_settings);
 			if (old_item != null) old_pk = static::getPrimaryKey(old_item);
 		}
-		
-		/* Convert to database */
-		new_item = static::toDatabase(new_item);
 		
 		/* Get diff */
 		Dict update = static::getDiffCoreTypes(old_item, new_item);

@@ -256,13 +256,13 @@ struct QueryBuilder extends BaseStruct
 	/**
 	 * From database
 	 */
-	Dict fromDatabase(Dict item)
+	Dict fromDatabase(Connection conn, Dict item)
 	{
 		/* From database */
 		if (this._orm_class_name != "")
 		{
 			fn fromDatabase = rtl::method(this._orm_class_name, "fromDatabase");
-			item = await fromDatabase(item);
+			item = await fromDatabase(conn, item);
 		}
 		
 		/* Convert to record */
@@ -313,7 +313,7 @@ struct QueryBuilder extends BaseStruct
 		Dict item = await cursor.fetchOne();
 		await cursor.close();
 		
-		if (item != null) item = this.fromDatabase(item);
+		if (item != null) item = this.fromDatabase(cursor.getConnection(), item);
 		
 		return item;
 	}
@@ -329,7 +329,10 @@ struct QueryBuilder extends BaseStruct
 		Collection<Dict> items = await cursor.fetchAll();
 		await cursor.close();
 		
-		items = items.map( method this.fromDatabase );
+		items = items.map
+		(
+			Dict (Dict item) use (cursor) => this.fromDatabase(cursor.getConnection(), item)
+		);
 		
 		return items;
 	}
