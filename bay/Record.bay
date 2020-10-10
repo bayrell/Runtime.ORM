@@ -253,11 +253,14 @@ struct Record extends BaseStruct
 		{
 			string field_api_name = fields[i];
 			Collection annotations = info.fields[field_api_name];
-			
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
 				item = core_type::fromDatabase(core_type, conn, item, field_api_name);
+			}
+			else
+			{
+				item = item.removeIm(field_api_name);
 			}
 		}
 		return item;
@@ -276,11 +279,14 @@ struct Record extends BaseStruct
 		{
 			string field_api_name = fields[i];
 			Collection annotations = info.fields[field_api_name];
-			
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
 				item = core_type::toDatabase(core_type, conn, item, field_api_name);
+			}
+			else
+			{
+				item = item.removeIm(field_api_name);
 			}
 		}
 		return item;
@@ -499,7 +505,7 @@ struct Record extends BaseStruct
 	 */
 	static async Record save(Record item, Dict db_settings = null)
 	{
-		Dict old_item = (item instanceof Record) ? item._old_item : null;
+		Dict old_item = (item instanceof Record and item._old_item != null) ? item._old_item.convertToDict() : null;
 		Dict new_item = (item instanceof Record) ? item.convertToDict() : item;
 		Dict old_pk = (old_item != null) ? static::getPrimaryKey(old_item) : null;
 		Dict new_pk = static::getPrimaryKey(new_item);

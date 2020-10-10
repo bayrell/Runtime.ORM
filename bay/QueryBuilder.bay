@@ -269,9 +269,8 @@ struct QueryBuilder extends BaseStruct
 		if (this._orm_class_name != "" and this._as_record)
 		{
 			fn newInstance = rtl::method(this._orm_class_name, "newInstance");
-			Dict prev_item = item;
 			item = newInstance(item);
-			item <= _old_item <= prev_item;
+			item <= _old_item <= item;
 		}
 		
 		return item;

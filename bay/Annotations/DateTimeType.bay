@@ -31,7 +31,7 @@ struct DateTimeType extends CoreType
 	 */
 	static async var fromDatabase(CoreType type, Connection conn, Dict item, string field_name)
 	{
-		item <= field_name <= await conn.fromDatabase("datetime", item[field_name]);
+		item <= { field_name } <= await conn.fromDatabase("datetime", item[field_name]);
 		return item;
 	}
 	
@@ -42,7 +42,7 @@ struct DateTimeType extends CoreType
 	 */
 	static async var toDatabase(CoreType type, Connection conn, Dict item, string field_name)
 	{
-		item <= field_name <= await conn.toDatabase("datetime", item[field_name]);
+		item <= { field_name } <= await conn.toDatabase("datetime", item[field_name]);
 		return item;
 	}
 	
