@@ -22,6 +22,7 @@ use Runtime.BaseStruct;
 use Runtime.ORM.ConnectionInterface as Connection;
 use Runtime.ORM.CursorInterface as Cursor;
 use Runtime.ORM.DriverInterface as ORMDriver;
+use Runtime.ORM.Record;
 
 
 struct QueryBuilder extends BaseStruct
@@ -44,6 +45,7 @@ struct QueryBuilder extends BaseStruct
 	int _limit = -1;
 	bool _as_record = true;
 	bool _found_rows = false;
+	bool _log = false;
 	
 	
 	/**
@@ -64,6 +66,30 @@ struct QueryBuilder extends BaseStruct
 		this.copy
 		{
 			"_as_record": value,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set alias
+	 */
+	QueryBuilder alias(string alias_name) =>
+		this.copy
+		{
+			"_table_name_alias": alias_name,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set debug log
+	 */
+	QueryBuilder debug(bool value) =>
+		this.copy
+		{
+			"_log": value,
 		}
 	;
 	
@@ -269,8 +295,9 @@ struct QueryBuilder extends BaseStruct
 		if (this._orm_class_name != "" and this._as_record)
 		{
 			fn newInstance = rtl::method(this._orm_class_name, "newInstance");
-			item = newInstance(item);
-			item <= _old_item <= item;
+			Record new_item = newInstance(item);
+			new_item <= _old_item <= item;
+			return new_item;
 		}
 		
 		return item;

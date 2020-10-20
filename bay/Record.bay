@@ -43,8 +43,8 @@ struct Record extends BaseStruct
 	static const string RESTRICT = "RESTRICT";
 	static const string NO_ACTION = "NO_ACTION";
 	
-	
-	Record _old_item = null;
+	/* Old item */
+	Dict _old_item = null;
 	
 	
 	/**
@@ -193,9 +193,9 @@ struct Record extends BaseStruct
 	/**
 	 * Returns item by primary key
 	 */
-	static async Record findItemByKey(Dict item, Dict db_settings = null)
+	static async Record findItemByKey(Dict pk, Dict db_settings = null)
 	{
-		Collection<list> filter = static::getFilterByPrimaryKey(item);
+		Collection<list> filter = static::getFilterByPrimaryKey(pk);
 		if (filter == null) return null;
 		
 		/* Execute query */
@@ -208,6 +208,10 @@ struct Record extends BaseStruct
 		
 		return res;
 	}
+	static async Record getByKey(Dict pk, Dict db_settings = null) =>
+		await static::findItemByKey(pk, db_settings);
+	static async Record getByPrimaryKey(Dict pk, Dict db_settings = null) =>
+		await static::findItemByKey(pk, db_settings);
 	
 	
 	
@@ -507,7 +511,7 @@ struct Record extends BaseStruct
 	 */
 	static async Record save(Record item, Dict db_settings = null)
 	{
-		Dict old_item = (item instanceof Record and item._old_item != null) ? item._old_item.convertToDict() : null;
+		Dict old_item = (item instanceof Record and item._old_item != null) ? item._old_item : null;
 		Dict new_item = (item instanceof Record) ? item.convertToDict() : item;
 		Dict old_pk = (old_item != null) ? static::getPrimaryKey(old_item) : null;
 		Dict new_pk = static::getPrimaryKey(new_item);
@@ -569,10 +573,25 @@ struct Record extends BaseStruct
 	/**
 	 * Convert to Dict
 	 */
-	Dict convertToDict()
+	Dict convertToDict(Collection values = null)
 	{
+		Dict old_item = this._old_item;
 		Dict item = this.toDict();
 		item = item.removeIm("_old_item");
+		
+		if (values != null)
+		{
+			item = item.intersect(values);
+			for (int i=0; i<values.count(); i++)
+			{
+				string field_name = values[i];
+				if (not item.has(field_name) and old_item.has(field_name))
+				{
+					item <= { field_name } <= old_item[field_name];
+				}
+			}
+		}
+		
 		return RuntimeUtils::ObjectToPrimitive(item, false);
 	}
 	
