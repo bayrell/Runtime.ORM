@@ -99,11 +99,11 @@ struct Record extends BaseStruct
 	/**
 	 * Select
 	 */
-	pure QueryBuilder select()
+	pure QueryBuilder select(string alias_name = "")
 	{
 		string table_name = static::table_name();
 		QueryBuilder q = new QueryBuilder()
-			|> .select(table_name)
+			|> .select(table_name, alias_name)
 			|> .orm(static::getCurrentClassName())
 			|> .asRecord(true)
 		;
