@@ -44,8 +44,21 @@ struct QueryBuilder extends BaseStruct
 	int _start = -1;
 	int _limit = -1;
 	bool _as_record = true;
-	bool _found_rows = false;
+	bool _calc_found_rows = false;
 	bool _log = false;
+	
+	
+	
+	/**
+	 * Calc found rows
+	 */
+	QueryBuilder calcFoundRows(bool value = true) =>
+		this.copy
+		{
+			"_calc_found_rows": value,
+		}
+	;
+	
 	
 	
 	/**
