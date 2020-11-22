@@ -353,7 +353,7 @@ struct Record extends BaseStruct
 				var new_value = new_item[field_api_name];
 				if (old_value != new_value)
 				{
-					diff.set(field_api_name, new_value);
+					diff.setValue(field_api_name, new_value);
 				}
 			}
 		}
