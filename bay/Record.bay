@@ -79,20 +79,10 @@ struct Record extends BaseStruct
 	 * Returns field's annotations
 	 */
 	static Collection<BaseStruct> getFieldAnnotations(string field_name)
-	{
-		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
-		Collection fields = info.fields.keys();
-		for (int i=0; i<fields.count(); i++)
-		{
-			string field_api_name = fields[i];
-			if (field_api_name == field_name)
-			{
-				Collection annotations = info.fields[field_api_name];
-				return annotations;
-			}
-		}
-		return null;
-	}
+		=> rtl::getFieldsAnnotationsWithParents(static::getCurrentClassName())
+		|> attr field_name
+		|> default Collection []
+	;
 	
 	
 	
@@ -251,13 +241,12 @@ struct Record extends BaseStruct
 	 */
 	static async Dict fromDatabase(Connection conn, Dict item)
 	{
-		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
-		Collection fields = info.fields.keys();
-		for (int i=0; i<fields.count(); i++)
+		Dict fields = rtl::getFieldsAnnotationsWithParents(static::getCurrentClassName())
+		Collection fields_arr = fields.keys();
+		for (int i=0; i<fields_arr.count(); i++)
 		{
-			string field_api_name = fields[i];
-			if (not item.has(field_api_name)) continue;
-			Collection annotations = info.fields[field_api_name];
+			string field_api_name = fields_arr[i];
+			Collection annotations = fields[field_api_name];
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
@@ -278,13 +267,13 @@ struct Record extends BaseStruct
 	 */
 	static async Dict toDatabase(Connection conn, Dict item)
 	{
-		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
-		Collection fields = info.fields.keys();
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
+		Collection fields = info.keys();
 		for (int i=0; i<fields.count(); i++)
 		{
 			string field_api_name = fields[i];
 			if (not item.has(field_api_name)) continue;
-			Collection annotations = info.fields[field_api_name];
+			Collection annotations = info[field_api_name];
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
@@ -307,12 +296,12 @@ struct Record extends BaseStruct
 	{
 		if (update.has("_old_item")) update = update.removeIm("_old_item");
 		
-		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
-		Collection fields = info.fields.keys();
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
+		Collection fields = info.keys();
 		for (int i=0; i<fields.count(); i++)
 		{
 			string field_api_name = fields[i];
-			Collection annotations = info.fields[field_api_name];
+			Collection annotations = info[field_api_name];
 			if (not update.has(field_api_name))
 			{
 				continue;
@@ -338,13 +327,13 @@ struct Record extends BaseStruct
 	static Dict getDiffCoreTypes(Dict old_item, Dict new_item)
 	{
 		Map diff = new Map();
-		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
 		
-		Collection fields = info.fields.keys();
+		Collection fields = info.keys();
 		for (int i=0; i<fields.count(); i++)
 		{
 			string field_api_name = fields[i];
-			Collection annotations = info.fields[field_api_name];
+			Collection annotations = info[field_api_name];
 			
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
@@ -369,7 +358,7 @@ struct Record extends BaseStruct
 	static async Record create(Dict update, Dict db_settings = null)
 	{
 		Record item = null;
-		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
 		bool has_auto_increment = false;
 		
 		/* Connect to database */
@@ -377,12 +366,12 @@ struct Record extends BaseStruct
 		string table_name = static::table_name();
 		
 		/* Remove virtual keys */
-		Collection fields = info.fields.keys();
+		Collection fields = info.keys();
 		for (int i=0; i<fields.count(); i++)
 		{
 			string field_api_name = fields[i];
 			var value = update[field_api_name];
-			Collection annotations = info.fields[field_api_name];
+			Collection annotations = info[field_api_name];
 			
 			/* Remove if not CoreType */
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
@@ -405,7 +394,7 @@ struct Record extends BaseStruct
 		for (int i=0; i<update_keys.count(); i++)
 		{
 			string field_api_name = update_keys[i];
-			if (not info.fields.has(field_api_name))
+			if (not info.has(field_api_name))
 			{
 				update = update.removeIm(field_api_name);
 			}
@@ -429,12 +418,12 @@ struct Record extends BaseStruct
 		/* Add auto increment key */
 		if (has_auto_increment)
 		{
-			Collection fields = info.fields.keys();
+			Collection fields = info.keys();
 			for (int i=0; i<fields.count(); i++)
 			{
 				string field_api_name = fields[i];
 				var value = update[field_api_name];
-				Collection annotations = info.fields[field_api_name];
+				Collection annotations = info[field_api_name];
 				
 				/* Remove if not CoreType */
 				CoreType auto_type = annotations.findItem( lib::isInstance(classof AutoIncrement) );
@@ -455,15 +444,15 @@ struct Record extends BaseStruct
 	 */
 	static async void update(Dict old_pk, Dict update, Dict db_settings = null)
 	{
-		IntrospectionClass info = RuntimeUtils::getClassIntrospectionWithParents( static::getCurrentClassName() );
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
 		
 		/* Remove virtual keys */
-		Collection fields = info.fields.keys();
+		Collection fields = info.keys();
 		for (int i=0; i<fields.count(); i++)
 		{
 			string field_api_name = fields[i];
 			var value = update[field_api_name];
-			Collection annotations = info.fields[field_api_name];
+			Collection annotations = info[field_api_name];
 			
 			/* Remove if not CoreType */
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
@@ -478,7 +467,7 @@ struct Record extends BaseStruct
 		for (int i=0; i<update_keys.count(); i++)
 		{
 			string field_api_name = update_keys[i];
-			if (not info.fields.has(field_api_name))
+			if (not info.has(field_api_name))
 			{
 				update = update.removeIm(field_api_name);
 			}
