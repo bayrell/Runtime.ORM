@@ -25,13 +25,15 @@ use Runtime.ORM.ConnectionInterface as Connection;
 
 struct DateType extends CoreType
 {
+	string tz = "UTC";
+	
 	
 	/**
 	 * Process item from database
 	 */
-	static async var fromDatabase(CoreType type, Connection conn, Dict item, string field_name)
+	async var fromDatabase(Connection conn, Dict item, string field_name)
 	{
-		item <= { field_name } <= await conn.fromDatabase("date", item[field_name]);
+		item <= { field_name } <= await conn.fromDatabase("date", item[field_name], this);
 		return item;
 	}
 	
@@ -40,9 +42,9 @@ struct DateType extends CoreType
 	/**
 	 * Process item to database
 	 */
-	static async var toDatabase(CoreType type, Connection conn, Dict item, string field_name)
+	async var toDatabase(Connection conn, Dict item, string field_name)
 	{
-		item <= { field_name } <= await conn.toDatabase("date", item[field_name]);
+		item <= { field_name } <= await conn.toDatabase("date", item[field_name], this);
 		return item;
 	}
 	

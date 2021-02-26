@@ -29,9 +29,9 @@ struct BooleanType extends CoreType
 	/**
 	 * Process item from database
 	 */
-	static async var fromDatabase(CoreType type, Connection conn, Dict item, string field_name)
+	async var fromDatabase(Connection conn, Dict item, string field_name)
 	{
-		item <= { field_name } <= await conn.fromDatabase("bool", item[field_name]);
+		item <= { field_name } <= await conn.fromDatabase("bool", item[field_name], this);
 		return item;
 	}
 	
@@ -40,9 +40,9 @@ struct BooleanType extends CoreType
 	/**
 	 * Process item to database
 	 */
-	static async var toDatabase(CoreType type, Connection conn, Dict item, string field_name)
+	async var toDatabase(Connection conn, Dict item, string field_name)
 	{
-		item <= { field_name } <= await conn.toDatabase("bool", item[field_name]);
+		item <= { field_name } <= await conn.toDatabase("bool", item[field_name], this);
 		return item;
 	}
 	

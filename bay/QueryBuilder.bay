@@ -354,7 +354,7 @@ struct QueryBuilder extends BaseStruct
 	async Cursor execute(Dict db_settings = null)
 	{
 		Connection conn = await this.connect(db_settings);
-		Cursor cursor = await conn.execute(this, db_settings);
+		Cursor cursor = await conn.executeQueryBuilder(this, db_settings);
 		return cursor;
 	}
 	
@@ -393,4 +393,28 @@ struct QueryBuilder extends BaseStruct
 		return items;
 	}
 	
+	
+	
+	/**
+	 * Returns sql
+	 */
+	async Cursor getSQL(Dict db_settings = null)
+	{
+		Connection conn = await this.connect(db_settings);
+		
+		list res = conn.getQueryBuilderSQL(this);
+		
+		string sql = res[0];
+		sql = rs::replace("${prefix}", conn.settings.prefix, sql);
+		
+		Dict params = res[1];
+		Collection keys = params.keys();
+		for (int i=0; i<keys.count(); i++)
+		{
+			string key = keys[i];
+			sql = rs::replace(":" ~ key, "'" ~ params[key] ~ "'", sql);
+		}
+		
+		return sql;
+	}
 }

@@ -250,7 +250,7 @@ struct Record extends BaseStruct
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
-				item = core_type::fromDatabase(core_type, conn, item, field_api_name);
+				item = core_type.fromDatabase(conn, item, field_api_name);
 			}
 			else
 			{
@@ -277,7 +277,7 @@ struct Record extends BaseStruct
 			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
 			if (core_type != null)
 			{
-				item = core_type::toDatabase(core_type, conn, item, field_api_name);
+				item = core_type.toDatabase(conn, item, field_api_name);
 			}
 			else
 			{
