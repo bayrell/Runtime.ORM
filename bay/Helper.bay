@@ -21,6 +21,7 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseDriver;
 use Runtime.Context;
+use Runtime.Driver;
 use Runtime.LambdaChain;
 use Runtime.LambdaChainClass;
 use Runtime.ORM.Annotations.Record;
@@ -31,7 +32,8 @@ use Runtime.ORM.StructBuilder;
 
 
 @LambdaChainClass{}
-class Driver extends BaseDriver
+@Driver{ "name": "Runtime.ORM.Helper" }
+class Helper extends BaseDriver
 {
 	public Dict<StructBuilder> tables = {};
 	

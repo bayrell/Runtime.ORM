@@ -18,46 +18,10 @@
 
 namespace Runtime.ORM;
 
-use Runtime.Entity;
 
-
-class ModuleDescription
+struct QueryFilter extends BaseStruct
 {
-	
-	
-	/**
-	 * Returns module name
-	 * @return string
-	 */
-	pure string getModuleName() => "Runtime.ORM";
-	
-	
-	
-	/**
-	 * Returns module name
-	 * @return string
-	 */
-	pure string getModuleVersion() => "0.8.0";
-	
-	
-	
-	/**
-	 * Returns required modules
-	 * @return Map<string, string>
-	 */
-	pure Map<string> requiredModules() =>
-	{
-		'Runtime': '*',
-	};
-	
-	
-	
-	/**
-	 * Returns enities
-	 */
-	pure Collection<Dict> entities() => 
-	[
-		new Entity{ "name": "Runtime.ORM.Helper" },
-	];
-	
+	string field_name = "";
+	string op = "=";
+	primitive value = null;	
 }

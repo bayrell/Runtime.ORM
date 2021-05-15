@@ -1,0 +1,696 @@
+/*!
+ *  Bayrell Runtime Library
+ *
+ *  (c) Copyright 2016-2021 "Ildar Bikmamatov" <support@bayrell.org>
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+namespace Runtime.ORM;
+
+use Runtime.lib;
+use Runtime.BaseStruct;
+use Runtime.ORM.Annotations.Primary;
+use Runtime.ORM.ConnectionInterface as Connection;
+use Runtime.ORM.CursorInterface as Cursor;
+use Runtime.ORM.DriverInterface as ORMDriver;
+use Runtime.ORM.Helper;
+use Runtime.ORM.QueryFilter;
+use Runtime.ORM.StructBuilder;
+
+
+struct Query extends BaseStruct
+{
+	static const string QUERY_RAW = "raw";
+	static const string QUERY_SELECT = "select";
+	static const string QUERY_INSERT = "insert";
+	static const string QUERY_UPDATE = "update";
+	static const string QUERY_DELETE = "delete";
+	static const string QUERY_INSERT_OR_UPDATE = "insert_or_update";
+	static const string BUILD_TABLE_STRUCT_CHAIN = "Runtime.ORM.BuildStruct";
+	
+	string _orm_class_name = "";
+	string _kind = "";
+	string _table_name = "";
+	string _table_name_alias = "";
+	Collection<string> _fields = null;
+	Collection<Dict> _join = null;
+	Collection<Collection<string>> _order = null;
+	Collection<QueryFilter> _filter = null;
+	int _start = -1;
+	int _limit = -1;
+	bool _as_record = true;
+	bool _calc_found_rows = false;
+	bool _log = false;
+	string _sql = "";
+	Dict _params = {};
+	
+	
+	
+	/**
+	 * Calc found rows
+	 */
+	Query raw(string sql, Dict params) =>
+		this.copy
+		{
+			"_kind": static::QUERY_RAW,
+			"_sql": sql,
+			"_params": params,
+		}
+	;
+	
+	
+	
+	/**
+	 * Calc found rows
+	 */
+	Query calcFoundRows(bool value = true) =>
+		this.copy
+		{
+			"_calc_found_rows": value,
+		}
+	;
+	
+	
+	
+	/**
+	 * Select query
+	 */
+	Query orm(string class_name) =>
+		this.copy
+		{
+			"_orm_class_name": class_name,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set alias
+	 */
+	Query alias(string alias_name) =>
+		this.copy
+		{
+			"_table_name_alias": alias_name,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set debug log
+	 */
+	Query debug(bool value) =>
+		this.copy
+		{
+			"_log": value,
+		}
+	;
+	
+	
+	
+	/**
+	 * Select query
+	 */
+	Query select(string table_name, string alias_name = "") =>
+		this.copy
+		{
+			"_kind": static::QUERY_SELECT,
+			"_fields": ["*"],
+			"_table_name": table_name,
+			"_table_name_alias": alias_name,
+		}
+	;
+	
+	
+	
+	/**
+	 * Select records
+	 */
+	Query selectRecords(string object_name, string alias_name = "")
+	{
+		Helper helper = @.getDriver(classof Helper);
+		StructBuilder builder = helper.tables.get(object_name);
+		
+		return this.copy
+		{
+			"_kind": static::QUERY_SELECT,
+			"_fields": ["*"],
+			"_table_name": (builder != null) ? builder.table_name : "",
+			"_orm_class_name": object_name,
+			"_table_name_alias": alias_name,
+		}
+	}
+	
+	
+	
+	/**
+	 * Set fields
+	 */
+	Query fields(Collection fields) =>
+		this.copy
+		{
+			"_fields": fields,
+		}
+	;
+	
+	
+	
+	/**
+	 * Add page
+	 */
+	Query page(int page, int limit) =>
+		this.copy
+		{
+			"_start": page * limit,
+			"_limit": limit,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set offset
+	 */
+	Query offset(int start, int limit) =>
+		this.copy
+		{
+			"_start": start,
+			"_limit": limit,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set start
+	 */
+	Query start(int start) =>
+		this.copy
+		{
+			"_start": start,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set limit
+	 */
+	Query limit(int limit) =>
+		this.copy
+		{
+			"_limit": limit,
+		}
+	;
+	
+	
+	
+	/**
+	 * Set order
+	 */
+	Query order(Collection<Collection<string>> order) =>
+		this.copy
+		{
+			"_order": order,
+		}
+	;
+	
+	
+	
+	/**
+	 * Add order
+	 */
+	Query addOrder(string field_name, string order) =>
+		this.copy
+		{
+			"_order": this._order != null ? this._order.pushIm([field_name, order]) : [ [field_name, order] ]
+		}
+	;
+	
+	
+	
+	/**
+	 * Add filter
+	 */
+	Query setFilter(Collection<QueryFilter> filter) =>
+		this.copy
+		{
+			"_filter": filter,
+		}
+	;
+	
+	
+	
+	/**
+	 * Add filter
+	 */
+	Query prependFilter(QueryFilter filter) =>
+		this.copy
+		{
+			"_filter": this._filter != null ? this._filter.prependIm(filter) : [ filter ]
+		}
+	;
+	
+	
+	
+	/**
+	 * Add filter
+	 */
+	Query appendFilter(QueryFilter filter) =>
+		this.copy
+		{
+			"_filter": this._filter != null ? this._filter.appendIm(filter) : [ filter ]
+		}
+	;
+	
+	
+	
+	/**
+	 * Add filter
+	 */
+	Query addFilter(QueryFilter filter) => this.appendFilter(filter);
+	
+	
+	
+	/**
+	 * Add filter
+	 */
+	pure QueryFilter filter(string field_name, string op, primitive value) =>
+		new QueryFilter
+		{
+			"field_name": field_name,
+			"op": op,
+			"value": value,
+		}
+	;
+	
+	
+	
+	/**
+	 * Inner join
+	 */
+	Query innerJoin(string table_name, string alias_name, string where)
+	{
+		Dict join =
+		{
+			"kind": "inner",
+			"table_name": table_name,
+			"alias_name": alias_name,
+			"where": where,
+		};
+		return this.copy
+		{
+			"_join": this._join != null ? this._join.pushIm(join) : [ join ]
+		}
+	}
+	
+	
+	
+	/**
+	 * Left join
+	 */
+	Query leftJoin(string table_name, string alias_name, string where)
+	{
+		Dict join =
+		{
+			"kind": "left",
+			"table_name": table_name,
+			"alias_name": alias_name,
+			"where": where,
+		};
+		return this.copy
+		{
+			"_join": this._join != null ? this._join.pushIm(join) : [ join ]
+		}
+	}
+	
+	
+	
+	/**
+	 * Get connection
+	 */
+	async Connection connect(Dict db_settings = null)
+	{
+		string driver_name = db_settings["driver"] |> default string classof ORMDriver;
+		ORMDriver orm = @.getDriver(driver_name);
+		Connection conn = await orm.connect(db_settings);
+		return conn;
+	}
+	
+	
+	
+	/**
+	 * Execute query
+	 */
+	async Cursor execute(Dict db_settings = null)
+	{
+		Connection conn = await this.connect(db_settings);
+		Cursor cursor = await conn.executeQuery(this, db_settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Fetch one
+	 */
+	async Dict one(Dict db_settings = null)
+	{
+		Cursor cursor = await this.execute(db_settings);
+		Dict item = await cursor.fetchOne();
+		await cursor.close();
+		
+		if (item != null) item = this.fromDatabase(cursor.getConnection(), item);
+		
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Fetch all
+	 */
+	async Dict all(Dict db_settings = null)
+	{
+		Cursor cursor = await this.execute(db_settings);
+		Collection<Dict> items = await cursor.fetchAll();
+		await cursor.close();
+		
+		items = items.map
+		(
+			Dict (Dict item) use (cursor) => this.fromDatabase(cursor.getConnection(), item)
+		);
+		
+		return items;
+	}
+	
+	
+	
+	/**
+	 * Returns sql
+	 */
+	async Cursor getSQL(Dict db_settings = null)
+	{
+		Connection conn = await this.connect(db_settings);
+		
+		list res = conn.getQuerySQL(this);
+		
+		string sql = res[0];
+		sql = rs::replace("${prefix}", conn.settings.prefix, sql);
+		
+		Dict params = res[1];
+		Collection keys = params.keys();
+		for (int i=0; i<keys.count(); i++)
+		{
+			string key = keys[i];
+			sql = rs::replace(":" ~ key, "'" ~ params[key] ~ "'", sql);
+		}
+		
+		return sql;
+	}
+	
+	
+	
+	/**
+	 * Insert row
+	 */
+	async Cursor insert(string table_name, Dict row, Dict db_settings)
+	{
+		Connection conn = await this.connect(db_settings);
+		Cursor cursor = await conn.insert(table_name, row, db_settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Update row
+	 */
+	async Cursor update(string table_name, Collection<QueryFilter> filter, Dict row, Dict db_settings)
+	{
+		Connection conn = await this.connect(db_settings);
+		Cursor cursor = await conn.update(table_name, filter, row, db_settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Delete row
+	 */
+	async Cursor delete(string table_name, Collection<QueryFilter> filter, Dict db_settings)
+	{
+		Connection conn = await this.connect(db_settings);
+		Cursor cursor = await conn.delete(table_name, filter, db_settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Change record
+	 */
+	async Dict changeRecord(string object_name, Dict old_item, Dict new_item)
+	{
+		Helper helper = @.getDriver(classof Helper);
+		
+		/* Find builder */
+		StructBuilder builder = helper.tables.get(object_name);
+		if (builder == null)
+		{
+			return null;
+		}
+		
+		return new_item;
+	}
+	
+	
+	
+	/**
+	 * Insert record
+	 */
+	async Cursor insertRecord(string object_name, Dict row, Dict db_settings)
+	{
+		Helper helper = @.getDriver(classof Helper);
+		
+		/* Find builder */
+		StructBuilder builder = helper.tables.get(object_name);
+		if (builder == null)
+		{
+			return null;
+		}
+		
+		/* Filter row */
+		row = static::filterRecord( object_name, row );
+		
+		/* To database */
+		row = static::toDatabase( object_name, row, db_settings );
+		
+		/* Insert row */
+		Cursor cursor = await static::insert(builder.table_name, row, db_settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Update record
+	 */
+	async Cursor updateRecord(string object_name, Dict pk, Dict row, Dict db_settings)
+	{
+		Helper helper = @.getDriver(classof Helper);
+		
+		/* Find builder */
+		StructBuilder builder = helper.tables.get(object_name);
+		if (builder == null)
+		{
+			return null;
+		}
+		
+		/* Get primare key */
+		pk = static::getRecordPrimaryKey(object_name, pk);
+		
+		/* Filter row */
+		row = static::filterRecord( object_name, row );
+		
+		/* To database */
+		pk = static::toDatabase( object_name, pk, db_settings );
+		row = static::toDatabase( object_name, row, db_settings );
+		
+		/* Insert row */
+		Cursor cursor = await static::update(builder.table_name, row, db_settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Delete record
+	 */
+	async Cursor deleteRecord(string object_name, Dict pk, Dict db_settings)
+	{
+		Helper helper = @.getDriver(classof Helper);
+		
+		/* Find builder */
+		StructBuilder builder = helper.tables.get(object_name);
+		if (builder == null)
+		{
+			return null;
+		}
+		
+		/* Get primare key */
+		pk = static::getRecordPrimaryKey(object_name, pk);
+		
+		/* To database */
+		pk = static::toDatabase( object_name, pk, db_settings );
+		
+		/* Delete row */
+		Cursor cursor = await static::delete(builder.table_name, pk, db_settings);
+		return cursor;
+	}
+	
+	
+	
+	/**
+	 * Returns record by id
+	 */
+	static async Dict getById(string object_name, var id, Dict db_settings = null)
+	{
+		Collection<QueryFilter> filter = static::getRecordPrimaryKeyById(object_name, id) |> static::getFilter;
+		if (filter == null) return null;
+		
+		/* Execute query */
+		Dict res = static::selectRecords(object_name)
+			|> .filter(filter)
+			|> .limit(1)
+			|> await .one(db_settings)
+		;
+		
+		return res;
+	}
+	
+	
+	
+	/**
+	 * Returns record by id
+	 */
+	static async Dict findById(string object_name, var id, Dict db_settings = null)
+		=> await static::getById(object_name, id, db_settings);
+	
+	static async Dict findRecordById(string object_name, var id, Dict db_settings = null)
+		=> await static::getById(object_name, id, db_settings);
+	
+	static async Dict getRecordById(string object_name, var id, Dict db_settings = null)
+		=> await static::getById(object_name, id, db_settings);
+	
+	
+	
+	/**
+	 * Returns filter from Dict
+	 */
+	pure Collection<QueryFilter> getFilter(Dict item)
+	{
+		if (item == null) return null;
+		
+		Vector res = new Vector();
+		Collection keys = item.keys();
+		for (int i = 0; i<keys.count(); i++)
+		{
+			string api_name = keys[i];
+			res.pushValue
+			(
+				new QueryFilter
+				{
+					"api_name": api_name,
+					"op": "=",
+					"value": item[api_name],
+				}
+			);
+		}
+		
+		return res.toCollection();
+	}
+	
+	
+	
+	/**
+	 * Returns primary key names
+	 */
+	pure Primary getRecordPrimaryKeyAnnotation(string object_name)
+	{
+		Helper helper = @.getDriver(classof Helper);
+		StructBuilder builder = helper.tables.get(object_name);
+		if (builder != null)
+		{
+			Collection keys = builder.keys.filter( lib::isInstance(classof Primary) );
+			Primary key = keys[0];
+			return key;
+		}
+		return null;
+	}
+	
+	
+	
+	/**
+	 * Returns primary key from item
+	 */
+	pure Dict getRecordPrimaryKey(string object_name, Dict item)
+	{
+		if (item == null) return null;
+		Primary key = static::getRecordAnnotation(object_name);
+		if (key == null) return null;
+		return item.toDict().intersect( key.keys );
+	}
+	
+	
+	
+	/**
+	 * Returns primary key by id
+	 */
+	pure Dict getRecordPrimaryKeyById(string object_name, var id)
+	{
+		Primary key = static::getRecordAnnotation(object_name);
+		if (key == null) return null;
+		
+		Dict res = {};
+		for (int i=0; i<key.keys.count(); i++)
+		{
+			string api_name = key.keys[i];
+			res = res.setIm(api_name, id);
+			break;
+		}
+		
+		return res;
+	}
+	
+	
+	
+	/**
+	 * To database
+	 */
+	static Dict toDatabase(string object_name, Dict item, Dict db_settings = null)
+	{
+		return item;
+	}
+	
+	
+	
+	/**
+	 * From database
+	 */
+	static Dict fromDatabase(string object_name, Dict item, Dict db_settings = null)
+	{
+		return item;
+	}
+}

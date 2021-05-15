@@ -16,48 +16,14 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM;
+namespace Runtime.ORM.Annotations;
 
 use Runtime.Entity;
+use Runtime.rs;
 
 
-class ModuleDescription
+struct TableList extends Entity
 {
-	
-	
-	/**
-	 * Returns module name
-	 * @return string
-	 */
-	pure string getModuleName() => "Runtime.ORM";
-	
-	
-	
-	/**
-	 * Returns module name
-	 * @return string
-	 */
-	pure string getModuleVersion() => "0.8.0";
-	
-	
-	
-	/**
-	 * Returns required modules
-	 * @return Map<string, string>
-	 */
-	pure Map<string> requiredModules() =>
-	{
-		'Runtime': '*',
-	};
-	
-	
-	
-	/**
-	 * Returns enities
-	 */
-	pure Collection<Dict> entities() => 
-	[
-		new Entity{ "name": "Runtime.ORM.Helper" },
-	];
-	
+	/* Add class info in Context::getRequiredEntities */
+	Entity addClassInfo(string class_name) => this.copy{ "name": class_name };
 }
