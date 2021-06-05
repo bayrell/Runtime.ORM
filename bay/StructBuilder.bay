@@ -40,6 +40,18 @@ struct StructBuilder extends BaseStruct
 	
 	
 	/**
+	 * Table name
+	 */
+	StructBuilder tableName(string table_name) =>
+		this.copy
+		{
+			"table_name": table_name,
+		}
+	;	
+	
+	
+	
+	/**
 	 * Add field
 	 */
 	StructBuilder addField(Dict item) =>

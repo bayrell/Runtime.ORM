@@ -47,7 +47,7 @@ struct Query extends BaseStruct
 	Collection<Dict> _join = null;
 	Collection<Collection<string>> _order = null;
 	Collection<QueryFilter> _filter = null;
-	int _start = -1;
+	int _start = 0;
 	int _limit = -1;
 	bool _as_record = true;
 	bool _calc_found_rows = false;
@@ -140,7 +140,7 @@ struct Query extends BaseStruct
 	Query selectRecords(string object_name, string alias_name = "")
 	{
 		Helper helper = @.getDriver(classof Helper);
-		StructBuilder builder = helper.tables.get(object_name);
+		StructBuilder builder = helper.tables.get(object_name, null);
 		
 		return this.copy
 		{
@@ -340,7 +340,7 @@ struct Query extends BaseStruct
 	/**
 	 * Get connection
 	 */
-	async Connection connect(Dict db_settings = null)
+	static async Connection connect(Dict db_settings = null)
 	{
 		string driver_name = db_settings["driver"] |> default string classof ORMDriver;
 		ORMDriver orm = @.getDriver(driver_name);
@@ -355,7 +355,7 @@ struct Query extends BaseStruct
 	 */
 	async Cursor execute(Dict db_settings = null)
 	{
-		Connection conn = await this.connect(db_settings);
+		Connection conn = await static::connect(db_settings);
 		Cursor cursor = await conn.executeQuery(this, db_settings);
 		return cursor;
 	}
@@ -402,7 +402,7 @@ struct Query extends BaseStruct
 	 */
 	async Cursor getSQL(Dict db_settings = null)
 	{
-		Connection conn = await this.connect(db_settings);
+		Connection conn = await static::connect(db_settings);
 		
 		list res = conn.getQuerySQL(this);
 		
@@ -423,11 +423,71 @@ struct Query extends BaseStruct
 	
 	
 	/**
+	 * Get diff
+	 */
+	static Dict getDiff(Dict old_item, Dict update_item)
+	{
+		Map res = new Map();
+		
+		Collection keys = update_item.keys();
+		for (int i=0; i<keys.count(); i++)
+		{
+			string field_name = keys[i];
+			var new_value = update_item[field_name];
+			if (old_item.has(field_name))
+			{
+				if (old_item[field_name] != new_value)
+				{
+					res.setValue(field_name, new_value);
+				}
+			}
+			else
+			{
+				res.setValue(field_name, new_value);
+			}
+		}
+		
+		return res.toDict();
+	}
+	
+	
+	
+	/**
+	 * Filter record
+	 */
+	static Dict filterRecord(string object_name, Dict row, string action = "")
+	{
+		Helper helper = @.getDriver(classof Helper);
+		
+		/* Find builder */
+		StructBuilder builder = helper.tables.get(object_name, null);
+		if (builder == null)
+		{
+			return {};
+		}
+		
+		/* Update item */
+		Collection keys = row.keys();
+		for (int i=0; i<keys.count(); i++)
+		{
+			string field_name = keys[i];
+			if (not builder.fields.has(field_name))
+			{
+				row = row.removeIm(field_name);
+			}
+		}
+		
+		return row;
+	}
+	
+	
+	
+	/**
 	 * Insert row
 	 */
-	async Cursor insert(string table_name, Dict row, Dict db_settings)
+	static async Cursor insert(string table_name, Dict row, Dict db_settings)
 	{
-		Connection conn = await this.connect(db_settings);
+		Connection conn = await static::connect(db_settings);
 		Cursor cursor = await conn.insert(table_name, row, db_settings);
 		return cursor;
 	}
@@ -437,9 +497,9 @@ struct Query extends BaseStruct
 	/**
 	 * Update row
 	 */
-	async Cursor update(string table_name, Collection<QueryFilter> filter, Dict row, Dict db_settings)
+	static async Cursor update(string table_name, Collection<QueryFilter> filter, Dict row, Dict db_settings = null)
 	{
-		Connection conn = await this.connect(db_settings);
+		Connection conn = await static::connect(db_settings);
 		Cursor cursor = await conn.update(table_name, filter, row, db_settings);
 		return cursor;
 	}
@@ -449,9 +509,9 @@ struct Query extends BaseStruct
 	/**
 	 * Delete row
 	 */
-	async Cursor delete(string table_name, Collection<QueryFilter> filter, Dict db_settings)
+	static async Cursor delete(string table_name, Collection<QueryFilter> filter, Dict db_settings = null)
 	{
-		Connection conn = await this.connect(db_settings);
+		Connection conn = await static::connect(db_settings);
 		Cursor cursor = await conn.delete(table_name, filter, db_settings);
 		return cursor;
 	}
@@ -459,40 +519,21 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Change record
-	 */
-	async Dict changeRecord(string object_name, Dict old_item, Dict new_item)
-	{
-		Helper helper = @.getDriver(classof Helper);
-		
-		/* Find builder */
-		StructBuilder builder = helper.tables.get(object_name);
-		if (builder == null)
-		{
-			return null;
-		}
-		
-		return new_item;
-	}
-	
-	
-	
-	/**
 	 * Insert record
 	 */
-	async Cursor insertRecord(string object_name, Dict row, Dict db_settings)
+	static async Cursor insertRecord(string object_name, Dict row, Dict db_settings = null)
 	{
 		Helper helper = @.getDriver(classof Helper);
 		
 		/* Find builder */
-		StructBuilder builder = helper.tables.get(object_name);
+		StructBuilder builder = helper.tables.get(object_name, null);
 		if (builder == null)
 		{
 			return null;
 		}
 		
 		/* Filter row */
-		row = static::filterRecord( object_name, row );
+		row = static::filterRecord( object_name, row, "insert" );
 		
 		/* To database */
 		row = static::toDatabase( object_name, row, db_settings );
@@ -507,29 +548,30 @@ struct Query extends BaseStruct
 	/**
 	 * Update record
 	 */
-	async Cursor updateRecord(string object_name, Dict pk, Dict row, Dict db_settings)
+	static async Cursor updateRecord(string object_name, Dict pk, Dict row, Dict db_settings = null)
 	{
 		Helper helper = @.getDriver(classof Helper);
 		
 		/* Find builder */
-		StructBuilder builder = helper.tables.get(object_name);
+		StructBuilder builder = helper.tables.get(object_name, null);
 		if (builder == null)
 		{
 			return null;
 		}
 		
-		/* Get primare key */
-		pk = static::getRecordPrimaryKey(object_name, pk);
+		/* Get filter */
+		Collection<QueryFilter> filter = static::getPrimaryKey(object_name, pk)
+			|> static::getFilter
+		;
 		
 		/* Filter row */
-		row = static::filterRecord( object_name, row );
+		row = static::filterRecord( object_name, row, "update" );
 		
 		/* To database */
-		pk = static::toDatabase( object_name, pk, db_settings );
 		row = static::toDatabase( object_name, row, db_settings );
 		
 		/* Insert row */
-		Cursor cursor = await static::update(builder.table_name, row, db_settings);
+		Cursor cursor = await static::update(builder.table_name, filter, row, db_settings);
 		return cursor;
 	}
 	
@@ -538,25 +580,24 @@ struct Query extends BaseStruct
 	/**
 	 * Delete record
 	 */
-	async Cursor deleteRecord(string object_name, Dict pk, Dict db_settings)
+	static async Cursor deleteRecord(string object_name, Dict pk, Dict db_settings = null)
 	{
 		Helper helper = @.getDriver(classof Helper);
 		
 		/* Find builder */
-		StructBuilder builder = helper.tables.get(object_name);
+		StructBuilder builder = helper.tables.get(object_name, null);
 		if (builder == null)
 		{
 			return null;
 		}
 		
-		/* Get primare key */
-		pk = static::getRecordPrimaryKey(object_name, pk);
-		
-		/* To database */
-		pk = static::toDatabase( object_name, pk, db_settings );
+		/* Get filter */
+		Collection<QueryFilter> filter = static::getPrimaryKey(object_name, pk)
+			|> static::getFilter
+		;
 		
 		/* Delete row */
-		Cursor cursor = await static::delete(builder.table_name, pk, db_settings);
+		Cursor cursor = await static::delete(builder.table_name, filter, db_settings);
 		return cursor;
 	}
 	
@@ -597,6 +638,26 @@ struct Query extends BaseStruct
 	
 	
 	/**
+	 * Returns record by key
+	 */
+	static async Dict getByKey(string object_name, Dict key, Dict db_settings = null)
+	{
+		Collection<QueryFilter> filter = static::getPrimaryKey(object_name, key) |> static::getFilter;
+		if (filter == null) return null;
+		
+		/* Execute query */
+		Dict res = static::selectRecords(object_name)
+			|> .filter(filter)
+			|> .limit(1)
+			|> await .one(db_settings)
+		;
+		
+		return res;
+	}
+	
+	
+	
+	/**
 	 * Returns filter from Dict
 	 */
 	pure Collection<QueryFilter> getFilter(Dict item)
@@ -607,14 +668,14 @@ struct Query extends BaseStruct
 		Collection keys = item.keys();
 		for (int i = 0; i<keys.count(); i++)
 		{
-			string api_name = keys[i];
+			string field_name = keys[i];
 			res.pushValue
 			(
 				new QueryFilter
 				{
-					"api_name": api_name,
+					"field_name": field_name,
 					"op": "=",
-					"value": item[api_name],
+					"value": item[field_name],
 				}
 			);
 		}
@@ -627,10 +688,10 @@ struct Query extends BaseStruct
 	/**
 	 * Returns primary key names
 	 */
-	pure Primary getRecordPrimaryKeyAnnotation(string object_name)
+	pure Primary getPrimaryKeyAnnotation(string object_name)
 	{
 		Helper helper = @.getDriver(classof Helper);
-		StructBuilder builder = helper.tables.get(object_name);
+		StructBuilder builder = helper.tables.get(object_name, null);
 		if (builder != null)
 		{
 			Collection keys = builder.keys.filter( lib::isInstance(classof Primary) );
@@ -645,10 +706,10 @@ struct Query extends BaseStruct
 	/**
 	 * Returns primary key from item
 	 */
-	pure Dict getRecordPrimaryKey(string object_name, Dict item)
+	pure Dict getPrimaryKey(string object_name, Dict item)
 	{
 		if (item == null) return null;
-		Primary key = static::getRecordAnnotation(object_name);
+		Primary key = static::getPrimaryKeyAnnotation(object_name);
 		if (key == null) return null;
 		return item.toDict().intersect( key.keys );
 	}
@@ -658,7 +719,7 @@ struct Query extends BaseStruct
 	/**
 	 * Returns primary key by id
 	 */
-	pure Dict getRecordPrimaryKeyById(string object_name, var id)
+	pure Dict getPrimaryKeyById(string object_name, var id)
 	{
 		Primary key = static::getRecordAnnotation(object_name);
 		if (key == null) return null;

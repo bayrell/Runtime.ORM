@@ -18,6 +18,8 @@
 
 namespace Runtime.ORM;
 
+use Runtime.BaseStruct;
+
 
 struct QueryFilter extends BaseStruct
 {
