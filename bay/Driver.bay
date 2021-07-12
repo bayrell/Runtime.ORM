@@ -18,7 +18,19 @@
 
 namespace Runtime.ORM;
 
+use Runtime.lib;
+use Runtime.BaseDriver;
+use Runtime.Context;
+use Runtime.LambdaChain;
+use Runtime.LambdaChainClass;
+use Runtime.ORM.Annotations.Record;
+use Runtime.ORM.Annotations.Table;
+use Runtime.ORM.Annotations.TableList;
+use Runtime.ORM.QueryBuilder;
+use Runtime.ORM.StructBuilder;
 
-interface CursorInterface
+
+@LambdaChainClass{}
+class Driver extends BaseDriver
 {
 }

@@ -1,0 +1,584 @@
+/*!
+ *  Bayrell Runtime Library
+ *
+ *  (c) Copyright 2016-2021 "Ildar Bikmamatov" <support@bayrell.org>
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+namespace Runtime.ORM;
+
+use Runtime.lib;
+use Runtime.BaseStruct;
+use Runtime.IntrospectionClass;
+use Runtime.IntrospectionInfo;
+use Runtime.RuntimeUtils;
+use Runtime.ORM.ConnectionInterface as Connection;
+use Runtime.ORM.CursorInterface as Cursor;
+use Runtime.ORM.DriverInterface as ORMDriver;
+use Runtime.ORM.Foreign;
+use Runtime.ORM.QueryBuilder;
+use Runtime.ORM.Annotations.AutoIncrement;
+use Runtime.ORM.Annotations.CoreType;
+use Runtime.ORM.Annotations.ManyToMany;
+use Runtime.ORM.Annotations.ManyToOne;
+use Runtime.ORM.Annotations.Primary;
+
+
+struct Record extends BaseStruct
+{
+	static const string SET_NULL = "SET_NULL";
+	static const string SET_DEFAULT = "SET_DEFAULT";
+	static const string CASCADE = "CASCADE";
+	static const string RESTRICT = "RESTRICT";
+	static const string NO_ACTION = "NO_ACTION";
+	
+	/* Old item */
+	Dict _old_item = null;
+	
+	
+	/**
+	 * Returns table name
+	 */
+	pure string table_name() => "";
+	pure string getTableName() => static::table_name();
+	
+	
+	
+	/**
+	 * Keys
+	 */
+	pure Collection keys() => [];
+	
+	
+	
+	/**
+	 * Connect to database
+	 */
+	static async Connection connect(Dict db_settings = null)
+	{
+		/* Connect to Database */
+		string driver_name = db_settings["driver"] |> default string classof ORMDriver;
+		Connection conn = @.getDriver(driver_name) |> await .connect(db_settings);
+		return conn;
+	}
+	
+	
+	
+	/**
+	 * Returns field's annotations
+	 */
+	static Collection<BaseStruct> getFieldAnnotations(string field_name)
+		=> rtl::getFieldsAnnotationsWithParents(static::getCurrentClassName())
+		|> attr field_name
+		|> default Collection []
+	;
+	
+	
+	
+	/**
+	 * Select
+	 */
+	pure QueryBuilder select(string alias_name = "")
+	{
+		string table_name = static::table_name();
+		QueryBuilder q = new QueryBuilder()
+			|> .select(table_name, alias_name)
+			|> .orm(static::getCurrentClassName())
+			|> .asRecord(true)
+		;
+		return q;
+	}
+	
+	
+	
+	/**
+	 * Returns primary key names
+	 */
+	pure Primary getPrimaryKeyAnnotation()
+	{
+		Collection keys = static::keys();
+		keys = keys.filter( lib::isInstance(classof Primary) );
+		Primary key = keys[0];
+		return key;
+	}
+	
+	
+	
+	/**
+	 * Returns primary key from item
+	 */
+	pure Dict getPrimaryKey(Dict item)
+	{
+		if (item == null) return null;
+		Primary key = static::getPrimaryKeyAnnotation();
+		if (key == null) return null;
+		return item.toDict().intersect( key.keys );
+	}
+	
+	
+	
+	/**
+	 * Returns filter by primary key
+	 */
+	pure Collection<list> getFilterByPrimaryKey(Dict item)
+	{
+		Primary key = static::getPrimaryKeyAnnotation();
+		if (key == null) return null;
+		
+		/* Make filter */
+		Collection keys = static::keys();
+		Collection<list> filter = [];
+		for (int i=0; i<key.keys.count(); i++)
+		{
+			string api_name = key.keys[i];
+			var value = item[api_name];
+			filter = filter.pushIm
+			(
+				[api_name, "=", value]
+			);
+		}
+		
+		return filter;
+	}
+	
+	
+	
+	/**
+	 * Returns filter by id
+	 */
+	pure Collection<list> getFilterById(var id)
+	{
+		Primary key = static::getPrimaryKeyAnnotation();
+		if (key == null) return null;
+		
+		/* Make filter */
+		Collection keys = static::keys();
+		Collection<list> filter = [];
+		for (int i=0; i<key.keys.count(); i++)
+		{
+			string api_name = key.keys[i];
+			filter = filter.pushIm
+			(
+				[api_name, "=", id]
+			);
+			break;
+		}
+		
+		return filter;
+	}
+	
+	
+	
+	/**
+	 * Returns item by primary key
+	 */
+	static async Record findItemByKey(Dict pk, Dict db_settings = null)
+	{
+		Collection<list> filter = static::getFilterByPrimaryKey(pk);
+		if (filter == null) return null;
+		
+		/* Execute query */
+		Record res = static::select()
+			|> .filter(filter)
+			|> .asRecord(true)
+			|> .limit(1)
+			|> await .one(db_settings)
+		;
+		
+		return res;
+	}
+	static async Record getByKey(Dict pk, Dict db_settings = null) =>
+		await static::findItemByKey(pk, db_settings);
+	static async Record getByPrimaryKey(Dict pk, Dict db_settings = null) =>
+		await static::findItemByKey(pk, db_settings);
+	
+	
+	
+	/**
+	 * Returns by id
+	 */
+	static async Record getById(var id, Dict db_settings = null)
+	{
+		Collection<list> filter = static::getFilterById(id);
+		if (filter == null) return null;
+		
+		/* Execute query */
+		Record res = static::select()
+			|> .filter(filter)
+			|> .asRecord(true)
+			|> .limit(1)
+			|> await .one(db_settings)
+		;
+		
+		return res;
+	}
+	
+	
+	
+	/**
+	 * Returns by id
+	 */
+	static async Record findById(var id, Dict db_settings = null)
+	{
+		return await static::getById(id, db_settings);
+	}
+	
+	
+	
+	/**
+	 * Process item from database
+	 */
+	static async Dict fromDatabase(Connection conn, Dict item)
+	{
+		Dict fields = rtl::getFieldsAnnotationsWithParents(static::getCurrentClassName())
+		Collection fields_arr = fields.keys();
+		for (int i=0; i<fields_arr.count(); i++)
+		{
+			string field_api_name = fields_arr[i];
+			Collection annotations = fields[field_api_name];
+			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
+			if (core_type != null)
+			{
+				item = core_type.fromDatabase(conn, item, field_api_name);
+			}
+			else
+			{
+				item = item.removeIm(field_api_name);
+			}
+		}
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Process item to database
+	 */
+	static async Dict toDatabase(Connection conn, Dict item)
+	{
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
+		Collection fields = info.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			if (not item.has(field_api_name)) continue;
+			Collection annotations = info[field_api_name];
+			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
+			if (core_type != null)
+			{
+				item = core_type.toDatabase(conn, item, field_api_name);
+			}
+			else
+			{
+				item = item.removeIm(field_api_name);
+			}
+		}
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Change record
+	 */
+	static Record change(Record item, Dict update)
+	{
+		if (update.has("_old_item")) update = update.removeIm("_old_item");
+		
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
+		Collection fields = info.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			Collection annotations = info[field_api_name];
+			if (not update.has(field_api_name))
+			{
+				continue;
+			}
+			
+			var update_value = update[field_api_name];
+			
+			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
+			if (core_type != null)
+			{
+				item = rtl::setAttr(item, field_api_name, update_value);
+			}
+		}
+		
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Returns different core types
+	 */
+	static Dict getDiffCoreTypes(Dict old_item, Dict new_item)
+	{
+		Map diff = new Map();
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
+		
+		Collection fields = info.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			Collection annotations = info[field_api_name];
+			
+			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
+			if (core_type != null)
+			{
+				var old_value = old_item[field_api_name];
+				var new_value = new_item[field_api_name];
+				if (old_value != new_value)
+				{
+					diff.setValue(field_api_name, new_value);
+				}
+			}
+		}
+		
+		return diff.toDict();
+	}
+	
+	
+	
+	/**
+	 * Create record
+	 */
+	static async Record create(Dict update, Dict db_settings = null)
+	{
+		Record item = null;
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
+		bool has_auto_increment = false;
+		
+		/* Connect to database */
+		Connection conn = await static::connect(db_settings);
+		string table_name = static::table_name();
+		
+		/* Remove virtual keys */
+		Collection fields = info.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			var value = update[field_api_name];
+			Collection annotations = info[field_api_name];
+			
+			/* Remove if not CoreType */
+			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
+			if (core_type == null)
+			{
+				update = update.removeIm(field_api_name);
+			}
+			
+			/* Remove if not AutoIncrement */
+			CoreType auto_type = annotations.findItem( lib::isInstance(classof AutoIncrement) );
+			if (auto_type != null and value == null)
+			{
+				update = update.removeIm(field_api_name);
+				has_auto_increment = true;
+			}
+		}
+		
+		/* Remove another keys */
+		Collection update_keys = update.keys();
+		for (int i=0; i<update_keys.count(); i++)
+		{
+			string field_api_name = update_keys[i];
+			if (not info.has(field_api_name))
+			{
+				update = update.removeIm(field_api_name);
+			}
+		}
+		
+		/* Convert to database */
+		update = static::toDatabase(conn, update);
+		
+		/* Create query */
+		int last_id = null;
+		Cursor cursor = await conn.insert(table_name, update, db_settings);
+		if (has_auto_increment)
+		{
+			last_id = await cursor.lastInsertId();
+		}
+		await cursor.close();
+		
+		/* Build primary key */
+		Map pk = static::getPrimaryKey(update);
+		
+		/* Add auto increment key */
+		if (has_auto_increment)
+		{
+			Collection fields = info.keys();
+			for (int i=0; i<fields.count(); i++)
+			{
+				string field_api_name = fields[i];
+				var value = update[field_api_name];
+				Collection annotations = info[field_api_name];
+				
+				/* Remove if not CoreType */
+				CoreType auto_type = annotations.findItem( lib::isInstance(classof AutoIncrement) );
+				if (auto_type)
+				{
+					pk = pk.setIm(field_api_name, last_id);
+				}
+			}
+		}
+		
+		return pk;
+	}
+	
+	
+	
+	/**
+	 * Update record
+	 */
+	static async void update(Dict old_pk, Dict update, Dict db_settings = null)
+	{
+		Dict info = rtl::getFieldsAnnotationsWithParents( static::getCurrentClassName() );
+		
+		/* Remove virtual keys */
+		Collection fields = info.keys();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_api_name = fields[i];
+			var value = update[field_api_name];
+			Collection annotations = info[field_api_name];
+			
+			/* Remove if not CoreType */
+			CoreType core_type = annotations.findItem( lib::isInstance(classof CoreType) );
+			if (core_type == null)
+			{
+				update = update.removeIm(field_api_name);
+			}
+		}
+		
+		/* Remove another keys */
+		Collection update_keys = update.keys();
+		for (int i=0; i<update_keys.count(); i++)
+		{
+			string field_api_name = update_keys[i];
+			if (not info.has(field_api_name))
+			{
+				update = update.removeIm(field_api_name);
+			}
+		}
+		
+		/* If has changes */
+		if (update.keys().count() > 0)
+		{
+			Collection<list> filter = static::getFilterByPrimaryKey(old_pk);
+			if (filter)
+			{
+				/* Connect to database */
+				Connection conn = await static::connect(db_settings);
+				string table_name = static::table_name();
+				
+				/* Convert to database */
+				update = static::toDatabase(conn, update);
+				
+				/* Update query */
+				Cursor cursor = await conn.update(table_name, filter, update, db_settings);
+				await cursor.close();
+			}
+		}
+	}
+	
+	
+	
+	/**
+	 * Save record
+	 */
+	static async Dict save(Record item, Dict db_settings = null)
+	{
+		Dict old_item = (item instanceof Record and item._old_item != null) ? item._old_item : null;
+		Dict new_item = (item instanceof Record) ? item.convertToDict() : item;
+		Dict old_pk = (old_item != null) ? static::getPrimaryKey(old_item) : null;
+		Dict new_pk = static::getPrimaryKey(new_item);
+		
+		/* Find item */
+		if (old_pk == null and new_pk != null)
+		{
+			old_item = await static::findItemByKey(new_pk, db_settings);
+			if (old_item != null) old_pk = static::getPrimaryKey(old_item);
+		}
+		
+		/* Get diff */
+		Dict update = static::getDiffCoreTypes(old_item, new_item);
+		Record new_item = null;
+		
+		/* Create item */
+		if (old_pk == null)
+		{
+			new_pk = await static::create(update, db_settings);
+		}
+		
+		/* Update item */
+		else
+		{
+			await static::update(old_pk, update, db_settings);
+		}
+		
+		return new_pk;
+	}
+	
+	
+	
+	/**
+	 * Delete record
+	 */
+	static async Record delete(Record item, Dict db_settings = null)
+	{
+		Dict pk = static::getPrimaryKey(item);
+		Collection<list> filter = static::getFilterByPrimaryKey(pk);
+		if (filter)
+		{
+			/* Connect to database */
+			Connection conn = await static::connect(db_settings);
+			string table_name = static::table_name();
+			
+			/* Delete query */
+			Cursor cursor = await conn.delete(table_name, filter, db_settings);
+			await cursor.close();
+		}
+		
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Convert to Dict
+	 */
+	Dict convertToDict(Collection values = null)
+	{
+		Dict old_item = this._old_item;
+		Dict item = this.toDict();
+		item = item.removeIm("_old_item");
+		
+		if (values != null)
+		{
+			item = item.intersect(values);
+			for (int i=0; i<values.count(); i++)
+			{
+				string field_name = values[i];
+				if (not item.has(field_name) and old_item.has(field_name))
+				{
+					item <= { field_name } <= old_item[field_name];
+				}
+			}
+		}
+		
+		return RuntimeUtils::ObjectToPrimitive(item, false);
+	}
+	
+}

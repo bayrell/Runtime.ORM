@@ -30,6 +30,7 @@ struct StructBuilder extends BaseStruct
 	static const string RESTRICT = "RESTRICT";
 	static const string NO_ACTION = "NO_ACTION";
 	
+	string class_name = "";
 	string object_name = "";
 	string table_name = "";
 	Dict<Dict> fields = new Dict();

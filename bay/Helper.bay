@@ -27,7 +27,6 @@ use Runtime.LambdaChainClass;
 use Runtime.ORM.Annotations.Record;
 use Runtime.ORM.Annotations.Table;
 use Runtime.ORM.Annotations.TableList;
-use Runtime.ORM.QueryBuilder;
 use Runtime.ORM.StructBuilder;
 
 
@@ -35,6 +34,8 @@ use Runtime.ORM.StructBuilder;
 @Driver{ "name": "Runtime.ORM.Helper" }
 class Helper extends BaseDriver
 {
+	static const string BUILD_TABLE_LIST_STRUCT_CHAIN = "Runtime.ORM.BUILD_TABLE_LIST_STRUCT_CHAIN";
+	static const string BUILD_TABLE_STRUCT_CHAIN = "Runtime.ORM.BUILD_TABLE_STRUCT_CHAIN";
 	public Dict<StructBuilder> tables = {};
 	
 	
@@ -54,7 +55,7 @@ class Helper extends BaseDriver
 	 */
 	public async void buildStruct()
 	{
-		this.tables = await @.chainAsync(QueryBuilder::BUILD_TABLE_STRUCT_CHAIN, [ this.tables ]);
+		this.tables = await @.chainAsync(static::BUILD_TABLE_LIST_STRUCT_CHAIN, [ this.tables ]) |> attr 0;
 	}
 	
 	
@@ -62,36 +63,40 @@ class Helper extends BaseDriver
 	/**
 	 * Build tables
 	 */
-	@LambdaChain{ "name": QueryBuilder::BUILD_TABLE_STRUCT_CHAIN }
+	@LambdaChain{ "name": static::BUILD_TABLE_LIST_STRUCT_CHAIN }
 	static async Dict<StructBuilder> buildTables(Dict<StructBuilder> tables)
 	{
-		Collection<Table> annotations = Context::getSubEntities(@.entities, classof TableList, classof Table);
+		Collection<Table> annotations = @.entities.filter( lib::isInstance( classof Table) );
 		
 		for (int i=0; i<annotations.count(); i++)
 		{
 			Table table = annotations[i];
 			StructBuilder builder = null;
 			
-			if (tables.has(table.object_name))
+			if (tables.has(table.name))
 			{
-				builder = tables.get(table.object_name)
+				builder = tables.get(table.name)
 			}
 			else
 			{
 				builder = new StructBuilder
 				{
-					"object_name": table.object_name,
+					"object_name": table.name,
 					"table_name": table.table_name
 				};
 			}
 			
 			/* Extend struct */
-			builder = await rtl::methodApplyAsync(table.class_name, table.class_method_name, [builder]);
+			string class_name = table.entityClassName();
+			builder = await rtl::methodApplyAsync(class_name, "struct", [builder]);
+			
+			/* Extend struct */
+			builder = await @.chainAsync(static::BUILD_TABLE_STRUCT_CHAIN, [ builder ]) |> attr 0;
 			
 			/* Add to tables */
 			tables = tables.setIm(builder.object_name, builder);
 		}
 		
-		return tables;
+		return [ tables ];
 	}
 }

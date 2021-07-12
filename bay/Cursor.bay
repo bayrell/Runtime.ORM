@@ -18,44 +18,7 @@
 
 namespace Runtime.ORM;
 
-use Runtime.BaseStruct;
-use Runtime.ORM.Query;
-use Runtime.ORM.StructBuilder;
 
-
-struct Record extends BaseStruct
+class Cursor
 {
-	Dict old_item = null;
-	Dict item = null;
-	
-	
-	/**
-	 * Struct
-	 */
-	static StructBuilder struct(StructBuilder builder) => builder;
-	
-	
-	
-	/**
-	 * Get diff
-	 */
-	Dict getDiff() => Query::getDiff(this.old_item, this.item);
-	
-	
-	
-	/**
-	 * Save object
-	 */
-	async void save(Dict db_settings = null)
-	{
-		if (this.old_item == null)
-		{
-			await Query::insertObject(static::getObjectName(), this.item, db_settings);
-		}
-		else
-		{
-			await Query::updateObject(static::getObjectName(), this.old_item, this.item, db_settings);
-		}
-	}
-	
 }

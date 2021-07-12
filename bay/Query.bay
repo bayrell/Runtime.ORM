@@ -21,11 +21,12 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseStruct;
 use Runtime.ORM.Annotations.Primary;
-use Runtime.ORM.ConnectionInterface as Connection;
-use Runtime.ORM.CursorInterface as Cursor;
-use Runtime.ORM.DriverInterface as ORMDriver;
+use Runtime.ORM.Connection;
+use Runtime.ORM.Cursor;
+use Runtime.ORM.Driver;
 use Runtime.ORM.Helper;
 use Runtime.ORM.QueryFilter;
+use Runtime.ORM.Record;
 use Runtime.ORM.StructBuilder;
 
 
@@ -39,7 +40,7 @@ struct Query extends BaseStruct
 	static const string QUERY_INSERT_OR_UPDATE = "insert_or_update";
 	static const string BUILD_TABLE_STRUCT_CHAIN = "Runtime.ORM.BuildStruct";
 	
-	string _orm_class_name = "";
+	string _object_name = "";
 	string _kind = "";
 	string _table_name = "";
 	string _table_name_alias = "";
@@ -89,7 +90,7 @@ struct Query extends BaseStruct
 	Query orm(string class_name) =>
 		this.copy
 		{
-			"_orm_class_name": class_name,
+			"_object_name": class_name,
 		}
 	;
 	
@@ -135,9 +136,9 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Select records
+	 * Select objects
 	 */
-	Query selectRecords(string object_name, string alias_name = "")
+	Query selectObjects(string object_name, string alias_name = "")
 	{
 		Helper helper = @.getDriver(classof Helper);
 		StructBuilder builder = helper.tables.get(object_name, null);
@@ -147,7 +148,7 @@ struct Query extends BaseStruct
 			"_kind": static::QUERY_SELECT,
 			"_fields": ["*"],
 			"_table_name": (builder != null) ? builder.table_name : "",
-			"_orm_class_name": object_name,
+			"_object_name": object_name,
 			"_table_name_alias": alias_name,
 		}
 	}
@@ -342,8 +343,8 @@ struct Query extends BaseStruct
 	 */
 	static async Connection connect(Dict db_settings = null)
 	{
-		string driver_name = db_settings["driver"] |> default string classof ORMDriver;
-		ORMDriver orm = @.getDriver(driver_name);
+		string driver_name = db_settings["driver"] |> default string classof Driver;
+		Driver orm = @.getDriver(driver_name);
 		Connection conn = await orm.connect(db_settings);
 		return conn;
 	}
@@ -379,6 +380,36 @@ struct Query extends BaseStruct
 	
 	
 	/**
+	 * Fetch one record
+	 */
+	async Dict oneRecord(Dict db_settings = null)
+	{
+		Dict item = await this.one(db_settings);
+		if (item == null)
+		{
+			return null;
+		}
+		
+		/* Find builder */
+		Helper helper = @.getDriver(classof Helper);
+		StructBuilder builder = helper.tables.get(this._object_name, null);
+		if (builder == null)
+		{
+			return null;
+		}
+		
+		/* Create record */
+		string class_name = builder.class_name;
+		Record object = rtl::newInstance(class_name);
+		object.old_item = item;
+		object.item = item;
+		
+		return object;
+	}
+	
+	
+	
+	/**
 	 * Fetch all
 	 */
 	async Dict all(Dict db_settings = null)
@@ -393,6 +424,16 @@ struct Query extends BaseStruct
 		);
 		
 		return items;
+	}
+	
+	
+	
+	/**
+	 * Fetch all records
+	 */
+	async Dict allRecords(Dict db_settings = null)
+	{
+		return null;
 	}
 	
 	
@@ -453,9 +494,9 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Filter record
+	 * Filter row
 	 */
-	static Dict filterRecord(string object_name, Dict row, string action = "")
+	static Dict filterRow(string object_name, Dict row, string action = "")
 	{
 		Helper helper = @.getDriver(classof Helper);
 		
@@ -519,9 +560,9 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Insert record
+	 * Insert object
 	 */
-	static async Cursor insertRecord(string object_name, Dict row, Dict db_settings = null)
+	static async Cursor insertObject(string object_name, Dict row, Dict db_settings = null)
 	{
 		Helper helper = @.getDriver(classof Helper);
 		
@@ -533,7 +574,7 @@ struct Query extends BaseStruct
 		}
 		
 		/* Filter row */
-		row = static::filterRecord( object_name, row, "insert" );
+		row = static::filterRow( object_name, row, "insert" );
 		
 		/* To database */
 		row = static::toDatabase( object_name, row, db_settings );
@@ -546,9 +587,9 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Update record
+	 * Update object
 	 */
-	static async Cursor updateRecord(string object_name, Dict pk, Dict row, Dict db_settings = null)
+	static async Cursor updateObject(string object_name, Dict pk, Dict row, Dict db_settings = null)
 	{
 		Helper helper = @.getDriver(classof Helper);
 		
@@ -565,7 +606,7 @@ struct Query extends BaseStruct
 		;
 		
 		/* Filter row */
-		row = static::filterRecord( object_name, row, "update" );
+		row = static::filterRow( object_name, row, "update" );
 		
 		/* To database */
 		row = static::toDatabase( object_name, row, db_settings );
@@ -578,9 +619,9 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Delete record
+	 * Delete object
 	 */
-	static async Cursor deleteRecord(string object_name, Dict pk, Dict db_settings = null)
+	static async Cursor deleteObject(string object_name, Dict pk, Dict db_settings = null)
 	{
 		Helper helper = @.getDriver(classof Helper);
 		
@@ -604,15 +645,15 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Returns record by id
+	 * Returns object by id
 	 */
 	static async Dict getById(string object_name, var id, Dict db_settings = null)
 	{
-		Collection<QueryFilter> filter = static::getRecordPrimaryKeyById(object_name, id) |> static::getFilter;
+		Collection<QueryFilter> filter = static::getPrimaryKeyById(object_name, id) |> static::getFilter;
 		if (filter == null) return null;
 		
 		/* Execute query */
-		Dict res = static::selectRecords(object_name)
+		Dict res = static::selectObjects(object_name)
 			|> .filter(filter)
 			|> .limit(1)
 			|> await .one(db_settings)
@@ -624,21 +665,22 @@ struct Query extends BaseStruct
 	
 	
 	/**
-	 * Returns record by id
+	 * Returns object by id
 	 */
 	static async Dict findById(string object_name, var id, Dict db_settings = null)
 		=> await static::getById(object_name, id, db_settings);
 	
+	/*
 	static async Dict findRecordById(string object_name, var id, Dict db_settings = null)
 		=> await static::getById(object_name, id, db_settings);
 	
 	static async Dict getRecordById(string object_name, var id, Dict db_settings = null)
 		=> await static::getById(object_name, id, db_settings);
-	
+	*/
 	
 	
 	/**
-	 * Returns record by key
+	 * Returns object by key
 	 */
 	static async Dict getByKey(string object_name, Dict key, Dict db_settings = null)
 	{
@@ -646,7 +688,7 @@ struct Query extends BaseStruct
 		if (filter == null) return null;
 		
 		/* Execute query */
-		Dict res = static::selectRecords(object_name)
+		Dict res = static::selectObjects(object_name)
 			|> .filter(filter)
 			|> .limit(1)
 			|> await .one(db_settings)
@@ -721,7 +763,7 @@ struct Query extends BaseStruct
 	 */
 	pure Dict getPrimaryKeyById(string object_name, var id)
 	{
-		Primary key = static::getRecordAnnotation(object_name);
+		Primary key = static::getPrimaryKeyAnnotation(object_name);
 		if (key == null) return null;
 		
 		Dict res = {};
@@ -753,5 +795,25 @@ struct Query extends BaseStruct
 	static Dict fromDatabase(string object_name, Dict item, Dict db_settings = null)
 	{
 		return item;
+	}
+	
+	
+	
+	/**
+	 * To database field
+	 */
+	static Dict toDatabaseField(string object_name, string field_name, primitive value, Dict db_settings = null)
+	{
+		return value;
+	}
+	
+	
+	
+	/**
+	 * From database field
+	 */
+	static Dict fromDatabaseField(string object_name, string field_name, primitive value, Dict db_settings = null)
+	{
+		return value;
 	}
 }

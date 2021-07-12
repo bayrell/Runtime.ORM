@@ -19,6 +19,6 @@
 namespace Runtime.ORM;
 
 
-interface ConnectionInterface
+class Connection
 {
 }
