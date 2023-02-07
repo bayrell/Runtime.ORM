@@ -16,14 +16,38 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM;
+namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
+use Runtime.ORM.ConnectionInterface as Connection;
 
 
-struct QueryFilter extends BaseStruct
+struct BaseType extends BaseStruct
 {
-	string field_name = "";
-	string op = "=";
-	primitive value = null;	
+	var default = "";
+	string name = "";
+	string comment = "";
+	bool nullable = false;
+	
+	
+	/**
+	 * Process item from database
+	 */
+	async var fromDatabase(Connection conn, Dict item, string field_name)
+	{
+		item = await conn.fromDatabase(this, item, field_name);
+		return item;
+	}
+	
+	
+	
+	/**
+	 * Process item to database
+	 */
+	async var toDatabase(Connection conn, Dict item, string field_name)
+	{
+		item = await conn.toDatabase(this, item, field_name);
+		return item;
+	}
+	
 }

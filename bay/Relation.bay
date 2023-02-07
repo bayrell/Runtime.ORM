@@ -1,7 +1,7 @@
 /*!
  *  Bayrell Runtime Library
  *
- *  (c) Copyright 2016-2021 "Ildar Bikmamatov" <support@bayrell.org>
+ *  (c) Copyright 2016-2023 "Ildar Bikmamatov" <support@bayrell.org>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,19 +18,9 @@
 
 namespace Runtime.ORM;
 
-use Runtime.lib;
-use Runtime.BaseDriver;
-use Runtime.Context;
-use Runtime.LambdaChain;
-use Runtime.LambdaChainClass;
-use Runtime.ORM.Annotations.Record;
-use Runtime.ORM.Annotations.Table;
-use Runtime.ORM.Annotations.TableList;
-use Runtime.ORM.QueryBuilder;
-use Runtime.ORM.StructBuilder;
+use Runtime.BaseStruct;
 
 
-@LambdaChainClass{}
-class Driver extends BaseDriver
+struct Relation extends BaseStruct
 {
 }

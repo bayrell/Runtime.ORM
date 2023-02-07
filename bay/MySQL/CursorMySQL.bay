@@ -1,0 +1,170 @@
+/*!
+ *  Bayrell Runtime Library
+ *
+ *  (c) Copyright 2016-2023 "Ildar Bikmamatov" <support@bayrell.org>
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+namespace Runtime.ORM;
+
+
+class CursorMySQL
+{
+	ConnectionMySQL conn = null;
+	var st = null;
+	
+	
+	/**
+	 * Constructor
+	 */
+	public void constructor(ConnectionMySQL conn)
+	{
+		this.conn = conn;
+	}
+	
+	
+	/**
+	 * Returns found rows
+	 */
+	async int foundRows()
+	{
+		string sql = "SELECT FOUND_ROWS() as c;";
+		await this.executeSQL(sql);
+		
+		Dict res = await this.fetch();
+		await this.close();
+		
+		return res ? res['c'] : 0;
+	}
+	
+	
+	/**
+	 * Returns affected rows
+	 */
+	async int affectedRows()
+	{
+		#ifcode PHP then
+		return $this->st->rowCount();
+		#endif
+		
+		return 0;
+	};
+	
+	
+	/**
+	 * Insert id
+	 */
+	async int lastInsertId()
+	{
+		#ifcode PHP then
+		return $this->conn->pdo->lastInsertId();
+		#endif
+		
+		return 0;
+	}
+	
+	
+	/**
+	 * Execute sql query
+	 */
+	await CursorMySQL executeSQL(
+		string sql, Dict data = null,
+		Dict params = null
+	)
+	{
+		#ifcode PHP then
+		
+		$data = \Runtime\rtl::PrimitiveToNative($ctx, $data);
+		$this->st = $this->conn->pdo->prepare($sql, array(\PDO::ATTR_CURSOR => \PDO::CURSOR_FWDONLY));
+		$this->st->execute($data);
+		
+		#endif
+		
+		return this;
+	}
+	
+	
+	/**
+	 * Close query
+	 */
+	static await Cursor close()
+	{
+		#ifcode PHP then
+		
+		$this->st->closeCursor();
+		$this->st = null;
+		
+		#endif
+		
+		return this;
+	}
+	
+	
+	/**
+	 * Fetch next row
+	 */
+	async Dict fetch(fn f = null)
+	{
+		Dict row = null;
+		
+		#switch
+		#case ifcode PHP then
+		
+		if ($this->st == null) return null;
+		
+		$row = $this->st->fetch(\PDO::FETCH_ASSOC);
+		$row = ($row != null) ? \Runtime\Dict::from($row) : null;
+		
+		#endswitch
+		
+		if (row and f) row = f(row);
+		return row;
+	}
+	
+	
+	/**
+	 * Fetch one
+	 */
+	async Dict fetchOne(fn f = null)
+	{
+		Dict row = await this.fetch();
+		if (row and f) row = f(row);
+		return row;
+	}
+	
+	
+	/**
+	 * Fetch all rows
+	 */
+	async Collection<Dict> fetchAll(fn f = null)
+	{
+		Vector<Dict> items = new Vector();
+		while (true)
+		{
+			Dict row = await this.fetch();
+			if (row == null)
+			{
+				break;
+			}
+			if (f)
+			{
+				row = f(row);
+			}
+			items.pushValue(row);
+		}
+		
+		return items.toCollection();
+	}
+	
+}

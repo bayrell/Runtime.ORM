@@ -19,9 +19,9 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
-use Runtime.ORM.Annotations.CoreType;
+use Runtime.ORM.Annotations.BaseType;
 
 
-struct BigIntType extends CoreType
+struct BigIntType extends BaseType
 {
 }

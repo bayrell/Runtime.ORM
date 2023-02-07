@@ -19,10 +19,10 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
-use Runtime.ORM.Annotations.CoreType;
+use Runtime.ORM.Annotations.BaseType;
 
 
-struct StringType extends CoreType
+struct StringType extends BaseType
 {
 	int length = 255;
 }

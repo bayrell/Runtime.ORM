@@ -1,7 +1,7 @@
 /*!
  *  Bayrell Runtime Library
  *
- *  (c) Copyright 2016-2021 "Ildar Bikmamatov" <support@bayrell.org>
+ *  (c) Copyright 2016-2023 "Ildar Bikmamatov" <support@bayrell.org>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,14 +16,33 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM.Annotations;
+namespace Runtime.ORM;
 
-use Runtime.Entity;
-use Runtime.rs;
+use Runtime.ORM.ConnectionList;
+use Runtime.ORM.Connection;
+use Runtime.ORM.Query;
 
 
-struct TableList extends Entity
+class Database
 {
-	/* Add class info in Context::getRequiredEntities */
-	Entity addClassInfo(string class_name) => this.copy{ "name": class_name };
+	
+	/**
+	 * Returns new Query instance
+	 */
+	static Query query(Query q)
+	{
+		return new Query();
+	}
+	
+	
+	/**
+	 * Execute query
+	 */
+	static async Cursor execute(Query q, Dict params = null)
+	{
+		ConnectionList items = @.provider(classof ConnectionList);
+		Connection c = items.getConnection(params);
+		return await c.executeQuery(q, params);
+	}
+	
 }

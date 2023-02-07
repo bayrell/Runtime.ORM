@@ -19,9 +19,9 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
-use Runtime.ORM.Annotations.CoreType;
+use Runtime.ORM.Annotations.BaseType;
 
 
-struct TinyIntType extends CoreType
+struct TinyIntType extends BaseType
 {
 }

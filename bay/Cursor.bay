@@ -1,7 +1,7 @@
 /*!
  *  Bayrell Runtime Library
  *
- *  (c) Copyright 2016-2021 "Ildar Bikmamatov" <support@bayrell.org>
+ *  (c) Copyright 2016-2023 "Ildar Bikmamatov" <support@bayrell.org>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,4 +21,57 @@ namespace Runtime.ORM;
 
 class Cursor
 {
+	
+	/**
+	 * Returns found rows
+	 */
+	async int foundRows() => 0;
+	
+	
+	/**
+	 * Returns affected rows
+	 */
+	async int affectedRows() => 0;
+	
+	
+	/**
+	 * Returns last insert id
+	 */
+	async int lastInsertId() => 0;
+	
+	
+	/**
+	 * Execute sql query
+	 */
+	await Cursor executeSQL(string sql, Dict data = null)
+	{
+		return this;
+	}
+	
+	
+	/**
+	 * Close query
+	 */
+	static await Cursor close()
+	{
+		return this;
+	}
+	
+	
+	/**
+	 * Fetch next row
+	 */
+	async Dict fetch(fn f = null) => null;
+	
+	
+	/**
+	 * Fetch one
+	 */
+	async Dict fetchOne(fn f = null) => null;
+	
+	
+	/**
+	 * Fetch all rows
+	 */
+	async Collection<Dict> fetchAll(fn f = null) => null;
 }

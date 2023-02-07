@@ -19,31 +19,10 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
-use Runtime.ORM.Annotations.CoreType;
-use Runtime.ORM.ConnectionInterface as Connection;
+use Runtime.ORM.Annotations.BaseType;
+use Runtime.ORM.Connection;
 
 
-struct JsonType extends CoreType
+struct JsonType extends BaseType
 {
-	
-	/**
-	 * Process item from database
-	 */
-	async var fromDatabase(Connection conn, Dict item, string field_name)
-	{
-		item <= { field_name } <= await conn.fromDatabase("json", item[field_name], this);
-		return item;
-	}
-	
-	
-	
-	/**
-	 * Process item to database
-	 */
-	async var toDatabase(Connection conn, Dict item, string field_name)
-	{
-		item <= { field_name } <= await conn.toDatabase("json", item[field_name], this);
-		return item;
-	}
-	
 }

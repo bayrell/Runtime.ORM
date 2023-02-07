@@ -1,7 +1,7 @@
 /*!
  *  Bayrell Runtime Library
  *
- *  (c) Copyright 2016-2021 "Ildar Bikmamatov" <support@bayrell.org>
+ *  (c) Copyright 2016-2023 "Ildar Bikmamatov" <support@bayrell.org>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,4 +21,110 @@ namespace Runtime.ORM;
 
 class Connection
 {
+	/**
+	 * Connect
+	 */
+	Connection connect()
+	{
+	}
+	
+	
+	/**
+	 * Check is connected
+	 */
+	bool isConnected() => false;
+	
+	
+	/**
+	 * Create new cursor
+	 */
+	Cursor createCursor() => new Cursor();
+	
+	
+	/**
+	 * Execute cursor
+	 */
+	async Cursor executeQuery(Query q) => null;
+	
+	
+	/**
+	 * Insert query
+	 */
+	async void insert(string table_name, Dict data)
+	{
+		Query q = new Query()
+			|> .insert(table_name)
+			|> .values(data)
+		;
+		
+		Cursor c = await this.executeQuery(q);
+		await c.close();
+	}
+	
+	
+	/**
+	 * Update query
+	 */
+	async void update(string table_name, Dict where, Dict update)
+	{
+		Query q = new Query()
+			|> .update(table_name)
+			|> .values(data)
+			|> .where(where)
+		;
+		
+		Cursor c = await this.executeQuery(q);
+		await c.close();
+	}
+	
+	
+	/**
+	 * Delete item
+	 */
+	async void delete(string table_name, Dict where)
+	{
+		Query q = new Query()
+			|> .delete(table_name)
+			|> .where(where)
+		;
+		
+		Cursor c = await this.executeQuery(q);
+		await c.close();
+	}
+	
+	
+	/**
+	 * Begin transaction
+	 */
+	async void beginTransaction()
+	{
+	}
+	
+	
+	/**
+	 * Commit
+	 */
+	async void commit()
+	{
+	}
+	
+	
+	/**
+	 * rollBack
+	 */
+	async void rollBack()
+	{
+	}
+	
+	
+	/**
+	 * Convert item from database
+	 */
+	var fromDatabase(BaseStruct annotation, Dict item, string field_name) => item;
+	
+	
+	/**
+	 * Convert item to database
+	 */
+	var toDatabase(BaseStruct annotation, Dict item, string field_name) => item;
 }
