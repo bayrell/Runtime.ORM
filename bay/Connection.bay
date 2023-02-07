@@ -21,6 +21,18 @@ namespace Runtime.ORM;
 
 class Connection
 {
+	protected string name = "";
+	
+	
+	/**
+	 * Constructor
+	 */
+	public void constructor(string name)
+	{
+		this.name = name;
+	}
+	
+	
 	/**
 	 * Connect
 	 */
@@ -33,6 +45,12 @@ class Connection
 	 * Check is connected
 	 */
 	bool isConnected() => false;
+	
+	
+	/**
+	 * Returns connection name
+	 */
+	bool getName() => this.name;
 	
 	
 	/**

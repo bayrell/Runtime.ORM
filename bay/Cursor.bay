@@ -21,6 +21,18 @@ namespace Runtime.ORM;
 
 class Cursor
 {
+	Connection conn = null;
+	Query q = null;
+	
+	
+	/**
+	 * Constructor
+	 */
+	public void constructor(Connection conn)
+	{
+		this.conn = conn;
+	}
+	
 	
 	/**
 	 * Returns found rows
@@ -61,17 +73,17 @@ class Cursor
 	/**
 	 * Fetch next row
 	 */
-	async Dict fetch(fn f = null) => null;
+	async var fetch() => null;
 	
 	
 	/**
 	 * Fetch one
 	 */
-	async Dict fetchOne(fn f = null) => null;
+	async var fetchOne() => null;
 	
 	
 	/**
 	 * Fetch all rows
 	 */
-	async Collection<Dict> fetchAll(fn f = null) => null;
+	async Collection fetchAll() => null;
 }

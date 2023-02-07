@@ -33,20 +33,19 @@ struct BaseType extends BaseStruct
 	/**
 	 * Process item from database
 	 */
-	async var fromDatabase(Connection conn, Dict item, string field_name)
+	async var fromDatabase(Connection conn, Dict item)
 	{
-		item = await conn.fromDatabase(this, item, field_name);
+		item = await conn.fromDatabase(this, item, this.name);
 		return item;
 	}
-	
 	
 	
 	/**
 	 * Process item to database
 	 */
-	async var toDatabase(Connection conn, Dict item, string field_name)
+	async var toDatabase(Connection conn, Dict item)
 	{
-		item = await conn.toDatabase(this, item, field_name);
+		item = await conn.toDatabase(this, item, this.name);
 		return item;
 	}
 	

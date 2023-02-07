@@ -164,6 +164,7 @@ class ConnectionMySQL extends Connection
 		if (params == null) params = {};				
 		if (q.is_debug) params <= debug <= true;
 		
+		Cursor cursor = null;
 		list res = await this.buildQuery(q);
 		
 		if (res)
@@ -171,10 +172,11 @@ class ConnectionMySQL extends Connection
 			string sql = res[0];
 			Dict data = res[1];
 			
-			return await this.executeSQL(sql, data, params);
+			Cursor cursor = await this.executeSQL(sql, data, params);
+			cursor.q = q;
 		}
 		
-		return null;
+		return cursor;
 	}
 	
 

@@ -77,7 +77,7 @@ struct Query extends BaseStruct
 	/**
 	 * Set relation class name
 	 */
-	Query model(string class_name_relation) =>
+	Query relation(string class_name_relation) =>
 		this.clone{
 			"_class_name_relation": class_name_relation,
 			"_table_name": rtl::method(class_name_relation, "getTableName")(),

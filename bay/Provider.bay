@@ -46,8 +46,8 @@ class Provider extends BaseProvider
 	/**
 	 * Add new connection
 	 */
-	void addConnection(string name, Connection conn)
+	void addConnection(Connection conn)
 	{
-		this.connection_list = this.connection_list.setIm(name, conn);
+		this.connection_list = this.connection_list.setIm(conn.getName(), conn);
 	}
 }

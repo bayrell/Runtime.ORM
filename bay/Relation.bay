@@ -18,9 +18,276 @@
 
 namespace Runtime.ORM;
 
-use Runtime.BaseStruct;
+use Runtime.BaseObject;
+use Runtime.ORM.Annotations.BaseType;
 
 
-struct Relation extends BaseStruct
+class Relation extends BaseObject
 {
+	protected Dict old_data = null;
+	protected Dict new_data = {};
+	protected bool is_dirty = false;
+	protected Connection conn = null;
+	
+	
+	/**
+	 * Returns table name
+	 */
+	static string getTableName() => "";
+	
+	
+	/**
+	 * Returns relation attributes
+	 */
+	static Collection<BaseStruct> annotations() => [];
+	
+	
+	/**
+	 * To database
+	 */
+	pure Dict toDatabase(Connection conn, Dict data, bool is_update)
+	{
+		Collection<BaseStruct> annotations = static::annotations();
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof BaseType)
+			{
+				data = annotation.toDatabase(conn, data, is_update);
+			}
+		}
+		return data;
+	}
+	
+	
+	/**
+	 * From database
+	 */
+	pure Dict fromDatabase(Connection conn, Dict data)
+	{
+		Collection<BaseStruct> annotations = static::annotations();
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof BaseType)
+			{
+				data = annotation.fromDatabase(conn, data);
+			}
+		}
+		return data;
+	}
+	
+	
+	/**
+	 * Create Instance of class
+	 */
+	pure Relation newInstance(Dict data = null)
+	{
+		Relation instance = rtl::newInstance(static::getClassName());
+		instance.setNewData(data);
+		return instance;
+	}
+	
+	
+	/**
+	 * Create Instance of class from database
+	 */
+	pure Relation newInstanceFromDatabase(Connection conn, Dict data = null)
+	{
+		data = static::newInstance(data);
+		data = static::fromDatabase(conn, data);
+		data.conn = conn;
+		return data;
+	}
+	
+	
+	/**
+	 * Convert to model
+	 */
+	BaseStruct toModel(string class_name) =>
+		return rtl::newInstance(class_name, this.toDict())
+	;
+	
+	
+	/**
+	 * Convert to Dict
+	 */
+	Dict toDict(string class_name) => this.new_data;
+	
+	
+	/**
+	 * Get updated data
+	 */
+	Dict getUpdatedData()
+	{
+		if (this.new_data == null) return {};
+		
+		Map res = new Map;
+		
+		Collection new_data_keys = this.new_data.keys();
+		for (int i=0; i<new_data_keys.count(); i++)
+		{
+			string field_name = new_data_keys[i];
+			var new_value = this.new_data[field_name];
+			
+			if (thisold_data == null)
+			{
+				res.push(field_name, new_value);
+			}
+			else
+			{
+				if (not this.old_data.has(field_name))
+				{
+					res.push(field_name, new_value);
+				}
+				else
+				{
+					var old_value = this.old_data[field_name];
+					if (new_value != old_value)
+					{
+						res.push(field_name, new_value);
+					}
+				}
+			}
+		}
+		
+		return res.toDict();
+	}
+	
+	
+	/**
+	 * Set new data
+	 */
+	void setNewData(Dict data = null)
+	{
+		this.is_dirty = false;
+		this.old_data = data;
+		this.new_data = data;
+		if (data == null)
+		{
+			this.new_data = {};
+		}
+	}
+	
+	
+	/**
+	 * Returns true if object is new
+	 */
+	bool isNew()
+	{
+		return this.old_data ? false : true;
+	}
+	
+	
+	
+	/**
+	 * Returns true if data has loaded from database
+	 */
+	bool isUpdate()
+	{
+		return this.old_data ? true : false;
+	}
+	
+	
+	
+	/**
+	 * Returns true if model is changed
+	 */
+	bool isDirty()
+	{
+		return this.is_dirty;
+	}
+	
+	
+	/**
+	 * Query
+	 */
+	static void query() =>
+		new Query()
+			|> .relation(static::class)
+		;
+	
+	
+	/**
+	 * Select query
+	 */
+	static void selectQuery() =>
+		static::query()
+			|> .kind(Query::QUERY_SELECT)
+		;
+	
+	
+	/**
+	 * Insert query
+	 */
+	static void insertQuery() =>
+		static::query()
+			|> .kind(Query::QUERY_INSERT)
+		;
+	
+	
+	/**
+	 * Update query
+	 */
+	static void updateQuery() =>
+		static::query()
+			|> .kind(Query::QUERY_UPDATE)
+		;
+	
+	
+	/**
+	 * Delete query
+	 */
+	static void deleteQuery() =>
+		static::query()
+			|> .kind(Query::QUERY_DELETE)
+		;
+	
+	
+	/**
+	 * Find item
+	 */
+	async static findById(var id, Dict params)
+	{
+	}
+	
+	
+	/**
+	 * Find item
+	 */
+	async static findItem(Dict item, Dict params)
+	{
+	}
+	
+	
+	/**
+	 * Find or create
+	 */
+	async static findOrCreate(Dict item, Dict params)
+	{
+	}
+	
+	
+	/**
+	 * Save model
+	 */
+	async void save(Dict params = null)
+	{
+	}
+	
+	
+	/**
+	 * Delete model
+	 */
+	async void delete(Dict params = null)
+	{
+	}
+	
+	
+	/**
+	 * Refresh model from database
+	 */
+	async void refresh(Dict params = null)
+	{
+	}
 }

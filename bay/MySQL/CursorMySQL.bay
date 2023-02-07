@@ -21,18 +21,8 @@ namespace Runtime.ORM;
 
 class CursorMySQL
 {
-	ConnectionMySQL conn = null;
 	var st = null;
-	
-	
-	/**
-	 * Constructor
-	 */
-	public void constructor(ConnectionMySQL conn)
-	{
-		this.conn = conn;
-	}
-	
+		
 	
 	/**
 	 * Returns found rows
@@ -114,7 +104,7 @@ class CursorMySQL
 	/**
 	 * Fetch next row
 	 */
-	async Dict fetch(fn f = null)
+	async var fetch()
 	{
 		Dict row = null;
 		
@@ -128,7 +118,12 @@ class CursorMySQL
 		
 		#endswitch
 		
-		if (row and f) row = f(row);
+		if (row and this.q and this.q._class_name_relation != "")
+		{
+			string class_name = this.q._class_name_relation;
+			row = rtl::method(class_name, "newInstanceFromDatabase")( this.conn, row );
+		}
+		
 		return row;
 	}
 	
@@ -136,10 +131,16 @@ class CursorMySQL
 	/**
 	 * Fetch one
 	 */
-	async Dict fetchOne(fn f = null)
+	async var fetchOne()
 	{
-		Dict row = await this.fetch();
-		if (row and f) row = f(row);
+		var row = await this.fetch();
+		
+		if (row and this.q and this.q._class_name_relation != "")
+		{
+			string class_name = this.q._class_name_relation;
+			row = rtl::method(class_name, "newInstanceFromDatabase")( this.conn, row );
+		}
+		
 		return row;
 	}
 	
@@ -147,8 +148,16 @@ class CursorMySQL
 	/**
 	 * Fetch all rows
 	 */
-	async Collection<Dict> fetchAll(fn f = null)
+	async Collection fetchAll()
 	{
+		fn f = null;
+		
+		string class_name = this.q._class_name_relation;
+		if (this.q and this.q._class_name_relation != "")
+		{
+			f = rtl::method(class_name, "newInstanceFromDatabase");
+		}
+		
 		Vector<Dict> items = new Vector();
 		while (true)
 		{
@@ -159,7 +168,7 @@ class CursorMySQL
 			}
 			if (f)
 			{
-				row = f(row);
+				row = f( this.conn, row );
 			}
 			items.pushValue(row);
 		}
