@@ -32,5 +32,289 @@ use Runtime.ORM.StructBuilder;
 
 struct Query extends BaseStruct
 {
+	static const string QUERY_RAW = "raw";
+	static const string QUERY_SELECT = "select";
+	static const string QUERY_INSERT = "insert";
+	static const string QUERY_UPDATE = "update";
+	static const string QUERY_DELETE = "delete";
+	static const string QUERY_INSERT_OR_UPDATE = "insert_or_update";
+	
+	string _class_name_relation = "";
+	string _kind = "";
+	string _table_name = "";
+	string _table_name_alias = "t";
+	Collection<string> _fields = [];
+	Collection _join = [];
+	Collection _order = [];
+	Dict _filter = [];
+	string _sql = "";
+	Dict _data = {};	
+	int _start = 0;
+	int _limit = -1;
+	bool _debug = false;
+	
+	
+	/**
+	 * Calc found rows
+	 */
+	Query raw(string sql, Dict data) =>
+		this.clone{
+			"_kind": static::QUERY_RAW,
+			"_sql": sql,
+			"_data": data,
+		};
+	
+	
+	/**
+	 * Calc found rows
+	 */
+	Query calcFoundRows(bool value = true) =>
+		this.clone{
+			"_calc_found_rows": value,
+		};
+	
+	
+	/**
+	 * Set relation class name
+	 */
+	Query model(string class_name_relation) =>
+		this.clone{
+			"_class_name_relation": class_name_relation,
+			"_table_name": rtl::method(class_name_relation, "getTableName")(),
+		}
+	
+	
+	/**
+	 * Set alias
+	 */
+	Query alias(string alias_name) =>
+		this.clone{
+			"_table_name_alias": alias_name,
+		};
+	
+	
+	/**
+	 * Set debug log
+	 */
+	Query debug(bool value = true) =>
+		this.clone{
+			"_debug": value
+		};
+	
+	
+	/**
+	 * Select query
+	 */
+	Query select(string table_name = "") =>
+		this.clone{
+			"_kind": static::QUERY_SELECT,
+			"_fields": ["t.*"],
+			"_table_name": table_name,
+			"_table_name_alias": "t",
+		};
+	
+	
+	/**
+	 * Set table
+	 */
+	Query table(string table_name = "") =>
+		this.clone{
+			"_table_name": table_name,
+		};
+	
+	
+	/**
+	 * Set table
+	 */
+	function from(string table_name = "") =>
+		this.clone{
+			"_table_name": table_name,
+		};
+	
+	
+	/**
+	 * Insert query
+	 */
+	function insert(string table_name = "", Dict data) =>
+		this.clone{
+			"_kind": static::QUERY_INSERT,
+			"_table_name": table_name,
+			"_table_name_alias": "t",
+			"_data": data,
+		};
+	
+	
+	/**
+	 * Select query
+	 */
+	function update(string table_name = "", Dict data) =>
+		this.clone{
+			"_kind": static::QUERY_UPDATE,
+			"_table_name": table_name,
+			"_table_name_alias": "t",
+			"_data": data,
+		};
+	
+	
+	/**
+	 * Delete query
+	 */
+	function delete($table_name = "") =>
+		this.clone{
+			"_kind": static::QUERY_DELETE,
+			"_table_name": table_name,
+			"_table_name_alias": "t",
+		};
+	
+	
+	/**
+	 * Set kind
+	 */
+	function kind(string kind) =>
+		this.clone{
+			"_kind": kind,
+			"_table_name": table_name,
+			"_table_name_alias": "t",
+		};
+	
+	
+	/**
+	 * Set fields
+	 */
+	function fields(Collection fields) =>
+		this.clone{
+			"_fields": fields,
+			"_table_name": table_name,
+			"_table_name_alias": "t",
+		};
+	
+	
+	/**
+	 * Add field
+	 */
+	function addField(string field_name) =>
+		this.clone{
+			"_fields": this._fields.pushIm(field_name),
+		};
+	
+	
+	/**
+	 * Set data
+	 */
+	function data(Dict data) =>
+		this.clone{
+			"_data": data,
+		};
+	
+	
+	/**
+	 * Add page
+	 */
+	function page(int page, int limit = -1) =>
+		this.clone{
+			"_start": page * limit,
+			"_limit": limit,
+		};
+	
+	
+	/**
+	 * Set offset
+	 */
+	function offset(int start, int limit = -1) =>
+		this.clone{
+			"_start": start,
+			"_limit": limit,
+		};
+	
+	
+	/**
+	 * Set start
+	 */
+	function start(int start) =>
+		this.clone{
+			"_start": start,
+		};
+	
+	
+	/**
+	 * Set limit
+	 */
+	function limit(int limit) =>
+		this.clone{
+			"_start": start,
+		};
+	
+	
+	/**
+	 * Clear order
+	 */
+	function clearOrder() =>
+		this.clone{
+			"_order": [],
+		};
+	
+	
+	/**
+	 * Set order
+	 */
+	function orderBy(string name, string sort) =>
+		this.clone{
+			"_order": this._order.pushIm([ name, sort ]),
+		};
+	
+	
+	/**
+	 * Add where
+	 */
+	function where(string key, string op, var value) =>
+		this.clone{
+			"_filter": this._filter.pushIm([ key, op, value ]),
+		};
+	
+	
+	/**
+	 * Add filter
+	 */
+	function filter(Collection filter) =>
+		this.clone{
+			"_filter": this._filter.concat(filter),
+		};
+	
+	
+	/**
+	 * Clear filter
+	 */
+	function clearFilter() =>
+		this.clone{
+			"_filter": [],
+		};
+	
+	
+	/**
+	 * Inner join
+	 */
+	function innerJoin(string table_name, string alias_name, Collection filter) =>
+		this.clone{
+			"_join": this._join.pushIm({
+				"kind": "join",
+				"table_name": table_name,
+				"alias_name": alias_name,
+				"filter": filter,
+			}),
+		};
+	
+	
+	/**
+	 * Left join
+	 */
+	function leftJoin(string table_name, string alias_name, Collection filter) =>
+		this.clone{
+			"_join": this._join.pushIm({
+				"kind": "left",
+				"table_name": table_name,
+				"alias_name": alias_name,
+				"filter": filter,
+			}),
+		};
 	
 }

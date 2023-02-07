@@ -18,31 +18,36 @@
 
 namespace Runtime.ORM;
 
-use Runtime.ORM.Connection;
-use Runtime.ORM.Provider;
-use Runtime.ORM.Query;
+use Runtime.BaseProvider;
+use Runtime.Exceptions.RuntimeException;
 
 
-class Database
+class Provider extends BaseProvider
 {
+	Dict connection_list = {};
+	
 	
 	/**
-	 * Returns new Query instance
+	 * Returns connection
 	 */
-	static Query query(Query q)
+	Connection getConnection(Dict params)
 	{
-		return new Query();
+		string connection_name = params["name"] |> default string "default";
+		
+		if (not this.connection_list.has(connection_name))
+		{
+			throw new RuntimeException("Connection " ~ connection_name ~ " not found");
+		}
+		
+		return this.connection_list[connection_name];
 	}
 	
 	
 	/**
-	 * Execute query
+	 * Add new connection
 	 */
-	static async Cursor execute(Query q, Dict params = null)
+	void addConnection(string name, Connection conn)
 	{
-		Provider provider = @.provider(classof Provider);
-		Connection c = provider.getConnection(params);
-		return await c.executeQuery(q, params);
+		this.connection_list = this.connection_list.setIm(name, conn);
 	}
-	
 }

@@ -177,7 +177,6 @@ class ConnectionMySQL extends Connection
 		return null;
 	}
 	
-	
 
 	/**
 	 * Returns query sql
@@ -185,226 +184,229 @@ class ConnectionMySQL extends Connection
 	async list buildQuery(Query q)
 	{
 		/* Select query */
-		if ($q->_kind == Query::QUERY_SELECT)
+		if (q._kind == Query::QUERY_SELECT)
 		{
-			$sql = "SELECT ";
-			$params = $q->_params;
-			
-			/* Add found rows */
-			if ($q->_calc_found_rows == true) $sql .= " SQL_CALC_FOUND_ROWS ";
+			string sql = "SELECT ";
+			Dict data = {};
 			
 			/* Add fields */
-			if ($q->_fields != null) $sql .= implode(", ", $q->_fields);
-			else $sql .= " * ";
+			if (q.fields != null) sql ~= rs::join(", ", q._fields);
+			else sql ~= " * ";
 			
 			/* New line */
-			$sql .= "\n";
+			sql ~= "\n";
 			
 			/* Add table name */
-			$sql .= " FROM " . $this->prefix . $q->_table_name;
+			sql ~= " FROM " ~ this.prefix ~ q._table_name;
 			
 			/* Add table alias */
-			if ($q->_table_name_alias != "") $sql .= " AS " . $q->_table_name_alias;
+			if (q._table_name_alias != "") $sql ~= " AS " . q._table_name_alias;
 			
 			/* New line */
-			$sql .= "\n";
+			sql ~= "\n";
 			
 			/* Add joins */
-			if ($q->_join != null)
+			if (q._join != null and q._join.count() > 0)
 			{
-				foreach ($q->_join as $join)
+				for (int i=0; i<q._join.count(); i++)
 				{
-					$kind = $join["kind"];
-					$table_name = $join["table_name"];
-					$alias_name = $join["alias_name"];
-					$where = $join["where"];
+					Dict join = q._join[i];
 					
-					if ($kind == "left") $sql .= " LEFT JOIN ";
-					else $sql .= " INNER JOIN ";
+					string kind = join["kind"];
+					string table_name = join["table_name"];
+					string alias_name = join["alias_name"];
+					Collection filter = join["filter"];
 					
-					$sql .= $this->prefix . $table_name;
-					if ($alias_name != "") $sql .= " AS " . $alias_name;
-					$sql .= " ON (" . $where . ")";
+					list res = this.convertFilter(filter);
+					string where = res[0];
+					data = data.concatIm(data, res[1]);
+					
+					if (kind == "left") sql ~= " LEFT JOIN ";
+					else sql ~= " INNER JOIN ";
+					
+					$sql ~= this.prefix ~ table_name;
+					if (alias_name != "") sql ~= " AS " ~ alias_name;
+					$sql ~= " ON (" ~ where ~ ")";
 					
 					/* New line */
-					$sql .= "\n";
+					sql ~= "\n";
 				}
 			}
 			
 			/* Add where */
-			if ($q->_filter != null)
+			if (q._filter != null and q._filter.count() > 0)
 			{
-				$res = $this->convertFilter($q->_filter);
-				$where = $res[0];
-				$params = array_merge($params, $res[1]);
+				list res = this.convertFilter(filter);
+				string where = res[0];
+				data = data.concatIm(data, res[1]);
 				
-				$where_str = implode(" AND ", $where);
-				if ($where_str != "") $sql .= " WHERE " . $where_str;
+				if (where != "") sql ~= " WHERE " . where;
 				
 				/* New line */
-				$sql .= "\n";
+				sql ~= "\n";
 			}
 			
 			/* Add order */
-			if ($q->_order != null)
+			if (q._order != null and q._order.count() > 0)
 			{
-				$order = array_map
+				Collection order = array_map
 				(
-					function($item){ return $item[0] . " " . $item[1]; },
-					$q->_order
+					(Collection item) => item[0] ~ " " ~ item[1],
+					q._order
 				);
 				
-				$sql .= " ORDER BY " . implode(",", $order);
+				sql ~= " ORDER BY " ~ rs::join(",", order);
 				
 				/* New line */
-				$sql .= "\n";
+				sql ~= "\n";
 			}
 			
 			/* Add order */
-			if ($q->_limit >= 0) $sql .= " LIMIT " . $q->_limit;
-			if ($q->_limit >= 0 and $q->_start >= 0) $sql .= " OFFSET " . $q->_start;
+			if (q._limit >= 0) sql ~= " LIMIT " ~ q._limit;
+			if (q._limit >= 0 and q._start >= 0) sql ~= " OFFSET " ~ q._start;
 			
-			return [$sql, $params];
+			return [sql, data];
 		}
 		
-		else if ($q->_kind == Query::QUERY_INSERT)
+		else if (q._kind == Query::QUERY_INSERT)
 		{
-			$keys = [];
-			$values = [];
-			foreach ($q->_values as $key => $val)
-			{
-				$keys[] = "`" . $key . "`";
-				$values[] = ":" . $key;
-			}
+			Vector keys = new Vector();
+			Vector values = new Vector();
+			
+			q._data.each(
+				(var value, string key) use (keys, values)
+				{
+					keys.push( "`" ~ key ~ "`" );
+					values.push( ":" ~ key );
+				}
+			);
 			
 			/* Build sql */
-			$sql = "insert into " . $q->_table_name . 
-				" (" . implode(",",$keys) . ") values (" . implode(",",$values) . ")"
+			string sql = "INSERT INTO " ~ this.prefix ~ q._table_name . 
+				" (" . rs::join(",", keys) . ") VALUES (" . rs::join(",", values) . ")"
 			;
 			
-			return [$sql, $q->_values];
+			return [sql, q._data];
 		}
 		
-		else if ($q->_kind == Query::QUERY_UPDATE)
+		else if (q._kind == Query::QUERY_UPDATE)
 		{
-			$args = [];
+			Vector update_arr = new Vector();
+			Vector values = new Vector();
+			Dict data = q._data;
 			
 			/* Build update */
-			$update_arr = [];
-			foreach ($q->_values as $key => $value)
-			{
-				$update_arr[] = "`" . $key . "` = :_update_" . $key;
-				$args["_update_" . $key] = $value;
-			}
-			$update_str = implode(", ", $update_arr);
+			q._data.each(
+				(var value, string key) use (keys, values)
+				{
+					update_arr.push( "`" ~ key ~ "`" = ":_update_" ~ key );
+					data = data.setIm(":_update_" ~ key, value);
+				}
+			);
 			
 			/* Build where */
-			$res = $this->convertFilter($q->_filter);
-			$where_str = implode(" AND ", $res[0]);
-			$args = array_merge($args, $res[1]);
+			list res = this.convertFilter(q._filter);
+			string where_str = res[0];
+			data = data.concat(res[1]);
 			
 			/* Build sql */
-			$sql = "update " . $q->_table_name . " set $update_str where $where_str";
+			string sql = "UPDATE " . this.prefix ~ q._table_name ~
+				" SET " ~ rs::join(", ", update_arr) ~ " WHERE " ~ where_str;
 			
-			return [$sql, $args];
+			return [sql, data];
 		}
 		
-		else if ($q->_kind == Query::QUERY_DELETE)
+		else if (q._kind == Query::QUERY_DELETE)
 		{
 			/* Build where */
-			$res = $this->convertFilter($q->_filter);
-			$where_str = implode(" AND ", $res[0]);
-			$where_args = $res[1];
+			list res = this.convertFilter(q._filter);
+			string where_str = res[0];
+			Dict data = res[1];
 			
 			/* Delete item */
-			$sql = "delete from " . $q->_table_name . " where " . $where_str;
+			string sql = "DELETE FROM " . q._table_name . " WHERE " . where_str;
 			
-			return [$sql, $where_args];
+			return [sql, data];
 		}
 		
-		else if ($q->_kind == Query::QUERY_RAW)
+		else if (q._kind == Query::QUERY_RAW)
 		{
-			return [$q->_sql, $q->_params];
+			return [q._sql, q._data];
 		}
 		
 		return null;
 	}
 	
 	
-	
 	/**
 	 * Convert filter
 	 */
-	function convertFilter($filter, $field_index = 0)
+	list convertFilter(Collection filter, int field_index = 0)
 	{
-		$params = [];
-		$where = [];
+		Vector where = new Vector();
+		Map data = new Map();
+		Collection allow_operations = ["=", "!=", ">=", "<=", "<", ">"];
 		
-		$convertKey = function($s)
-		{
-			return str_replace(".", "_", $s);
-		};
+		fn convert_key = string (string s) =>
+			rs::replace(".", "_", s)
+		;
 		
-		foreach ($filter as $item)
+		for (int i=0; i<filter.count(); i++)
 		{
-			$field_name = $item[0];
-			$op = $item[1];
-			$value = $item[2];
+			list item = filter[i];
+			string field_name = item[0];
+			string op = item[1];
+			var value = item[2];
 			
-			/* or */
-			if ($field_name == "\$or")
+			/* OR */
+			if (field_name == "$or")
 			{
-				if (is_array($op))
+				Vector where_or = new Vector();
+				for (int j=0; j<value.count(); j++)
 				{
-					$arr_where = [];
-					foreach ($op as $or)
-					{
-						list($where_or, $items_or, $field_index) =
-							$this->convertFilter($or, $field_index)
-						;
-						$arr_where[] = implode(" AND ", $where_or);
-						$params = array_merge($params, $items_or);
-					}
-					$where[] = "(" . implode(" OR ", $arr_where) . ")";
+					list res_or = this.convertFilter(value[j], field_index);
+					where_or.push( res_or[0] );
+					data.concat( res_or[1] );
+					field_index = res_or[2];
 				}
+				
+				where.push( "(" ~ rs::join(" OR ", where_or) ~ ")" );
 				
 				continue;
 			}
 			
 			/* Check operation */
-			if ( !in_array($op, ["=", "!=", ">=", "<=", "<", ">"]) )
+			if (allow_operations.indexOf(op) == -1)
 			{
-				$op = "=";
+				op = "=";
 			}
 			
-			if (is_string($value) or is_int($value) or is_bool($value))
+			if (value === null)
 			{
-				$field_key = $convertKey("where_" . $field_name . "_" . $field_index);
-				$where[] = $this->escape($field_name) . " " . $op . " :" . $field_key;
-				$params[$field_key] = $value;
-				$field_index++;
+				if (op == "!=")
+					where.push( this.escape_field(field_name) ~ " is not null" );
+					
+				else
+					where.push( this.escape_field(field_name) ~ " is null" );
 			}
 			
-			else if (is_array($value))
+			else
 			{
-				$keys = [];
-				foreach ($value as $v)
-				{
-					$field_key = $convertKey("where_" . $field_name . "_" . $field_index);
-					$keys[] = ":" . $field_key;
-					$params[$field_key] = $v;
-					$field_index++;
-				}
-				$where[] = $this->escape($field_name) . " in (" . implode(",", $keys) . ")";
-			}
-			
-			else if ($value === null)
-			{
-				if ($op == "!=") $where[] = $this->escape($field_name) . " is not null";
-				else $where[] = $this->escape($field_name) . " is null";
+				string field_key = convert_key( "where_" ~ field_name ~ "_" ~ field_index );
+				where.push( this.escape_field(field_name) ~ " " ~ op ~ " :" ~ field_key );
+				data.set(field_key, value);
+				field_index++;
 			}
 		}
 		
-		return [$where, $params, $field_index];
+		string where_str = rs::join(" AND ", where);
+		
+		return [where_str, data, field_index];
 	}
+	
+	
+	/**
+	 * Escape
+	 */
+	string escape_field(item) => item;
 }

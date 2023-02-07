@@ -18,12 +18,11 @@
 
 namespace Runtime.ORM;
 
-use Runtime.Entity;
+use Runtime.Entity.Provider;
 
 
 class ModuleDescription
 {
-	
 	
 	/**
 	 * Returns module name
@@ -32,13 +31,11 @@ class ModuleDescription
 	pure string getModuleName() => "Runtime.ORM";
 	
 	
-	
 	/**
 	 * Returns module name
 	 * @return string
 	 */
-	pure string getModuleVersion() => "0.8.0";
-	
+	pure string getModuleVersion() => "0.11.0";
 	
 	
 	/**
@@ -51,13 +48,12 @@ class ModuleDescription
 	};
 	
 	
-	
 	/**
 	 * Returns enities
 	 */
 	pure Collection<Dict> entities() => 
 	[
-		new Entity{ "name": "Runtime.ORM.Helper" },
+		new Provider( "Runtime.ORM.Provider", "Runtime.ORM.Provider" ),
 	];
 	
 }
