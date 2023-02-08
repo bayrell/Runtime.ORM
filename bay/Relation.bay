@@ -43,10 +43,29 @@ class Relation extends BaseObject
 	
 	
 	/**
+	 * Returns true if primary key is auto increment
+	static memorize bool isAutoIncrement()
+	{
+		Collection<BaseStruct> annotations = static::annotations();
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof AutoIncrement)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	
+	/**
 	 * To database
 	 */
 	pure Dict toDatabase(Connection conn, Dict data, bool is_update)
 	{
+		if (data == null) return null;
+		
 		Collection<BaseStruct> annotations = static::annotations();
 		for (int i=0; i<annotations.count(); i++)
 		{
@@ -65,6 +84,8 @@ class Relation extends BaseObject
 	 */
 	pure Dict fromDatabase(Connection conn, Dict data)
 	{
+		if (data == null) return null;
+		
 		Collection<BaseStruct> annotations = static::annotations();
 		for (int i=0; i<annotations.count(); i++)
 		{
@@ -102,6 +123,24 @@ class Relation extends BaseObject
 	
 	
 	/**
+	 * Returns connection
+	 */
+	Connection getConnection() => this.conn;
+	
+	
+	/**
+	 * Set new connection
+	 */
+	Relation setConnection(Connection conn)
+	{
+		Relation instance = rtl::newInstance(static::getClassName());
+		instance.assignObject(this);
+		instance.conn = conn;
+		return instance;
+	}
+	
+	
+	/**
 	 * Convert to model
 	 */
 	BaseStruct toModel(string class_name) =>
@@ -113,6 +152,64 @@ class Relation extends BaseObject
 	 * Convert to Dict
 	 */
 	Dict toDict(string class_name) => this.new_data;
+	
+	
+	/**
+	 * Returns primary keys
+	 */
+	static memorize Collection pk()
+	{
+		Vector primary_keys = new Vector();
+		Collection<BaseStruct> annotations = static::annotations();
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof Primary)
+			{
+				string field_name = annotation.name;
+				primary_keys.push(field_name);
+			}
+		}
+		return primary_keys.toCollection();
+	}
+	
+	
+	/**
+	 * Returns primary data
+	 */
+	static Dict getPrimaryData(Dict data)
+	{
+		Map primary_data = new Map();
+		Collection<BaseStruct> annotations = static::annotations();
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof Primary)
+			{
+				string field_name = annotation.name;
+				primary_data.set(field_name, data[field_name]);
+			}
+		}
+		return primary_data.toDict();
+	}
+	static Dict getPrimaryKey(Dict data) => static::getPrimaryData();
+	
+	
+	/**
+	 * Returns primary filter by data
+	 */
+	static Collection getPrimaryFilter(Dict data)
+	{
+		Dict pk = static::getPrimaryKey(old_data);
+		Vector filter = new Vector();
+		pk.each(
+			(var value, string key) use (filter)
+			{
+				filter.push([key, "=", value]);
+			}
+		);
+		return filter.toCollection();
+	}
 	
 	
 	/**
@@ -179,7 +276,6 @@ class Relation extends BaseObject
 	}
 	
 	
-	
 	/**
 	 * Returns true if data has loaded from database
 	 */
@@ -187,7 +283,6 @@ class Relation extends BaseObject
 	{
 		return this.old_data ? true : false;
 	}
-	
 	
 	
 	/**
@@ -247,24 +342,59 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static findById(var id, Dict params)
+	async static findById(var id, Dict params = null)
 	{
+		Collection pk = static::pk();
+		string pk_name = pk.get(0);
+		if (not pk_name) return null;
+		
+		Connection = Database::getConnection(params);
+		
+		Dict item = new Query
+			|> .select( static::getTableName() )
+			|> .where(pk_name, "=", id)
+			|> await curry conn.fetchOne(?, params)
+		;
+		
+		item = static::newInstanceFromDatabase(conn, item);
+		
+		return item;
 	}
 	
 	
 	/**
 	 * Find item
 	 */
-	async static findItem(Dict item, Dict params)
+	async static findItem(Dict item, Dict params = null)
 	{
+		Collection filter = static::getPrimaryFilter(item);
+		Connection conn = Database::getConnection(params);
+		
+		Dict item = new Query
+			|> .select( static::getTableName() )
+			|> .filter(filter)
+			|> await curry conn.fetchOne(?, params)
+		;
+		
+		item = static::newInstanceFromDatabase(conn, item);
+		
+		return item;
 	}
 	
 	
 	/**
 	 * Find or create
 	 */
-	async static findOrCreate(Dict item, Dict params)
+	async static findOrCreate(Dict item, Dict params = null)
 	{
+		Relation res = await static::findItem(item);
+		if (res) return res;
+		
+		Connection conn = Database::getConnection(params);
+		res = static::newInstance(item);
+		res.conn = conn;
+		
+		return res;
 	}
 	
 	
@@ -273,21 +403,117 @@ class Relation extends BaseObject
 	 */
 	async void save(Dict params = null)
 	{
+		bool is_update = this.isUpdate();
+		Dict updated_data = this.getUpdatedData();
+		updated_data = await this.beforeSave(updated_data, is_update);
+		updated_data = static::toDatabase(updated_data, is_update);
+		
+		if (is_update)
+		{
+			Collection updated_data_keys = updated_data.keys();
+			if (updated_data_keys.count() > 0)
+			{
+				Collection filter = static::getPrimaryFilter(this.old_data);
+				if (filter.count() > 0)
+				{
+					Connection conn = this.getConnection();
+					await conn.update(
+						static::getTableName(),
+						filter,
+						updated_data
+					);
+				}
+				
+				for (int i=0; i<updated_data_keys.count(); i++)
+				{
+					string field_name = updated_data_keys[i];
+					this.old_data[field_name] = updated_data[field_name];
+				}
+			}
+		}
+		else
+		{
+			Connection conn = this.getConnection();
+			var last_id = await conn.insert(
+				static::getTableName(),
+				updated_data,
+				true
+			);
+			
+			if (static::isAutoIncrement())
+			{
+				Collection pk = static::pk();
+				string pk_name = pk.get(0);
+				if (pk_name)
+				{
+					this.new_data[pk_name] = last_id;
+				}
+			}
+			
+			this.setNewData(this.new_data);
+		}
+		
+		await this.afterSave(updated_data, is_update);
 	}
 	
 	
 	/**
 	 * Delete model
 	 */
-	async void delete(Dict params = null)
+	async Relation delete(Dict params = null)
 	{
+		Collection filter = static::getPrimaryFilter(this.old_data);
+		
+		if (filter.count() > 0)
+		{
+			Connection conn = this.getConnection();
+			await conn.delete(
+				static::getTableName(),
+				filter
+			);
+		}
+		
+		return this;
 	}
 	
 	
 	/**
 	 * Refresh model from database
 	 */
-	async void refresh(Dict params = null)
+	async Relation refresh()
 	{
+		Dict item = null;
+		Collection filter = static::getPrimaryFilter(this.old_data);
+		
+		if (filter.count() > 0)
+		{
+			Connection conn = this.getConnection();
+			
+			Dict item = new Query
+				|> .select( static::getTableName() )
+				|> .filter(filter)
+				|> await curry conn.fetchOne(?)
+				|> static::fromDatabase
+			;
+		}
+		
+		this.setNewData(item);
+		
+		return this;
+	}
+	
+	
+	/**
+	 * Returns value
+	 */
+	var get(string name, var def_value) => this.new_data[name] |> default def_value;
+	
+	
+	/**
+	 * Set new value
+	 */
+	void set(string name, var value)
+	{
+		this.new_data[name] = value;
 	}
 }

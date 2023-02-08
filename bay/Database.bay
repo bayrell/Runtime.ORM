@@ -27,6 +27,18 @@ class Database
 {
 	
 	/**
+	 * Returns connection
+	 */
+	static Connection getConnection(Dict params)
+	{
+		Provider provider = @.provider(classof Provider);
+		string name = params["name"] |> default string "default";
+		Connection conn = provider.getConnection(name);
+		return conn;
+	}
+	
+	
+	/**
 	 * Returns new Query instance
 	 */
 	static Query query(Query q)
@@ -40,8 +52,7 @@ class Database
 	 */
 	static async Cursor execute(Query q, Dict params = null)
 	{
-		Provider provider = @.provider(classof Provider);
-		Connection c = provider.getConnection(params);
+		Connection conn = static::getConnection(params);
 		return await c.executeQuery(q, params);
 	}
 	

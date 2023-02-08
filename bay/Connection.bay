@@ -68,27 +68,37 @@ class Connection
 	/**
 	 * Insert query
 	 */
-	async void insert(string table_name, Dict data)
+	async var insert(string table_name, Dict data, bool get_last_id)
 	{
+		var last_id = null;
+		
 		Query q = new Query()
 			|> .insert(table_name)
 			|> .values(data)
 		;
 		
 		Cursor c = await this.executeQuery(q);
+		
+		if (get_last_id)
+		{
+			last_id = await c.lastInsertId();
+		}
+		
 		await c.close();
+		
+		return last_id;
 	}
 	
 	
 	/**
 	 * Update query
 	 */
-	async void update(string table_name, Dict where, Dict update)
+	async void update(string table_name, Collection filter, Dict update)
 	{
 		Query q = new Query()
 			|> .update(table_name)
 			|> .values(data)
-			|> .where(where)
+			|> .filter(filter)
 		;
 		
 		Cursor c = await this.executeQuery(q);
@@ -99,11 +109,11 @@ class Connection
 	/**
 	 * Delete item
 	 */
-	async void delete(string table_name, Dict where)
+	async void delete(string table_name, Collection filter)
 	{
 		Query q = new Query()
 			|> .delete(table_name)
-			|> .where(where)
+			|> .filter(filter)
 		;
 		
 		Cursor c = await this.executeQuery(q);

@@ -30,16 +30,14 @@ class Provider extends BaseProvider
 	/**
 	 * Returns connection
 	 */
-	Connection getConnection(Dict params)
+	Connection getConnection(string name)
 	{
-		string connection_name = params["name"] |> default string "default";
-		
-		if (not this.connection_list.has(connection_name))
+		if (not this.connection_list.has(name))
 		{
-			throw new RuntimeException("Connection " ~ connection_name ~ " not found");
+			throw new RuntimeException("Connection " ~ name ~ " not found");
 		}
 		
-		return this.connection_list[connection_name];
+		return this.connection_list[name];
 	}
 	
 	
