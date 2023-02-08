@@ -81,7 +81,7 @@ struct Query extends BaseStruct
 		this.clone{
 			"_class_name_relation": class_name_relation,
 			"_table_name": rtl::method(class_name_relation, "getTableName")(),
-		}
+		};
 	
 	
 	/**
@@ -126,7 +126,7 @@ struct Query extends BaseStruct
 	/**
 	 * Set table
 	 */
-	function from(string table_name = "") =>
+	Query from(string table_name = "") =>
 		this.clone{
 			"_table_name": table_name,
 		};
@@ -135,31 +135,29 @@ struct Query extends BaseStruct
 	/**
 	 * Insert query
 	 */
-	function insert(string table_name = "", Dict data) =>
+	Query insert(string table_name = "") =>
 		this.clone{
 			"_kind": static::QUERY_INSERT,
 			"_table_name": table_name,
 			"_table_name_alias": "t",
-			"_data": data,
 		};
 	
 	
 	/**
 	 * Select query
 	 */
-	function update(string table_name = "", Dict data) =>
+	Query update(string table_name = "") =>
 		this.clone{
 			"_kind": static::QUERY_UPDATE,
 			"_table_name": table_name,
 			"_table_name_alias": "t",
-			"_data": data,
 		};
 	
 	
 	/**
 	 * Delete query
 	 */
-	function delete($table_name = "") =>
+	Query delete(string table_name = "") =>
 		this.clone{
 			"_kind": static::QUERY_DELETE,
 			"_table_name": table_name,
@@ -170,29 +168,25 @@ struct Query extends BaseStruct
 	/**
 	 * Set kind
 	 */
-	function kind(string kind) =>
+	Query kind(string kind) =>
 		this.clone{
 			"_kind": kind,
-			"_table_name": table_name,
-			"_table_name_alias": "t",
 		};
 	
 	
 	/**
 	 * Set fields
 	 */
-	function fields(Collection fields) =>
+	Query fields(Collection fields) =>
 		this.clone{
 			"_fields": fields,
-			"_table_name": table_name,
-			"_table_name_alias": "t",
 		};
 	
 	
 	/**
 	 * Add field
 	 */
-	function addField(string field_name) =>
+	Query addField(string field_name) =>
 		this.clone{
 			"_fields": this._fields.pushIm(field_name),
 		};
@@ -201,7 +195,16 @@ struct Query extends BaseStruct
 	/**
 	 * Set data
 	 */
-	function data(Dict data) =>
+	Query values(Dict data) =>
+		this.clone{
+			"_data": data,
+		};
+	
+	
+	/**
+	 * Set data
+	 */
+	Query data(Dict data) =>
 		this.clone{
 			"_data": data,
 		};
@@ -210,7 +213,7 @@ struct Query extends BaseStruct
 	/**
 	 * Add page
 	 */
-	function page(int page, int limit = -1) =>
+	Query page(int page, int limit = -1) =>
 		this.clone{
 			"_start": page * limit,
 			"_limit": limit,
@@ -220,7 +223,7 @@ struct Query extends BaseStruct
 	/**
 	 * Set offset
 	 */
-	function offset(int start, int limit = -1) =>
+	Query offset(int start, int limit = -1) =>
 		this.clone{
 			"_start": start,
 			"_limit": limit,
@@ -230,7 +233,7 @@ struct Query extends BaseStruct
 	/**
 	 * Set start
 	 */
-	function start(int start) =>
+	Query start(int start) =>
 		this.clone{
 			"_start": start,
 		};
@@ -239,16 +242,16 @@ struct Query extends BaseStruct
 	/**
 	 * Set limit
 	 */
-	function limit(int limit) =>
+	Query limit(int limit) =>
 		this.clone{
-			"_start": start,
+			"_limit": limit,
 		};
 	
 	
 	/**
 	 * Clear order
 	 */
-	function clearOrder() =>
+	Query clearOrder() =>
 		this.clone{
 			"_order": [],
 		};
@@ -257,7 +260,7 @@ struct Query extends BaseStruct
 	/**
 	 * Set order
 	 */
-	function orderBy(string name, string sort) =>
+	Query orderBy(string name, string sort) =>
 		this.clone{
 			"_order": this._order.pushIm([ name, sort ]),
 		};
@@ -266,7 +269,7 @@ struct Query extends BaseStruct
 	/**
 	 * Add where
 	 */
-	function where(string key, string op, var value) =>
+	Query where(string key, string op, var value) =>
 		this.clone{
 			"_filter": this._filter.pushIm([ key, op, value ]),
 		};
@@ -275,7 +278,7 @@ struct Query extends BaseStruct
 	/**
 	 * Add filter
 	 */
-	function filter(Collection filter) =>
+	Query filter(Collection filter) =>
 		this.clone{
 			"_filter": this._filter.concat(filter),
 		};
@@ -284,7 +287,7 @@ struct Query extends BaseStruct
 	/**
 	 * Clear filter
 	 */
-	function clearFilter() =>
+	Query clearFilter() =>
 		this.clone{
 			"_filter": [],
 		};
@@ -293,7 +296,7 @@ struct Query extends BaseStruct
 	/**
 	 * Inner join
 	 */
-	function innerJoin(string table_name, string alias_name, Collection filter) =>
+	Query innerJoin(string table_name, string alias_name, Collection filter) =>
 		this.clone{
 			"_join": this._join.pushIm({
 				"kind": "join",
@@ -307,7 +310,7 @@ struct Query extends BaseStruct
 	/**
 	 * Left join
 	 */
-	function leftJoin(string table_name, string alias_name, Collection filter) =>
+	Query leftJoin(string table_name, string alias_name, Collection filter) =>
 		this.clone{
 			"_join": this._join.pushIm({
 				"kind": "left",

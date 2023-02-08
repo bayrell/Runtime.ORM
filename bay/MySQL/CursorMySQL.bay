@@ -18,10 +18,14 @@
 
 namespace Runtime.ORM;
 
+use Runtime.ORM.Cursor;
+use Runtime.ORM.Query;
 
-class CursorMySQL
+
+class CursorMySQL extends Cursor
 {
 	var st = null;
+	var q = null;
 		
 	
 	/**
@@ -29,13 +33,21 @@ class CursorMySQL
 	 */
 	async int foundRows()
 	{
-		string sql = "SELECT FOUND_ROWS() as c;";
-		await this.executeSQL(sql);
+		if (not this.q)
+		{
+			return 0;
+		}
 		
-		Dict res = await this.fetch();
+		Query q = this.q
+			|> .fields([ 'count(*) as c' ])
+		;
+		
+		Cursor cursor = await this.conn.executeQuery(q);
+		
+		int res = await this.fetchVar('c');
 		await this.close();
 		
-		return res ? res['c'] : 0;
+		return res;
 	}
 	
 	
@@ -49,7 +61,7 @@ class CursorMySQL
 		#endif
 		
 		return 0;
-	};
+	}
 	
 	
 	/**
@@ -68,10 +80,7 @@ class CursorMySQL
 	/**
 	 * Execute sql query
 	 */
-	await CursorMySQL executeSQL(
-		string sql, Dict data = null,
-		Dict params = null
-	)
+	async CursorMySQL executeSQL(string sql, Dict data = null)
 	{
 		#ifcode PHP then
 		
@@ -88,7 +97,7 @@ class CursorMySQL
 	/**
 	 * Close query
 	 */
-	static await Cursor close()
+	async Cursor close()
 	{
 		#ifcode PHP then
 		
@@ -104,10 +113,8 @@ class CursorMySQL
 	/**
 	 * Fetch next row
 	 */
-	async var fetch()
+	async var fetchDict()
 	{
-		Dict row = null;
-		
 		#switch
 		#case ifcode PHP then
 		
@@ -117,63 +124,6 @@ class CursorMySQL
 		$row = ($row != null) ? \Runtime\Dict::from($row) : null;
 		
 		#endswitch
-		
-		if (row and this.q and this.q._class_name_relation != "")
-		{
-			string class_name = this.q._class_name_relation;
-			row = rtl::method(class_name, "newInstanceFromDatabase")( this.conn, row );
-		}
-		
-		return row;
-	}
-	
-	
-	/**
-	 * Fetch one
-	 */
-	async var fetchOne()
-	{
-		var row = await this.fetch();
-		
-		if (row and this.q and this.q._class_name_relation != "")
-		{
-			string class_name = this.q._class_name_relation;
-			row = rtl::method(class_name, "newInstanceFromDatabase")( this.conn, row );
-		}
-		
-		return row;
-	}
-	
-	
-	/**
-	 * Fetch all rows
-	 */
-	async Collection fetchAll()
-	{
-		fn f = null;
-		
-		string class_name = this.q._class_name_relation;
-		if (this.q and this.q._class_name_relation != "")
-		{
-			f = rtl::method(class_name, "newInstanceFromDatabase");
-		}
-		
-		Vector<Dict> items = new Vector();
-		while (true)
-		{
-			Dict row = await this.fetch();
-			if (row == null)
-			{
-				break;
-			}
-			if (f)
-			{
-				row = f( this.conn, row );
-			}
-			items.pushValue(row);
-		}
-		
-		return items.toCollection();
 	}
 	
 }

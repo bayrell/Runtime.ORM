@@ -18,6 +18,10 @@
 
 namespace Runtime.ORM;
 
+use Runtime.BaseStruct;
+use Runtime.ORM.Cursor;
+use Runtime.ORM.Query;
+
 
 class Connection
 {
@@ -156,9 +160,4 @@ class Connection
 	 */
 	var toDatabase(BaseStruct annotation, Dict item, string field_name) => item;
 	
-	
-	/**
-	 * Escape
-	 */
-	string escape_field(item) => item;
 }

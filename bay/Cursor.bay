@@ -18,6 +18,9 @@
 
 namespace Runtime.ORM;
 
+use Runtime.ORM.Connection;
+use Runtime.ORM.Query;
+
 
 class Cursor
 {
@@ -55,7 +58,7 @@ class Cursor
 	/**
 	 * Execute sql query
 	 */
-	await Cursor executeSQL(string sql, Dict data = null)
+	async Cursor executeSQL(string sql, Dict data = null)
 	{
 		return this;
 	}
@@ -64,7 +67,7 @@ class Cursor
 	/**
 	 * Close query
 	 */
-	static await Cursor close()
+	async Cursor close()
 	{
 		return this;
 	}
@@ -73,17 +76,56 @@ class Cursor
 	/**
 	 * Fetch next row
 	 */
-	async var fetch() => null;
+	async Dict fetchDict() => null;
 	
 	
 	/**
-	 * Fetch one
+	 * Fetch next row
 	 */
-	async var fetchOne() => null;
+	async var fetch()
+	{
+		Dict row = await this.fetchDict();
+		
+		if (row and this.q and this.q._class_name_relation != "")
+		{
+			string class_name = this.q._class_name_relation;
+			row = rtl::method(class_name, "newInstanceFromDatabase")( this.conn, row );
+		}
+		
+		return row;
+	}
 	
 	
 	/**
 	 * Fetch all rows
 	 */
-	async Collection fetchAll() => null;
+	async Collection fetchAll()
+	{
+		Vector<Dict> items = new Vector();
+		while (true)
+		{
+			Dict row = await this.fetch();
+			if (row == null)
+			{
+				break;
+			}
+			items.pushValue(row);
+		}
+		
+		return items.toCollection();
+	}
+	
+	
+	/**
+	 * Fetch variable
+	 */
+	async var fetchVar(string var_name)
+	{
+		Dict row = await this.fetchDict();
+		if (row)
+		{
+			return row[var_name];
+		}
+		return null;
+	}
 }

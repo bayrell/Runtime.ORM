@@ -19,7 +19,10 @@
 namespace Runtime.ORM.MySQL;
 
 use Runtime.io;
+use Runtime.ORM.Connection;
+use Runtime.ORM.Cursor;
 use Runtime.ORM.Query;
+use Runtime.ORM.MySQL.CursorMySQL;
 
 
 class ConnectionMySQL extends Connection
@@ -137,6 +140,32 @@ class ConnectionMySQL extends Connection
 	
 	
 	/**
+	 * Get sql
+	 */
+	string getSQL(string sql, Dict data = null)
+	{
+		if (data == null) return sql;
+		
+		data.each(
+			void (string value, string key) use (sql)
+			{
+				if (value == null)
+				{
+					sql = rs::replace(":" ~ key, "null", sql);
+				}
+				else
+				{
+					value = this.quote(value);
+					sql = rs::replace(":" ~ key, "'" ~ value ~ "'", sql);
+				}
+			}
+		);
+		
+		return sql;
+	}
+	
+	
+	/**
 	 * Execute sql query
 	 */
 	async Cursor executeSQL(string sql, Dict data = null, Dict params = null)
@@ -179,6 +208,22 @@ class ConnectionMySQL extends Connection
 		return cursor;
 	}
 	
+	
+	/**
+	 * Returns query sql
+	 */
+	async string buildSQL(Query q)
+	{
+		list res = await this.buildQuery(q);
+		if (res == null) return "";
+		
+		string sql = res[0];
+		Dict data = res[1];
+		sql = static::getSQL(sql, data);
+		
+		return sql;
+	}
+	
 
 	/**
 	 * Returns query sql
@@ -202,7 +247,7 @@ class ConnectionMySQL extends Connection
 			sql ~= " FROM " ~ this.prefix ~ q._table_name;
 			
 			/* Add table alias */
-			if (q._table_name_alias != "") $sql ~= " AS " . q._table_name_alias;
+			if (q._table_name_alias != "") sql ~= " AS " ~ q._table_name_alias;
 			
 			/* New line */
 			sql ~= "\n";
@@ -221,14 +266,14 @@ class ConnectionMySQL extends Connection
 					
 					list res = this.convertFilter(filter);
 					string where = res[0];
-					data = data.concatIm(data, res[1]);
+					data = data.concat(res[1]);
 					
 					if (kind == "left") sql ~= " LEFT JOIN ";
 					else sql ~= " INNER JOIN ";
 					
-					$sql ~= this.prefix ~ table_name;
+					sql ~= this.prefix ~ table_name;
 					if (alias_name != "") sql ~= " AS " ~ alias_name;
-					$sql ~= " ON (" ~ where ~ ")";
+					sql ~= " ON (" ~ where ~ ")";
 					
 					/* New line */
 					sql ~= "\n";
@@ -238,11 +283,11 @@ class ConnectionMySQL extends Connection
 			/* Add where */
 			if (q._filter != null and q._filter.count() > 0)
 			{
-				list res = this.convertFilter(filter);
+				list res = this.convertFilter(q._filter);
 				string where = res[0];
-				data = data.concatIm(data, res[1]);
+				data = data.concat(res[1]);
 				
-				if (where != "") sql ~= " WHERE " . where;
+				if (where != "") sql ~= " WHERE " ~ where;
 				
 				/* New line */
 				sql ~= "\n";
@@ -251,10 +296,9 @@ class ConnectionMySQL extends Connection
 			/* Add order */
 			if (q._order != null and q._order.count() > 0)
 			{
-				Collection order = array_map
+				Collection order = q._order.map
 				(
-					(Collection item) => item[0] ~ " " ~ item[1],
-					q._order
+					string (Collection item) => item[0] ~ " " ~ item[1]
 				);
 				
 				sql ~= " ORDER BY " ~ rs::join(",", order);
@@ -275,17 +319,20 @@ class ConnectionMySQL extends Connection
 			Vector keys = new Vector();
 			Vector values = new Vector();
 			
-			q._data.each(
-				(var value, string key) use (keys, values)
-				{
-					keys.push( "`" ~ key ~ "`" );
-					values.push( ":" ~ key );
-				}
-			);
+			if (q._data)
+			{
+				q._data.each(
+					void (var value, string key) use (keys, values)
+					{
+						keys.pushValue( "`" ~ key ~ "`" );
+						values.pushValue( ":" ~ key );
+					}
+				);
+			}
 			
 			/* Build sql */
-			string sql = "INSERT INTO " ~ this.prefix ~ q._table_name . 
-				" (" . rs::join(",", keys) . ") VALUES (" . rs::join(",", values) . ")"
+			string sql = "INSERT INTO " ~ this.prefix ~ q._table_name ~
+				" (" ~ rs::join(",", keys) ~ ") VALUES (" ~ rs::join(",", values) ~ ")"
 			;
 			
 			return [sql, q._data];
@@ -295,14 +342,16 @@ class ConnectionMySQL extends Connection
 		{
 			Vector update_arr = new Vector();
 			Vector values = new Vector();
-			Dict data = q._data;
+			Map data = new Map();
 			
 			/* Build update */
 			q._data.each(
-				(var value, string key) use (keys, values)
+				void (var value, string key) use (update_arr, data)
 				{
-					update_arr.push( "`" ~ key ~ "`" = ":_update_" ~ key );
-					data = data.setIm(":_update_" ~ key, value);
+					string field_key = "update_" ~ key;
+					string field_name = this.prepare_field(key)
+					update_arr.pushValue(field_name ~ " = :" ~ field_key);
+					data = data.setValue(field_key, value);
 				}
 			);
 			
@@ -312,10 +361,11 @@ class ConnectionMySQL extends Connection
 			data = data.concat(res[1]);
 			
 			/* Build sql */
-			string sql = "UPDATE " . this.prefix ~ q._table_name ~
-				" SET " ~ rs::join(", ", update_arr) ~ " WHERE " ~ where_str;
+			string sql = "UPDATE " ~ this.prefix ~ q._table_name ~
+				" SET " ~ rs::join(", ", update_arr) ~ " WHERE " ~ where_str
+			;
 			
-			return [sql, data];
+			return [sql, data.toDict()];
 		}
 		
 		else if (q._kind == Query::QUERY_DELETE)
@@ -326,7 +376,7 @@ class ConnectionMySQL extends Connection
 			Dict data = res[1];
 			
 			/* Delete item */
-			string sql = "DELETE FROM " . q._table_name . " WHERE " . where_str;
+			string sql = "DELETE FROM " ~ q._table_name ~ " WHERE " ~ where_str;
 			
 			return [sql, data];
 		}
@@ -347,7 +397,10 @@ class ConnectionMySQL extends Connection
 	{
 		Vector where = new Vector();
 		Map data = new Map();
-		Collection allow_operations = ["=", "!=", ">=", "<=", "<", ">"];
+		Collection allow_operations = [
+			"=", "!=", ">=", "<=", "<", ">",
+			"like", "%like%", "like%", "%like"
+		];
 		
 		fn convert_key = string (string s) =>
 			rs::replace(".", "_", s)
@@ -364,15 +417,16 @@ class ConnectionMySQL extends Connection
 			if (field_name == "$or")
 			{
 				Vector where_or = new Vector();
+				
 				for (int j=0; j<value.count(); j++)
 				{
 					list res_or = this.convertFilter(value[j], field_index);
-					where_or.push( res_or[0] );
+					where_or.pushValue( res_or[0] );
 					data.concat( res_or[1] );
 					field_index = res_or[2];
 				}
 				
-				where.push( "(" ~ rs::join(" OR ", where_or) ~ ")" );
+				where.pushValue( "(" ~ rs::join(" OR ", where_or) ~ ")" );
 				
 				continue;
 			}
@@ -386,29 +440,75 @@ class ConnectionMySQL extends Connection
 			if (value === null)
 			{
 				if (op == "!=")
-					where.push( this.escape_field(field_name) ~ " is not null" );
-					
+				{
+					where.pushValue( this.prepare_field(field_name) ~ " is not null" );
+				}
 				else
-					where.push( this.escape_field(field_name) ~ " is null" );
+				{
+					where.pushValue( this.prepare_field(field_name) ~ " is null" );
+				}
 			}
 			
 			else
 			{
 				string field_key = convert_key( "where_" ~ field_name ~ "_" ~ field_index );
-				where.push( this.escape_field(field_name) ~ " " ~ op ~ " :" ~ field_key );
-				data.set(field_key, value);
+				field_name = this.prepare_field(field_name);
+				
+				list res = this.prepare_value(value, op);
+				value = res[0];
+				op = res[1];
+				
+				where.pushValue( field_name ~ " " ~ op ~ " :" ~ field_key );
+				data.setValue( field_key, value );
+				
 				field_index++;
 			}
 		}
 		
 		string where_str = rs::join(" AND ", where);
 		
-		return [where_str, data, field_index];
+		return [where_str, data.toDict(), field_index];
 	}
 	
 	
 	/**
-	 * Escape
+	 * Prepare field
 	 */
-	string escape_field(item) => item;
+	string prepare_field(var item) => item;
+	
+	
+	/**
+	 * Prepare value
+	 */
+	string prepare_value(var item, string op)
+	{
+		if (op == "%like%")
+		{
+			item = "%" ~ item ~ "%";
+			op = "like";
+		}
+		else if (op == "like%")
+		{
+			item = item ~ "%";
+			op = "like";
+		}
+		else if (op == "%like")
+		{
+			item = "%" ~ item;
+			op = "like";
+		}
+		return [item, op];
+	}
+	
+	
+	/**
+	 * Quote
+	 */
+	string quote(string value)
+	{
+		#ifcode PHP then
+		$value = $this->pdo->quote($value);
+		#endif
+		return value;
+	}
 }

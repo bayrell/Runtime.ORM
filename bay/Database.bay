@@ -19,6 +19,7 @@
 namespace Runtime.ORM;
 
 use Runtime.ORM.Connection;
+use Runtime.ORM.Cursor;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
 
@@ -29,10 +30,11 @@ class Database
 	/**
 	 * Returns connection
 	 */
-	static Connection getConnection(Dict params)
+	static Connection getConnection(string name = "default")
 	{
+		if (name == "") name = "default";
+		
 		Provider provider = @.provider(classof Provider);
-		string name = params["name"] |> default string "default";
 		Connection conn = provider.getConnection(name);
 		return conn;
 	}
@@ -53,7 +55,7 @@ class Database
 	static async Cursor execute(Query q, Dict params = null)
 	{
 		Connection conn = static::getConnection(params);
-		return await c.executeQuery(q, params);
+		return await conn.executeQuery(q, params);
 	}
 	
 }

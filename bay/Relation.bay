@@ -19,7 +19,13 @@
 namespace Runtime.ORM;
 
 use Runtime.BaseObject;
+use Runtime.BaseStruct;
+use Runtime.ORM.Connection;
+use Runtime.ORM.Database;
+use Runtime.ORM.Query;
+use Runtime.ORM.Annotations.AutoIncrement;
 use Runtime.ORM.Annotations.BaseType;
+use Runtime.ORM.Annotations.Primary;
 
 
 class Relation extends BaseObject
@@ -144,7 +150,7 @@ class Relation extends BaseObject
 	 * Convert to model
 	 */
 	BaseStruct toModel(string class_name) =>
-		return rtl::newInstance(class_name, this.toDict())
+		rtl::newInstance(class_name, this.toDict())
 	;
 	
 	
@@ -200,14 +206,16 @@ class Relation extends BaseObject
 	 */
 	static Collection getPrimaryFilter(Dict data)
 	{
-		Dict pk = static::getPrimaryKey(old_data);
 		Vector filter = new Vector();
+		
+		Dict pk = static::getPrimaryKey(data);
 		pk.each(
-			(var value, string key) use (filter)
+			void (var value, string key) use (filter)
 			{
 				filter.push([key, "=", value]);
 			}
 		);
+		
 		return filter.toCollection();
 	}
 	
@@ -227,7 +235,7 @@ class Relation extends BaseObject
 			string field_name = new_data_keys[i];
 			var new_value = this.new_data[field_name];
 			
-			if (thisold_data == null)
+			if (this.old_data == null)
 			{
 				res.push(field_name, new_value);
 			}
@@ -342,13 +350,13 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static findById(var id, Dict params = null)
+	async static Relation findById(string id, Dict params = null)
 	{
 		Collection pk = static::pk();
 		string pk_name = pk.get(0);
 		if (not pk_name) return null;
 		
-		Connection = Database::getConnection(params);
+		Connection conn = Database::getConnection(params["name"]);
 		
 		Dict item = new Query
 			|> .select( static::getTableName() )
@@ -365,10 +373,10 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static findItem(Dict item, Dict params = null)
+	async static Relation findItem(Dict item, Dict params = null)
 	{
 		Collection filter = static::getPrimaryFilter(item);
-		Connection conn = Database::getConnection(params);
+		Connection conn = Database::getConnection(params["name"]);
 		
 		Dict item = new Query
 			|> .select( static::getTableName() )
@@ -385,12 +393,12 @@ class Relation extends BaseObject
 	/**
 	 * Find or create
 	 */
-	async static findOrCreate(Dict item, Dict params = null)
+	async static Relation findOrCreate(Dict item, Dict params = null)
 	{
 		Relation res = await static::findItem(item);
 		if (res) return res;
 		
-		Connection conn = Database::getConnection(params);
+		Connection conn = Database::getConnection(params["name"]);
 		res = static::newInstance(item);
 		res.conn = conn;
 		
