@@ -150,14 +150,14 @@ class Relation extends BaseObject
 	 * Convert to model
 	 */
 	BaseStruct toModel(string class_name) =>
-		rtl::newInstance(class_name, this.toDict())
+		rtl::newInstance(class_name, [ this.toDict() ])
 	;
 	
 	
 	/**
 	 * Convert to Dict
 	 */
-	Dict toDict(string class_name) => this.new_data;
+	Dict toDict() => this.new_data;
 	
 	
 	/**
@@ -307,7 +307,7 @@ class Relation extends BaseObject
 	 */
 	static void query() =>
 		new Query()
-			|> .relation(static::class)
+			|> .relation(static::getClassName())
 		;
 	
 	

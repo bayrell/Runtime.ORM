@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM;
+namespace Runtime.ORM.MySQL;
 
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Query;
@@ -95,7 +95,7 @@ class CursorMySQL extends Cursor
 	
 	
 	/**
-	 * Close query
+	 * Close cursor
 	 */
 	async Cursor close()
 	{
@@ -123,7 +123,10 @@ class CursorMySQL extends Cursor
 		$row = $this->st->fetch(\PDO::FETCH_ASSOC);
 		$row = ($row != null) ? \Runtime\Dict::from($row) : null;
 		
+		return $row;
 		#endswitch
+		
+		return null;
 	}
 	
 }
