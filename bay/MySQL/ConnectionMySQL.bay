@@ -237,7 +237,7 @@ class ConnectionMySQL extends Connection
 			Dict data = {};
 			
 			/* Add fields */
-			if (q.fields != null) sql ~= rs::join(", ", q._fields);
+			if (q._fields != null) sql ~= rs::join(", ", q._fields);
 			else sql ~= " * ";
 			
 			/* New line */
@@ -262,11 +262,7 @@ class ConnectionMySQL extends Connection
 					string kind = join["kind"];
 					string table_name = join["table_name"];
 					string alias_name = join["alias_name"];
-					Collection filter = join["filter"];
-					
-					list res = this.convertFilter(filter);
-					string where = res[0];
-					data = data.concat(res[1]);
+					string where = join["where"];
 					
 					if (kind == "left") sql ~= " LEFT JOIN ";
 					else sql ~= " INNER JOIN ";

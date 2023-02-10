@@ -43,7 +43,7 @@ struct Query extends BaseStruct
 	string _kind = "";
 	string _table_name = "";
 	string _table_name_alias = "t";
-	Collection<string> _fields = [];
+	Collection<string> _fields = ["t.*"];
 	Collection _join = [];
 	Collection _order = [];
 	Dict _filter = [];
@@ -193,6 +193,15 @@ struct Query extends BaseStruct
 	
 	
 	/**
+	 * Add fields
+	 */
+	Query addFields(Collection<string> fields) =>
+		this.clone{
+			"_fields": this._fields.concat(fields),
+		};
+	
+	
+	/**
 	 * Set data
 	 */
 	Query values(Dict data) =>
@@ -296,13 +305,13 @@ struct Query extends BaseStruct
 	/**
 	 * Inner join
 	 */
-	Query innerJoin(string table_name, string alias_name, Collection filter) =>
+	Query innerJoin(string table_name, string alias_name, string where) =>
 		this.clone{
 			"_join": this._join.pushIm({
 				"kind": "join",
 				"table_name": table_name,
 				"alias_name": alias_name,
-				"filter": filter,
+				"where": where,
 			}),
 		};
 	
