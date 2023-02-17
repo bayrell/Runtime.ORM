@@ -149,7 +149,7 @@ class ConnectionMySQL extends Connection
 		data.each(
 			void (string value, string key) use (sql)
 			{
-				if (value == null)
+				if (value === null)
 				{
 					sql = rs::replace(":" ~ key, "null", sql);
 				}
@@ -176,7 +176,7 @@ class ConnectionMySQL extends Connection
 		if (is_debug)
 		{
 			string sql2 = static::getSQL(sql, data);
-			io::print(sql);
+			io::print(sql2);
 		}
 		
 		await cursor.executeSQL(sql, data);
@@ -191,7 +191,7 @@ class ConnectionMySQL extends Connection
 	async Cursor executeQuery(Query q, Dict params = null)
 	{
 		if (params == null) params = {};				
-		if (q.is_debug) params <= debug <= true;
+		if (q._debug) params <= debug <= true;
 		
 		Cursor cursor = null;
 		list res = await this.buildQuery(q);
@@ -235,6 +235,9 @@ class ConnectionMySQL extends Connection
 		{
 			string sql = "SELECT ";
 			Dict data = {};
+			
+			/* Add distinct */
+			if (q._distinct != "") sql ~= " DISTINCT ";
 			
 			/* Add fields */
 			if (q._fields != null) sql ~= rs::join(", ", q._fields);

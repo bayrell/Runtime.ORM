@@ -52,6 +52,7 @@ struct Query extends BaseStruct
 	int _start = 0;
 	int _limit = -1;
 	bool _debug = false;
+	bool _distinct = false;
 	
 	
 	/**
@@ -85,11 +86,29 @@ struct Query extends BaseStruct
 	
 	
 	/**
+	 * Clear relation class name
+	 */
+	Query clearRelation() =>
+		this.clone{
+			"_class_name_relation": null,
+		};
+	
+	
+	/**
 	 * Set alias
 	 */
 	Query alias(string alias_name) =>
 		this.clone{
 			"_table_name_alias": alias_name,
+		};
+	
+	
+	/**
+	 * Set distinct
+	 */
+	Query distinct(bool value = true) =>
+		this.clone{
+			"_distinct": value,
 		};
 	
 	
