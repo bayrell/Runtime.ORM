@@ -175,7 +175,7 @@ class ConnectionMySQL extends Connection
 		bool is_debug = params["debug"] |> default bool false;
 		if (is_debug)
 		{
-			string sql2 = static::getSQL(sql, data);
+			string sql2 = this.getSQL(sql, data);
 			io::print(sql2);
 		}
 		
@@ -219,7 +219,7 @@ class ConnectionMySQL extends Connection
 		
 		string sql = res[0];
 		Dict data = res[1];
-		sql = static::getSQL(sql, data);
+		sql = this.getSQL(sql, data);
 		
 		return sql;
 	}
@@ -448,9 +448,35 @@ class ConnectionMySQL extends Connection
 				}
 			}
 			
+			else if (value instanceof Collection)
+			{
+				if (op == "=")
+				{
+					if (value.count() == 0)
+					{
+						where.pushValue( "1 = 0" );
+					}
+					else
+					{
+						Vector res = new Vector();
+						
+						for (int i=0; i<value.count(); i++)
+						{
+							string field_key = convert_key( field_index ~ "_where_" ~ field_name );
+							data.setValue( field_key, value[i] );
+							res.pushValue( ":" ~ field_key );
+							field_index++;
+						}
+						
+						where.pushValue( this.prepare_field(field_name) ~
+							" in (" ~ rs::join(",", res) ~ ")" );
+					}
+				}
+			}
+			
 			else
 			{
-				string field_key = convert_key( "where_" ~ field_name ~ "_" ~ field_index );
+				string field_key = convert_key( field_index ~ "_where_" ~ field_name );
 				field_name = this.prepare_field(field_name);
 				
 				list res = this.prepare_value(value, op);

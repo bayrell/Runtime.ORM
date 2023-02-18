@@ -43,7 +43,7 @@ class Database
 	/**
 	 * Returns new Query instance
 	 */
-	static Query query(Query q)
+	static Query query()
 	{
 		return new Query();
 	}
@@ -57,5 +57,48 @@ class Database
 		Connection conn = static::getConnection(params);
 		return await conn.executeQuery(q, params);
 	}
+	static async Cursor executeQuery(Query q, Dict params = null)
+		=> await static::execute(q, params)
+	;
 	
+	
+	/**
+	 * Returns sql
+	 */
+	static async string getSQL(Query q, Dict params = null)
+	{
+		string sql = "";
+		Connection conn = static::getConnection(params);
+		list res = await conn.buildQuery(q);
+		if (res)
+		{
+			sql = conn.getSQL(res[0], res[1]);
+		}
+		return sql;
+	}
+	
+	
+	/**
+	 * Returns sql
+	 */
+	static async string buildSql(Query q, Dict params = null)
+	{
+		string sql = "";
+		Connection conn = static::getConnection(params);
+		list res = await conn.buildQuery(q);
+		return res;
+	}
+	
+	
+	
+	/**
+	 * Execute query
+	 */
+	static async Collection fetchAll(Query q, Dict params = null)
+	{
+		Cursor cursor = await static::execute(q, params);
+		Collection res = await cursor.fetchAll();
+		await cursor.close();
+		return res;
+	}
 }
