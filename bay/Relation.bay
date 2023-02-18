@@ -192,13 +192,17 @@ class Relation extends BaseObject
 			BaseStruct annotation = annotations[i];
 			if (annotation instanceof Primary)
 			{
-				string field_name = annotation.name;
-				primary_data.set(field_name, data[field_name]);
+				Collection<string> keys = annotation.keys;
+				for (int j=0; j<keys.count(); j++)
+				{
+					string field_name = keys[j];
+					primary_data.setValue(field_name, data[field_name]);
+				}
 			}
 		}
 		return primary_data.toDict();
 	}
-	static Dict getPrimaryKey(Dict data) => static::getPrimaryData();
+	static Dict getPrimaryKey(Dict data) => static::getPrimaryData(data);
 	
 	
 	/**
@@ -212,7 +216,7 @@ class Relation extends BaseObject
 		pk.each(
 			void (var value, string key) use (filter)
 			{
-				filter.push([key, "=", value]);
+				filter.pushValue(["t." ~ key, "=", value]);
 			}
 		);
 		
