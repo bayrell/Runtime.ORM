@@ -19,9 +19,11 @@
 namespace Runtime.ORM.MySQL;
 
 use Runtime.io;
+use Runtime.re;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Query;
+use Runtime.ORM.QueryFilter;
 use Runtime.ORM.MySQL.CursorMySQL;
 
 
@@ -235,12 +237,30 @@ class ConnectionMySQL extends Connection
 		{
 			string sql = "SELECT ";
 			Dict data = {};
+			int field_index = 0;
 			
 			/* Add distinct */
 			if (q._distinct != "") sql ~= " DISTINCT ";
 			
 			/* Add fields */
-			if (q._fields != null) sql ~= rs::join(", ", q._fields);
+			if (q._fields != null)
+			{
+				Collection fields = q._fields
+					|> .map(
+						string (var item) use (data, field_index)
+						{
+							if (item instanceof QueryFilter)
+							{
+								list res = this.convertFilter([ item ], field_index);
+								item = res[0] ~ ( item.alias != "" ? " as " ~ item.alias : "" );
+								data = data.concat(res[1]);
+								field_index = res[2];
+							}
+							return item;
+						}
+					);
+				sql ~= rs::join(", ", fields);
+			}
 			else sql ~= " * ";
 			
 			/* New line */
@@ -282,9 +302,10 @@ class ConnectionMySQL extends Connection
 			/* Add where */
 			if (q._filter != null and q._filter.count() > 0)
 			{
-				list res = this.convertFilter(q._filter);
+				list res = this.convertFilter(q._filter, field_index);
 				string where = res[0];
 				data = data.concat(res[1]);
+				field_index = res[2];
 				
 				if (where != "") sql ~= " WHERE " ~ where;
 				
@@ -398,19 +419,37 @@ class ConnectionMySQL extends Connection
 		Map data = new Map();
 		Collection allow_operations = [
 			"=", "!=", ">=", "<=", "<", ">",
-			"like", "%like%", "like%", "%like"
+			"like", "%like%", "like%", "%like",
+			"match"
 		];
 		
-		fn convert_key = string (string s) =>
-			rs::replace(".", "_", s)
-		;
+		fn convert_key = string (string s)
+		{
+			s = re::replace("[,\\.]", "_", s);
+			s = re::replace("[^0-9A-Za-z_]", "", s);
+			return s;
+		};
 		
 		for (int i=0; i<filter.count(); i++)
 		{
 			list item = filter[i];
-			string field_name = item[0];
-			string op = item[1];
-			var value = item[2];
+			
+			string field_name = "", op = "";
+			var value = "";
+			
+			/* If QueryFilter */
+			if (item instanceof QueryFilter)
+			{
+				field_name = item.key;
+				op = item.op;
+				value = item.value;
+			}
+			else
+			{
+				field_name = item[0];
+				op = item[1];
+				value = item[2];
+			}
 			
 			/* OR */
 			if (field_name == "$or")
@@ -483,7 +522,16 @@ class ConnectionMySQL extends Connection
 				value = res[0];
 				op = res[1];
 				
-				where.pushValue( field_name ~ " " ~ op ~ " :" ~ field_key );
+				if (op == "match")
+				{
+					where.pushValue( "MATCH(" ~ field_name ~ ") AGAINST (:" ~
+						field_key ~ " IN BOOLEAN MODE)" );
+				}
+				else
+				{
+					where.pushValue( field_name ~ " " ~ op ~ " :" ~ field_key );
+				}
+				
 				data.setValue( field_key, value );
 				
 				field_index++;

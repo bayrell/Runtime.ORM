@@ -18,11 +18,13 @@
 
 namespace Runtime.ORM;
 
+use Runtime.math;
+use Runtime.BaseObject;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
 
 
-class Cursor
+class Cursor extends BaseObject
 {
 	Connection conn = null;
 	Query q = null;
@@ -33,6 +35,7 @@ class Cursor
 	 */
 	public void constructor(Connection conn)
 	{
+		parent();
 		this.conn = conn;
 	}
 	
@@ -53,6 +56,37 @@ class Cursor
 	 * Returns last insert id
 	 */
 	async int lastInsertId() => 0;
+	
+	
+	/**
+	 * Returns pages
+	 */
+	async int getPages()
+	{
+		int limit = 0;
+		if (this.q) limit = this.q._limit;
+		if (limit <= 0) return 0;
+		int rows = await this.foundRows();
+		return rows > 0 ? math::floor(rows / limit) + 1 : 0;
+	}
+	
+	
+	/**
+	 * Returns page
+	 */
+	async int getPage()
+	{
+		int limit = 0;
+		int offset = 0;
+		if (this.q)
+		{
+			limit = this.q._limit;
+			offset = this.q._start;
+		}
+		if (limit <= 0) return 0;
+		if (offset <= 0) return 0;
+		return math::floor(offset / limit);
+	}
 	
 	
 	/**

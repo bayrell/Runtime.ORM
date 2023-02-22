@@ -26,6 +26,7 @@ class CursorMySQL extends Cursor
 {
 	var st = null;
 	var q = null;
+	int found_rows = -1;
 		
 	
 	/**
@@ -33,6 +34,8 @@ class CursorMySQL extends Cursor
 	 */
 	async int foundRows()
 	{
+		if (this.found_rows >= 0) return this.found_rows;
+		
 		if (not this.q)
 		{
 			return 0;
@@ -40,12 +43,16 @@ class CursorMySQL extends Cursor
 		
 		Query q = this.q
 			|> .fields([ 'count(*) as c' ])
+			|> .limit(-1)
+			|> .clearOrder()
 		;
 		
 		Cursor cursor = await this.conn.executeQuery(q);
 		
-		int res = await this.fetchVar('c');
-		await this.close();
+		int res = await cursor.fetchVar('c');
+		await cursor.close();
+		
+		this.found_rows = res;
 		
 		return res;
 	}

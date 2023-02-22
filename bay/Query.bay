@@ -48,7 +48,7 @@ struct Query extends BaseStruct
 	Collection _order = [];
 	Dict _filter = [];
 	string _sql = "";
-	Dict _data = {};	
+	Dict _data = {};
 	int _start = 0;
 	int _limit = -1;
 	bool _debug = false;
@@ -241,20 +241,25 @@ struct Query extends BaseStruct
 	/**
 	 * Add page
 	 */
-	Query page(int page, int limit = -1) =>
-		this.clone{
-			"_start": page * limit,
-			"_limit": limit,
+	Query page(int page, int limit = null)
+	{
+		int limit = (limit > 0) ? limit : this._limit;
+		int start = page * limit;
+		if (start < 0) start = 0;
+		
+		return this.clone{
+			"_start": start,
+			"_limit": (limit > 0) ? limit : this._limit,
 		};
+	}
 	
 	
 	/**
 	 * Set offset
 	 */
-	Query offset(int start, int limit = -1) =>
+	Query offset(int start) =>
 		this.clone{
 			"_start": start,
-			"_limit": limit,
 		};
 	
 	
@@ -307,6 +312,15 @@ struct Query extends BaseStruct
 	 * Add filter
 	 */
 	Query filter(Collection filter) =>
+		this.clone{
+			"_filter": this._filter.concat(filter),
+		};
+	
+	
+	/**
+	 * Add filter
+	 */
+	Query addFilter(QueryFilter filter) =>
 		this.clone{
 			"_filter": this._filter.concat(filter),
 		};
