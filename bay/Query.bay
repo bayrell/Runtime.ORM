@@ -124,12 +124,12 @@ struct Query extends BaseStruct
 	/**
 	 * Select query
 	 */
-	Query select(string table_name = "") =>
+	Query select(string table_name = "", string alias_name = "t") =>
 		this.clone{
 			"_kind": static::QUERY_SELECT,
 			"_fields": ["t.*"],
 			"_table_name": table_name,
-			"_table_name_alias": "t",
+			"_table_name_alias": alias_name,
 		};
 	
 	
@@ -145,42 +145,43 @@ struct Query extends BaseStruct
 	/**
 	 * Set table
 	 */
-	Query from(string table_name = "") =>
+	Query from(string table_name = "", string alias_name = "t") =>
 		this.clone{
 			"_table_name": table_name,
+			"_table_name_alias": alias_name,
 		};
 	
 	
 	/**
 	 * Insert query
 	 */
-	Query insert(string table_name = "") =>
+	Query insert(string table_name = "", string alias_name = "t") =>
 		this.clone{
 			"_kind": static::QUERY_INSERT,
 			"_table_name": table_name,
-			"_table_name_alias": "t",
+			"_table_name_alias": alias_name,
 		};
 	
 	
 	/**
 	 * Select query
 	 */
-	Query update(string table_name = "") =>
+	Query update(string table_name = "", string alias_name = "t") =>
 		this.clone{
 			"_kind": static::QUERY_UPDATE,
 			"_table_name": table_name,
-			"_table_name_alias": "t",
+			"_table_name_alias": alias_name,
 		};
 	
 	
 	/**
 	 * Delete query
 	 */
-	Query delete(string table_name = "") =>
+	Query delete(string table_name = "", string alias_name = "t") =>
 		this.clone{
 			"_kind": static::QUERY_DELETE,
 			"_table_name": table_name,
-			"_table_name_alias": "t",
+			"_table_name_alias": alias_name,
 		};
 	
 	

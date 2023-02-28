@@ -54,7 +54,7 @@ class Database
 	 */
 	static async Cursor execute(Query q, Dict params = null)
 	{
-		Connection conn = static::getConnection(params);
+		Connection conn = static::getConnection(params["name"]);
 		return await conn.executeQuery(q, params);
 	}
 	static async Cursor executeQuery(Query q, Dict params = null)
@@ -90,7 +90,6 @@ class Database
 	}
 	
 	
-	
 	/**
 	 * Execute query
 	 */
@@ -100,5 +99,62 @@ class Database
 		Collection res = await cursor.fetchAll();
 		await cursor.close();
 		return res;
+	}
+	
+	
+	/**
+	 * Execute query
+	 */
+	static async Dict fetch(Query q, Dict params = null)
+	{
+		Cursor cursor = await static::execute(q, params);
+		Collection res = await cursor.fetch();
+		await cursor.close();
+		return res;
+	}
+	static async Dict fetchOne(Query q, Dict params = null) =>
+		await static::fetch(q, params)
+	;
+	
+	
+	/**
+	 * Insert query
+	 */
+	static async var insert(string table_name, Dict data, Dict params = null)
+	{
+		Connection conn = static::getConnection(params["name"]);
+		var last_id = await conn.insert(
+			table_name,
+			data,
+			params["get_last_id"] |> default bool true
+		);
+		return last_id;
+	}
+	
+	
+	/**
+	 * Update query
+	 */
+	static async void update(string table_name, Collection filter, Dict update, Dict params = null)
+	{
+		Connection conn = static::getConnection(params["name"]);
+		await conn.update(
+			table_name,
+			filter,
+			update
+		);
+	}
+	
+	
+	/**
+	 * Delete query
+	 */
+	static async void delete(string table_name, Collection filter, Dict params = null)
+	{
+		Connection conn = static::getConnection(params["name"]);
+		await conn.delete(
+			table_name,
+			filter
+		);
 	}
 }
