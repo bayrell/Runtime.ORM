@@ -352,6 +352,7 @@ class ConnectionMySQL extends Connection
 			
 			/* Build sql */
 			string sql = "INSERT INTO " ~ this.prefix ~ q._table_name ~
+				" AS " ~ q._table_name_alias ~
 				" (" ~ rs::join(",", keys) ~ ") VALUES (" ~ rs::join(",", values) ~ ")"
 			;
 			
@@ -365,15 +366,18 @@ class ConnectionMySQL extends Connection
 			Map data = new Map();
 			
 			/* Build update */
-			q._data.each(
-				void (var value, string key) use (update_arr, data)
-				{
-					string field_key = "update_" ~ key;
-					string field_name = this.prepare_field(key)
-					update_arr.pushValue(field_name ~ " = :" ~ field_key);
-					data = data.setValue(field_key, value);
-				}
-			);
+			if (q._data)
+			{
+				q._data.each(
+					void (var value, string key) use (update_arr, data)
+					{
+						string field_key = "update_" ~ key;
+						string field_name = this.prepare_field(key)
+						update_arr.pushValue(field_name ~ " = :" ~ field_key);
+						data = data.setValue(field_key, value);
+					}
+				);
+			}
 			
 			/* Build where */
 			list res = this.convertFilter(q._filter);
@@ -382,6 +386,7 @@ class ConnectionMySQL extends Connection
 			
 			/* Build sql */
 			string sql = "UPDATE " ~ this.prefix ~ q._table_name ~
+				" AS " ~ q._table_name_alias ~
 				" SET " ~ rs::join(", ", update_arr) ~ " WHERE " ~ where_str
 			;
 			
@@ -396,7 +401,9 @@ class ConnectionMySQL extends Connection
 			Dict data = res[1];
 			
 			/* Delete item */
-			string sql = "DELETE FROM " ~ q._table_name ~ " WHERE " ~ where_str;
+			string sql = "DELETE FROM " ~ q._table_name ~ 
+				" AS " ~ q._table_name_alias ~
+				" WHERE " ~ where_str;
 			
 			return [sql, data];
 		}

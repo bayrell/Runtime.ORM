@@ -91,7 +91,7 @@ class Database
 	
 	
 	/**
-	 * Execute query
+	 * Fetch all data by Query
 	 */
 	static async Collection fetchAll(Query q, Dict params = null)
 	{
@@ -103,7 +103,7 @@ class Database
 	
 	
 	/**
-	 * Execute query
+	 * Fetch item by Query
 	 */
 	static async Dict fetch(Query q, Dict params = null)
 	{

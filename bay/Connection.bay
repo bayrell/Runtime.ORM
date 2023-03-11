@@ -72,13 +72,13 @@ class Connection
 	/**
 	 * Insert query
 	 */
-	async var insert(string table_name, Dict data, bool get_last_id = true)
+	async var insert(string table_name, Dict insert_data, bool get_last_id = true)
 	{
 		var last_id = null;
 		
 		Query q = new Query()
 			|> .insert(table_name)
-			|> .values(data)
+			|> .values(insert_data)
 		;
 		
 		Cursor c = await this.executeQuery(q);
@@ -97,11 +97,11 @@ class Connection
 	/**
 	 * Update query
 	 */
-	async void update(string table_name, Collection filter, Dict update)
+	async void update(string table_name, Collection filter, Dict update_data)
 	{
 		Query q = new Query()
 			|> .update(table_name)
-			|> .values(data)
+			|> .values(update_data)
 			|> .filter(filter)
 		;
 		
@@ -160,4 +160,28 @@ class Connection
 	 */
 	var toDatabase(BaseStruct annotation, Dict item, string field_name) => item;
 	
+	
+	/**
+	 * Fetch all data by Query
+	 */
+	async Collection fetchAll(Query q, Dict params = null)
+	{
+		Cursor cursor = await this.executeQuery(q);
+		Collection res = await cursor.fetchAll();
+		await cursor.close();
+		return res;
+	}
+	
+	
+	/**
+	 * Fetch item by Query
+	 */
+	async Dict fetch(Query q, Dict params = null)
+	{
+		Cursor cursor = await this.executeQuery(q);
+		Collection res = await cursor.fetch();
+		await cursor.close();
+		return res;
+	}
+	async Dict fetchOne(Query q) => await this.fetch(q);
 }

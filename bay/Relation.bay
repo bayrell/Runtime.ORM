@@ -30,8 +30,8 @@ use Runtime.ORM.Annotations.Primary;
 
 class Relation extends BaseObject
 {
-	protected Dict old_data = null;
-	protected Dict new_data = {};
+	protected Map old_data = null;
+	protected Map new_data = {};
 	protected bool is_dirty = false;
 	protected Connection conn = null;
 	
@@ -111,7 +111,7 @@ class Relation extends BaseObject
 	pure Relation newInstance(Dict data = null)
 	{
 		Relation instance = rtl::newInstance(static::getClassName());
-		instance.setNewData(data);
+		instance._setNewData(data);
 		return instance;
 	}
 	
@@ -241,20 +241,20 @@ class Relation extends BaseObject
 			
 			if (this.old_data == null)
 			{
-				res.push(field_name, new_value);
+				res.setValue(field_name, new_value);
 			}
 			else
 			{
 				if (not this.old_data.has(field_name))
 				{
-					res.push(field_name, new_value);
+					res.setValue(field_name, new_value);
 				}
 				else
 				{
 					var old_value = this.old_data[field_name];
 					if (new_value != old_value)
 					{
-						res.push(field_name, new_value);
+						res.setValue(field_name, new_value);
 					}
 				}
 			}
@@ -267,14 +267,14 @@ class Relation extends BaseObject
 	/**
 	 * Set new data
 	 */
-	void setNewData(Dict data = null)
+	protected void _setNewData(Dict data = null)
 	{
 		this.is_dirty = false;
-		this.old_data = data;
-		this.new_data = data;
+		this.old_data = new Map(data);
+		this.new_data = new Map(data);
 		if (data == null)
 		{
-			this.new_data = {};
+			this.new_data = new Map();
 		}
 	}
 	
@@ -385,6 +385,7 @@ class Relation extends BaseObject
 		Dict item = new Query
 			|> .select( static::getTableName() )
 			|> .filter(filter)
+			|> .limit(1)
 			|> await curry conn.fetchOne(?, params)
 		;
 		
@@ -411,6 +412,18 @@ class Relation extends BaseObject
 	
 	
 	/**
+	 * Before save
+	 */
+	Dict beforeSave(Dict updated_data, bool is_update) => updated_data;
+	
+	
+	/**
+	 * After save
+	 */
+	void afterSave(Dict updated_data, bool is_update){}
+	
+	
+	/**
 	 * Save model
 	 */
 	async void save(Dict params = null)
@@ -418,7 +431,6 @@ class Relation extends BaseObject
 		bool is_update = this.isUpdate();
 		Dict updated_data = this.getUpdatedData();
 		updated_data = await this.beforeSave(updated_data, is_update);
-		updated_data = static::toDatabase(updated_data, is_update);
 		
 		if (is_update)
 		{
@@ -429,28 +441,32 @@ class Relation extends BaseObject
 				if (filter.count() > 0)
 				{
 					Connection conn = this.getConnection();
+					Dict db_updated_data = static::toDatabase(conn, updated_data, is_update);
 					await conn.update(
 						static::getTableName(),
 						filter,
-						updated_data
+						db_updated_data
 					);
 				}
 				
 				for (int i=0; i<updated_data_keys.count(); i++)
 				{
 					string field_name = updated_data_keys[i];
-					this.old_data[field_name] = updated_data[field_name];
+					this.old_data.setValue(field_name, updated_data[field_name]);
 				}
 			}
 		}
 		else
 		{
 			Connection conn = this.getConnection();
+			Dict db_updated_data = static::toDatabase(conn, updated_data, is_update);
 			var last_id = await conn.insert(
 				static::getTableName(),
-				updated_data,
+				db_updated_data,
 				true
 			);
+			
+			this._setNewData(this.new_data);
 			
 			if (static::isAutoIncrement())
 			{
@@ -458,11 +474,9 @@ class Relation extends BaseObject
 				string pk_name = pk.get(0);
 				if (pk_name)
 				{
-					this.new_data[pk_name] = last_id;
+					this.new_data.setValue(pk_name, last_id);
 				}
 			}
-			
-			this.setNewData(this.new_data);
 		}
 		
 		await this.afterSave(updated_data, is_update);
@@ -501,15 +515,17 @@ class Relation extends BaseObject
 		{
 			Connection conn = this.getConnection();
 			
-			Dict item = new Query
+			Query q = new Query
 				|> .select( static::getTableName() )
 				|> .filter(filter)
-				|> await curry conn.fetchOne(?)
-				|> static::fromDatabase
+				|> .limit(1)
 			;
+			
+			item = await conn.fetchOne(q);
+			item = static::newInstanceFromDatabase(conn, item);
 		}
 		
-		this.setNewData(item);
+		this._setNewData(item);
 		
 		return this;
 	}
@@ -526,6 +542,6 @@ class Relation extends BaseObject
 	 */
 	void set(string name, var value)
 	{
-		this.new_data[name] = value;
+		this.new_data.setValue(name, value);
 	}
 }
