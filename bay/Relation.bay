@@ -31,9 +31,8 @@ use Runtime.ORM.Annotations.Primary;
 class Relation extends BaseObject
 {
 	protected Map old_data = null;
-	protected Map new_data = {};
+	protected Map new_data = new Map;
 	protected bool is_dirty = false;
-	protected Connection conn = null;
 	
 	
 	/**
@@ -50,6 +49,7 @@ class Relation extends BaseObject
 	
 	/**
 	 * Returns true if primary key is auto increment
+	 */
 	static memorize bool isAutoIncrement()
 	{
 		Collection<BaseStruct> annotations = static::annotations();
@@ -121,28 +121,9 @@ class Relation extends BaseObject
 	 */
 	pure Relation newInstanceFromDatabase(Connection conn, Dict data = null)
 	{
-		data = static::newInstance(data);
 		data = static::fromDatabase(conn, data);
-		data.conn = conn;
+		data = static::newInstance(data);
 		return data;
-	}
-	
-	
-	/**
-	 * Returns connection
-	 */
-	Connection getConnection() => this.conn;
-	
-	
-	/**
-	 * Set new connection
-	 */
-	Relation setConnection(Connection conn)
-	{
-		Relation instance = rtl::newInstance(static::getClassName());
-		instance.assignObject(this);
-		instance.conn = conn;
-		return instance;
 	}
 	
 	
@@ -157,7 +138,7 @@ class Relation extends BaseObject
 	/**
 	 * Convert to Dict
 	 */
-	Dict toDict() => this.new_data;
+	Dict toDict() => this.new_data.toDict();
 	
 	
 	/**
@@ -173,7 +154,7 @@ class Relation extends BaseObject
 			if (annotation instanceof Primary)
 			{
 				string field_name = annotation.name;
-				primary_keys.push(field_name);
+				primary_keys.pushValue(field_name);
 			}
 		}
 		return primary_keys.toCollection();
@@ -354,21 +335,22 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static Relation findById(string id, Dict params = null)
+	async static Relation findById(string id, Connection conn, Dict params = null)
 	{
 		Collection pk = static::pk();
 		string pk_name = pk.get(0);
 		if (not pk_name) return null;
 		
-		Connection conn = Database::getConnection(params["name"]);
-		
-		Dict item = new Query
+		Query q = new Query
 			|> .select( static::getTableName() )
 			|> .where(pk_name, "=", id)
-			|> await curry conn.fetchOne(?, params)
 		;
 		
-		item = static::newInstanceFromDatabase(conn, item);
+		Dict item = await conn.fetchOne(q, params);
+		if (item)
+		{
+			item = static::newInstanceFromDatabase(conn, item);
+		}
 		
 		return item;
 	}
@@ -377,19 +359,27 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static Relation findItem(Dict item, Dict params = null)
+	async static Relation findItem(Connection conn, Dict item, Dict params = null)
 	{
-		Collection filter = static::getPrimaryFilter(item);
-		Connection conn = Database::getConnection(params["name"]);
+		Vector filter = new Vector();
+		Collection keys = item.keys();
+		for (int i=0; i<keys.count(); i++)
+		{
+			string key = keys[i];
+			filter.pushValue(["t." ~ key, "=", item[key]]);
+		}
 		
-		Dict item = new Query
+		Query q = new Query
 			|> .select( static::getTableName() )
 			|> .filter(filter)
 			|> .limit(1)
-			|> await curry conn.fetchOne(?, params)
 		;
 		
-		item = static::newInstanceFromDatabase(conn, item);
+		Dict item = await conn.fetchOne(q, params);
+		if (item)
+		{
+			item = static::newInstanceFromDatabase(conn, item);
+		}
 		
 		return item;
 	}
@@ -398,14 +388,12 @@ class Relation extends BaseObject
 	/**
 	 * Find or create
 	 */
-	async static Relation findOrCreate(Dict item, Dict params = null)
+	async static Relation findOrCreate(Connection conn, Dict item)
 	{
-		Relation res = await static::findItem(item);
+		Relation res = await static::findItem(conn, item);
 		if (res) return res;
 		
-		Connection conn = Database::getConnection(params["name"]);
 		res = static::newInstance(item);
-		res.conn = conn;
 		
 		return res;
 	}
@@ -426,7 +414,7 @@ class Relation extends BaseObject
 	/**
 	 * Save model
 	 */
-	async void save(Dict params = null)
+	async void save(Connection conn)
 	{
 		bool is_update = this.isUpdate();
 		Dict updated_data = this.getUpdatedData();
@@ -440,7 +428,6 @@ class Relation extends BaseObject
 				Collection filter = static::getPrimaryFilter(this.old_data);
 				if (filter.count() > 0)
 				{
-					Connection conn = this.getConnection();
 					Dict db_updated_data = static::toDatabase(conn, updated_data, is_update);
 					await conn.update(
 						static::getTableName(),
@@ -458,7 +445,6 @@ class Relation extends BaseObject
 		}
 		else
 		{
-			Connection conn = this.getConnection();
 			Dict db_updated_data = static::toDatabase(conn, updated_data, is_update);
 			var last_id = await conn.insert(
 				static::getTableName(),
@@ -506,15 +492,13 @@ class Relation extends BaseObject
 	/**
 	 * Refresh model from database
 	 */
-	async Relation refresh()
+	async Relation refresh(Connection conn)
 	{
 		Dict item = null;
 		Collection filter = static::getPrimaryFilter(this.old_data);
 		
 		if (filter.count() > 0)
 		{
-			Connection conn = this.getConnection();
-			
 			Query q = new Query
 				|> .select( static::getTableName() )
 				|> .filter(filter)
@@ -534,7 +518,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns value
 	 */
-	var get(string name, var def_value) => this.new_data[name] |> default def_value;
+	var get(string name, var def_value = null) => this.new_data[name] |> default def_value;
 	
 	
 	/**

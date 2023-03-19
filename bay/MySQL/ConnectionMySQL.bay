@@ -352,7 +352,6 @@ class ConnectionMySQL extends Connection
 			
 			/* Build sql */
 			string sql = "INSERT INTO " ~ this.prefix ~ q._table_name ~
-				" AS " ~ q._table_name_alias ~
 				" (" ~ rs::join(",", keys) ~ ") VALUES (" ~ rs::join(",", values) ~ ")"
 			;
 			
