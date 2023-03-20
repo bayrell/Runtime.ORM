@@ -400,8 +400,7 @@ class ConnectionMySQL extends Connection
 			Dict data = res[1];
 			
 			/* Delete item */
-			string sql = "DELETE FROM " ~ q._table_name ~ 
-				" AS " ~ q._table_name_alias ~
+			string sql = "DELETE FROM " ~ this.prefix ~ q._table_name ~
 				" WHERE " ~ where_str;
 			
 			return [sql, data];

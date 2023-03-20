@@ -189,15 +189,22 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary filter by data
 	 */
-	static Collection getPrimaryFilter(Dict data)
+	static Collection getPrimaryFilter(Dict data, bool use_alias)
 	{
 		Vector filter = new Vector();
 		
 		Dict pk = static::getPrimaryKey(data);
 		pk.each(
-			void (var value, string key) use (filter)
+			void (var value, string key) use (filter, use_alias)
 			{
-				filter.pushValue(["t." ~ key, "=", value]);
+				if (use_alias)
+				{
+					filter.pushValue(["t." ~ key, "=", value]);
+				}
+				else
+				{
+					filter.pushValue([key, "=", value]);
+				}
 			}
 		);
 		
@@ -425,7 +432,7 @@ class Relation extends BaseObject
 			Collection updated_data_keys = updated_data.keys();
 			if (updated_data_keys.count() > 0)
 			{
-				Collection filter = static::getPrimaryFilter(this.old_data);
+				Collection filter = static::getPrimaryFilter(this.old_data, false);
 				if (filter.count() > 0)
 				{
 					Dict db_updated_data = static::toDatabase(conn, updated_data, is_update);
@@ -472,13 +479,12 @@ class Relation extends BaseObject
 	/**
 	 * Delete model
 	 */
-	async Relation delete(Dict params = null)
+	async Relation delete(Connection conn)
 	{
-		Collection filter = static::getPrimaryFilter(this.old_data);
+		Collection filter = static::getPrimaryFilter(this.old_data, false);
 		
 		if (filter.count() > 0)
 		{
-			Connection conn = this.getConnection();
 			await conn.delete(
 				static::getTableName(),
 				filter
@@ -495,7 +501,7 @@ class Relation extends BaseObject
 	async Relation refresh(Connection conn)
 	{
 		Dict item = null;
-		Collection filter = static::getPrimaryFilter(this.old_data);
+		Collection filter = static::getPrimaryFilter(this.old_data, false);
 		
 		if (filter.count() > 0)
 		{
