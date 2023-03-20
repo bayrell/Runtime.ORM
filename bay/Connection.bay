@@ -184,4 +184,17 @@ class Connection
 		return res;
 	}
 	async Dict fetchOne(Query q) => await this.fetch(q);
+	
+	
+	
+	/**
+	 * Fetch variable
+	 */
+	async Dict fetchVar(Query q, string var_name, Dict params = null)
+	{
+		Cursor cursor = await this.executeQuery(q);
+		Collection res = await cursor.fetchVar(var_name);
+		await cursor.close();
+		return res;
+	}
 }
