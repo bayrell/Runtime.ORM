@@ -67,7 +67,7 @@ class Cursor extends BaseObject
 		if (this.q) limit = this.q._limit;
 		if (limit <= 0) return 0;
 		int rows = await this.foundRows();
-		return rows > 0 ? math::floor(rows / limit) + 1 : 0;
+		return rows > 0 ? math::floor((rows - 1) / limit) + 1 : 0;
 	}
 	
 	
