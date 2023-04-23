@@ -504,10 +504,10 @@ class ConnectionMySQL extends Connection
 					{
 						Vector res = new Vector();
 						
-						for (int i=0; i<value.count(); i++)
+						for (int j=0; j<value.count(); j++)
 						{
 							string field_key = convert_key( field_index ~ "_where_" ~ field_name );
-							data.setValue( field_key, value[i] );
+							data.setValue( field_key, value[j] );
 							res.pushValue( ":" ~ field_key );
 							field_index++;
 						}
