@@ -23,4 +23,5 @@ use Runtime.BaseStruct;
 
 struct AutoIncrement extends BaseStruct
 {
+    string name = "";
 }

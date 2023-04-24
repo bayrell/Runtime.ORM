@@ -50,7 +50,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns true if primary key is auto increment
 	 */
-	static memorize bool isAutoIncrement()
+	static memorize AutoIncrement isAutoIncrement()
 	{
 		Collection<BaseStruct> annotations = static::annotations();
 		for (int i=0; i<annotations.count(); i++)
@@ -58,10 +58,10 @@ class Relation extends BaseObject
 			BaseStruct annotation = annotations[i];
 			if (annotation instanceof AutoIncrement)
 			{
-				return true;
+				return annotation;
 			}
 		}
-		return false;
+		return null;
 	}
 	
 	
@@ -258,12 +258,8 @@ class Relation extends BaseObject
 	protected void _setNewData(Dict data = null)
 	{
 		this.is_dirty = false;
-		this.old_data = new Map(data);
-		this.new_data = new Map(data);
-		if (data == null)
-		{
-			this.new_data = new Map();
-		}
+		this.old_data = data != null ? new Map(data) : null;
+		this.new_data = data != null ? new Map(data) : new Map();
 	}
 	
 	
@@ -461,14 +457,11 @@ class Relation extends BaseObject
 			
 			this._setNewData(this.new_data);
 			
-			if (static::isAutoIncrement())
+			AutoIncrement auto_increment = static::isAutoIncrement();
+			if (auto_increment and auto_increment.name)
 			{
-				Collection pk = static::pk();
-				string pk_name = pk.get(0);
-				if (pk_name)
-				{
-					this.new_data.setValue(pk_name, last_id);
-				}
+				this.old_data.setValue(auto_increment.name, last_id);
+				this.new_data.setValue(auto_increment.name, last_id);
 			}
 		}
 		
@@ -512,7 +505,7 @@ class Relation extends BaseObject
 			;
 			
 			item = await conn.fetchOne(q);
-			item = static::newInstanceFromDatabase(conn, item);
+			item = static::fromDatabase(conn, item);
 		}
 		
 		this._setNewData(item);
