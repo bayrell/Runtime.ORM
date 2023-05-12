@@ -19,6 +19,7 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
+use Runtime.DateTime;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
@@ -26,4 +27,32 @@ use Runtime.ORM.Connection;
 struct DateTimeType extends BaseType
 {
 	string tz = "UTC";
+	
+	/**
+	 * Process item from database
+	 */
+	async var fromDatabase(Connection conn, Dict item)
+	{
+		string value = item[this.name];
+		DateTime dt = DateTime::from(value);
+		item <= { this.name } <= dt;
+		item = await conn.fromDatabase(this, item, this.name);
+		return item;
+	}
+	
+	
+	/**
+	 * Process item to database
+	 */
+	async var toDatabase(Connection conn, Dict item)
+	{
+		DateTime value = item[this.name];
+		if (value instanceof DateTime)
+		{
+			item <= { this.name } <= value.getDatabaseTime();
+		}
+		item = await conn.toDatabase(this, item, this.name);
+		return item;
+	}
+	
 }
