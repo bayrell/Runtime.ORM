@@ -53,6 +53,16 @@ struct Query extends BaseStruct
 	int _limit = -1;
 	bool _debug = false;
 	bool _distinct = false;
+	Dict _db_params = null;
+	
+	
+	/**
+	 * Setup db params
+	 */
+	Query setDatabaseParams(Dict db_params = null) =>
+		this.clone{
+			"_db_params": db_params,
+		};
 	
 	
 	/**

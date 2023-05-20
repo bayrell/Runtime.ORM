@@ -139,6 +139,7 @@ class Relation extends BaseObject
 	 * Convert to Dict
 	 */
 	Dict toDict() => this.new_data.toDict();
+	Dict data() => this.new_data.toDict();
 	
 	
 	/**

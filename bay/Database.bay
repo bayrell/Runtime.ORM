@@ -50,11 +50,26 @@ class Database
 	
 	
 	/**
+	 * Returns connection name
+	 */
+	static string getConnectionName(Query q, Dict params = null)
+	{
+		string conn_name = params["name"];
+		if (not conn_name and q._db_params)
+		{
+			conn_name = q._db_params["name"];
+		}
+		return conn_name;
+	}
+	
+	
+	/**
 	 * Execute query
 	 */
 	static async Cursor execute(Query q, Dict params = null)
 	{
-		Connection conn = static::getConnection(params["name"]);
+		string conn_name = static::getConnectionName(q, params);
+		Connection conn = static::getConnection(conn_name);
 		return await conn.executeQuery(q, params);
 	}
 	static async Cursor executeQuery(Query q, Dict params = null)
@@ -68,7 +83,8 @@ class Database
 	static async string getSQL(Query q, Dict params = null)
 	{
 		string sql = "";
-		Connection conn = static::getConnection(params);
+		string conn_name = static::getConnectionName(q, params);
+		Connection conn = static::getConnection(conn_name);
 		list res = await conn.buildQuery(q);
 		if (res)
 		{
@@ -84,7 +100,8 @@ class Database
 	static async string buildSql(Query q, Dict params = null)
 	{
 		string sql = "";
-		Connection conn = static::getConnection(params);
+		string conn_name = static::getConnectionName(q, params);
+		Connection conn = static::getConnection(conn_name);
 		list res = await conn.buildQuery(q);
 		return res;
 	}
