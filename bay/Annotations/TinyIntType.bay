@@ -20,8 +20,20 @@ namespace Runtime.ORM.Annotations;
 
 use Runtime.BaseStruct;
 use Runtime.ORM.Annotations.BaseType;
+use Runtime.ORM.Connection;
 
 
 struct TinyIntType extends BaseType
 {
+    
+    /**
+	 * Process item from database
+	 */
+	async var fromDatabase(Connection conn, Dict item)
+	{
+		string value = item[this.name];
+		item <= { this.name } <= (int)value;
+		return item;
+	}
+    
 }
