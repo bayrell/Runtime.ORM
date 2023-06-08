@@ -20,12 +20,26 @@ namespace Runtime.ORM;
 
 use Runtime.BaseStruct;
 use Runtime.ORM.Cursor;
+use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
 
 
 class Connection
 {
 	protected string name = "";
+	
+	
+	/**
+	 * Returns connection
+	 */
+	static Connection getConnection(string name = "default")
+	{
+		if (name == "") name = "default";
+		
+		Provider provider = @.provider(classof Provider);
+		Connection conn = provider.getConnection(name);
+		return conn;
+	}
 	
 	
 	/**
@@ -66,13 +80,14 @@ class Connection
 	/**
 	 * Execute cursor
 	 */
-	async Cursor executeQuery(Query q) => null;
+	async Cursor executeQuery(Query q, Dict params = null) => null;
+	async Cursor execute(Query q, Dict params = null) => this.executeQuery(q, params);
 	
 	
 	/**
 	 * Insert query
 	 */
-	async var insert(string table_name, Dict insert_data, bool get_last_id = true)
+	async var insert(string table_name, Dict insert_data, bool get_last_id = true, Dict params = null)
 	{
 		var last_id = null;
 		
@@ -81,7 +96,7 @@ class Connection
 			|> .values(insert_data)
 		;
 		
-		Cursor c = await this.executeQuery(q);
+		Cursor c = await this.executeQuery(q, params);
 		
 		if (get_last_id)
 		{
@@ -97,7 +112,7 @@ class Connection
 	/**
 	 * Update query
 	 */
-	async void update(string table_name, Collection filter, Dict update_data)
+	async void update(string table_name, Collection filter, Dict update_data, Dict params = null)
 	{
 		Query q = new Query()
 			|> .update(table_name)
@@ -105,7 +120,7 @@ class Connection
 			|> .filter(filter)
 		;
 		
-		Cursor c = await this.executeQuery(q);
+		Cursor c = await this.executeQuery(q, params);
 		await c.close();
 	}
 	
@@ -113,14 +128,14 @@ class Connection
 	/**
 	 * Delete item
 	 */
-	async void delete(string table_name, Collection filter)
+	async void delete(string table_name, Collection filter, Dict params = null)
 	{
 		Query q = new Query()
 			|> .delete(table_name)
 			|> .filter(filter)
 		;
 		
-		Cursor c = await this.executeQuery(q);
+		Cursor c = await this.executeQuery(q, params);
 		await c.close();
 	}
 	
@@ -166,7 +181,7 @@ class Connection
 	 */
 	async Collection fetchAll(Query q, Dict params = null)
 	{
-		Cursor cursor = await this.executeQuery(q);
+		Cursor cursor = await this.executeQuery(q, params);
 		Collection res = await cursor.fetchAll();
 		await cursor.close();
 		return res;
@@ -178,13 +193,12 @@ class Connection
 	 */
 	async Dict fetch(Query q, Dict params = null)
 	{
-		Cursor cursor = await this.executeQuery(q);
+		Cursor cursor = await this.executeQuery(q, params);
 		Collection res = await cursor.fetch();
 		await cursor.close();
 		return res;
 	}
-	async Dict fetchOne(Query q) => await this.fetch(q);
-	
+	async Dict fetchOne(Query q, Dict params = null) => await this.fetch(q, params);
 	
 	
 	/**
@@ -192,9 +206,27 @@ class Connection
 	 */
 	async Dict fetchVar(Query q, string var_name, Dict params = null)
 	{
-		Cursor cursor = await this.executeQuery(q);
+		Cursor cursor = await this.executeQuery(q, params);
 		Collection res = await cursor.fetchVar(var_name);
 		await cursor.close();
 		return res;
+	}
+	
+	
+	/**
+	 * Returns sql string
+	 */
+	async string getSQL(Query q)
+	{
+		return "";
+	}
+	
+	
+	/**
+	 * Returns sql string
+	 */
+	async list buildQuery(Query q)
+	{
+		return [null, null];
 	}
 }

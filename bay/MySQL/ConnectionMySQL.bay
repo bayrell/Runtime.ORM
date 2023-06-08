@@ -212,9 +212,9 @@ class ConnectionMySQL extends Connection
 	
 	
 	/**
-	 * Returns query sql
+	 * Returns sql string
 	 */
-	async string buildSQL(Query q)
+	async string getSQL(Query q)
 	{
 		list res = await this.buildQuery(q);
 		if (res == null) return "";
