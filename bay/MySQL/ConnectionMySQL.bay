@@ -142,32 +142,6 @@ class ConnectionMySQL extends Connection
 	
 	
 	/**
-	 * Get sql
-	 */
-	string getSQL(string sql, Dict data = null)
-	{
-		if (data == null) return sql;
-		
-		data.each(
-			void (string value, string key) use (sql)
-			{
-				if (value === null)
-				{
-					sql = rs::replace(":" ~ key, "null", sql);
-				}
-				else
-				{
-					value = this.quote(value);
-					sql = rs::replace(":" ~ key, "'" ~ value ~ "'", sql);
-				}
-			}
-		);
-		
-		return sql;
-	}
-	
-	
-	/**
 	 * Execute sql query
 	 */
 	async Cursor executeSQL(string sql, Dict data = null, Dict params = null)
