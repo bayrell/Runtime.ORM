@@ -53,6 +53,7 @@ struct Query extends BaseStruct
 	int _limit = -1;
 	bool _debug = false;
 	bool _distinct = false;
+	bool _calc_found_rows = false;
 	Dict _db_params = null;
 	
 	

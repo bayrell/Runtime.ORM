@@ -41,6 +41,11 @@ class CursorMySQL extends Cursor
 			return 0;
 		}
 		
+		if (not this.q._calc_found_rows)
+		{
+			return 0;
+		}
+		
 		Query q = this.q
 			|> .fields([ 'count(*) as c' ])
 			|> .limit(-1)

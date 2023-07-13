@@ -195,7 +195,33 @@ class ConnectionMySQL extends Connection
 		
 		string sql = res[0];
 		Dict data = res[1];
-		sql = this.getSQL(sql, data);
+		sql = this.formatSQL(sql, data);
+		
+		return sql;
+	}
+	
+	
+	/**
+	 * Format sql
+	 */
+	string formatSQL(string sql, Dict data = null)
+	{
+		if (data == null) return sql;
+		
+		data.each(
+			void (string value, string key) use (sql)
+			{
+				if (value === null)
+				{
+					sql = rs::replace(":" ~ key, "null", sql);
+				}
+				else
+				{
+					value = this.quote(value);
+					sql = rs::replace(":" ~ key, "'" ~ value ~ "'", sql);
+				}
+			}
+		);
 		
 		return sql;
 	}
