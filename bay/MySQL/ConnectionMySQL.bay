@@ -151,7 +151,7 @@ class ConnectionMySQL extends Connection
 		bool is_debug = params["debug"] |> default bool false;
 		if (is_debug)
 		{
-			string sql2 = this.getSQL(sql, data);
+			string sql2 = this.formatSQL(sql, data);
 			io::print(sql2);
 		}
 		
