@@ -50,6 +50,7 @@ class Relation extends BaseObject
 	pure Relation newInstance(string table_name, Dict data = null)
 	{
 		Relation instance = rtl::newInstance(static::getClassName(), [table_name]);
+		instance.table_name = table_name;
 		instance._setNewData(data);
 		return instance;
 	}
@@ -84,10 +85,11 @@ class Relation extends BaseObject
 	/**
 	 * Returns table annotations
 	 */
-	pure memorize Collection<BaseStruct> getAnotations(string relation_name)
+	pure memorize Collection<BaseStruct> getAnotations(string table_name)
 	{
 		Provider provider = @.provider(classof Provider);
-		return [];
+		if (not provider.tables.has(table_name)) return [];
+		return provider.tables[table_name, "annotations"];
 	}
 	
 	
@@ -543,10 +545,9 @@ class Relation extends BaseObject
 			;
 			
 			item = await conn.fetchOne(q, params);
-			item = static::fromDatabase(this.table_name, conn, item);
 		}
 		
-		this._setNewData(item);
+		this._setNewData(item.toDict());
 		
 		return this;
 	}

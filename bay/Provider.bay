@@ -18,17 +18,21 @@
 
 namespace Runtime.ORM;
 
+use Runtime.lib;
 use Runtime.BaseProvider;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Annotations.AutoIncrement;
 use Runtime.ORM.Annotations.BaseType;
+use Runtime.ORM.Annotations.Database;
 use Runtime.ORM.Annotations.Primary;
+use Runtime.ORM.Annotations.Table;
 
 
 class Provider extends BaseProvider
 {
-	Dict connection_list = {};
+	Map connection_list = new Map;
+	Map tables = new Map;
 	
 	
 	/**
@@ -40,7 +44,6 @@ class Provider extends BaseProvider
 		{
 			throw new RuntimeException("Connection " ~ name ~ " not found");
 		}
-		
 		return this.connection_list[name];
 	}
 	
@@ -50,7 +53,44 @@ class Provider extends BaseProvider
 	 */
 	void addConnection(Connection conn)
 	{
-		this.connection_list = this.connection_list.setIm(conn.getName(), conn);
+		this.connection_list.setValue(conn.getName(), conn);
+	}
+	
+	
+	/**
+	 * Start provider
+	 */
+	async void start()
+	{
+		await parent::start();
+		
+		Collection<Database> items = @.entities.filter( lib::isInstance(classof Database) );
+		for (int i=0; i<items.count(); i++)
+		{
+			Database db = items[i];
+			string class_name = db.name;
+			fn getMethodsList = rtl::method(class_name, "getMethodsList");
+			fn getMethodInfoByName = rtl::method(class_name, "getMethodInfoByName");
+			
+			Collection<string> methods = getMethodsList();
+			for (int j=0; j<methods.count(); j++)
+			{
+				string method_name = methods[j];
+				Dict info = getMethodInfoByName(method_name);
+				Collection annotations = info["annotations"];
+				if (annotations)
+				{
+					Table table = annotations.findItem( lib::isInstance(classof Table) );
+					string table_name = table.name;
+					Collection annotations = rtl::callMethod(class_name, method_name);
+					this.tables.setValue(table_name, {
+						"annotations": annotations,
+						"table": table,
+					});
+				}
+			}
+		}
+		
 	}
 	
 }
