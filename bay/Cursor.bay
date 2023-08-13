@@ -22,6 +22,8 @@ use Runtime.math;
 use Runtime.BaseObject;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
+use Runtime.ORM.Relation;
+use Runtime.ORM.RelationArray;
 
 
 class Cursor extends BaseObject
@@ -116,15 +118,13 @@ class Cursor extends BaseObject
 	/**
 	 * Fetch next row
 	 */
-	async var fetch()
+	async Relation fetch()
 	{
-		Dict row = await this.fetchDict();
+		Relation row = await this.fetchDict();
+		if (!row) return null;
 		
-		if (row and this.q and this.q._class_name_relation != "")
-		{
-			string class_name = this.q._class_name_relation;
-			row = rtl::method(class_name, "newInstanceFromDatabase")( this.conn, row );
-		}
+		string table_name = this.q._table_name;
+		row = Relation::newInstanceFromDatabase(table_name, this.conn, row);
 		
 		return row;
 	}
@@ -133,9 +133,9 @@ class Cursor extends BaseObject
 	/**
 	 * Fetch all rows
 	 */
-	async Collection fetchAll()
+	async RelationArray fetchAll()
 	{
-		Vector<Dict> items = new Vector();
+		RelationArray items = new RelationArray();
 		while (true)
 		{
 			Dict row = await this.fetch();
@@ -146,7 +146,7 @@ class Cursor extends BaseObject
 			items.pushValue(row);
 		}
 		
-		return items.toCollection();
+		return items;
 	}
 	
 	

@@ -30,7 +30,7 @@ use Runtime.ORM.Record;
 use Runtime.ORM.StructBuilder;
 
 
-struct Query extends BaseStruct
+class Query extends BaseStruct
 {
 	static const string QUERY_RAW = "raw";
 	static const string QUERY_SELECT = "select";
@@ -43,12 +43,12 @@ struct Query extends BaseStruct
 	string _kind = "";
 	string _table_name = "";
 	string _table_name_alias = "t";
-	Collection<string> _fields = ["t.*"];
-	Collection _join = [];
-	Collection _order = [];
-	Dict _filter = [];
+	Vector<string> _fields = Vector::from(["t.*"]);
+	Vector<Dict> _join = new Vector();
+	Vector<Collection> _order = new Vector();
+	Vector<Collection> _filter = new Vector();
 	string _sql = "";
-	Dict _data = {};
+	Map _data = new Map();
 	int _start = 0;
 	int _limit = -1;
 	bool _debug = false;
@@ -60,194 +60,203 @@ struct Query extends BaseStruct
 	/**
 	 * Setup db params
 	 */
-	Query setDatabaseParams(Dict db_params = null) =>
-		this.clone{
-			"_db_params": db_params,
-		};
+	Query setDatabaseParams(Dict db_params = null)
+	{
+		this._db_params = db_params;
+		return this;
+	}
 	
 	
 	/**
 	 * Calc found rows
 	 */
-	Query raw(string sql, Dict data) =>
-		this.clone{
-			"_kind": static::QUERY_RAW,
-			"_sql": sql,
-			"_data": data,
-		};
+	Query raw(string sql, Dict data)
+	{
+		this._kind = static::QUERY_RAW;
+		this._sql = sql;
+		this._data = data.toMap();
+		return this;
+	}
 	
 	
 	/**
 	 * Calc found rows
 	 */
-	Query calcFoundRows(bool value = true) =>
-		this.clone{
-			"_calc_found_rows": value,
-		};
+	Query calcFoundRows(bool value = true)
+	{
+		this._calc_found_rows = value;
+		return this;
+	}
 	
 	
 	/**
 	 * Set relation class name
 	 */
-	Query relation(string class_name_relation) =>
-		this.clone{
-			"_class_name_relation": class_name_relation,
-			"_table_name": rtl::method(class_name_relation, "getTableName")(),
-		};
-	
-	
-	/**
-	 * Clear relation class name
-	 */
-	Query clearRelation() =>
-		this.clone{
-			"_class_name_relation": null,
-		};
+	Query relation(string table_name)
+	{
+		this._table_name = table_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Set alias
 	 */
-	Query alias(string alias_name) =>
-		this.clone{
-			"_table_name_alias": alias_name,
-		};
+	Query alias(string alias_name)
+	{
+		this._table_name_alias = alias_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Set distinct
 	 */
-	Query distinct(bool value = true) =>
-		this.clone{
-			"_distinct": value,
-		};
+	Query distinct(bool value = true)
+	{
+		this._distinct = value;
+		return this;
+	}
 	
 	
 	/**
 	 * Set debug log
 	 */
-	Query debug(bool value = true) =>
-		this.clone{
-			"_debug": value
-		};
+	Query debug(bool value = true)
+	{
+		this._debug = value;
+		return this;
+	}
 	
 	
 	/**
 	 * Select query
 	 */
-	Query select(string table_name = "", string alias_name = "t") =>
-		this.clone{
-			"_kind": static::QUERY_SELECT,
-			"_fields": ["t.*"],
-			"_table_name": table_name != "" ? table_name : this._table_name,
-			"_table_name_alias": alias_name,
-		};
+	Query select(string table_name = "", string alias_name = "t")
+	{
+		this._kind = static::QUERY_SELECT;
+		this._fields = Vector::from(["t.*"]);
+		this._table_name = table_name != "" ? table_name : this._table_name;
+		this._table_name_alias = alias_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Set table
 	 */
-	Query table(string table_name = "") =>
-		this.clone{
-			"_table_name": table_name != "" ? table_name : this._table_name,
-		};
+	Query table(string table_name = "")
+	{
+		this._table_name = table_name != "" ? table_name : this._table_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Set table
 	 */
-	Query from(string table_name = "", string alias_name = "t") =>
-		this.clone{
-			"_table_name": table_name != "" ? table_name : this._table_name,
-			"_table_name_alias": alias_name,
-		};
+	Query from(string table_name = "", string alias_name = "t")
+	{
+		this._table_name = table_name != "" ? table_name : this._table_name;
+		this._table_name_alias = alias_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Insert query
 	 */
-	Query insert(string table_name = "", string alias_name = "t") =>
-		this.clone{
-			"_kind": static::QUERY_INSERT,
-			"_table_name": table_name != "" ? table_name : this._table_name,
-			"_table_name_alias": alias_name,
-		};
+	Query insert(string table_name = "", string alias_name = "t")
+	{
+		this._kind = static::QUERY_INSERT;
+		this._table_name = table_name != "" ? table_name : this._table_name;
+		this._table_name_alias = alias_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Select query
 	 */
-	Query update(string table_name = "", string alias_name = "t") =>
-		this.clone{
-			"_kind": static::QUERY_UPDATE,
-			"_table_name": table_name != "" ? table_name : this._table_name,
-			"_table_name_alias": alias_name,
-		};
+	Query update(string table_name = "", string alias_name = "t")
+	{
+		this._kind = static::QUERY_UPDATE;
+		this._table_name = table_name != "" ? table_name : this._table_name;
+		this._table_name_alias = alias_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Delete query
 	 */
-	Query delete(string table_name = "", string alias_name = "t") =>
-		this.clone{
-			"_kind": static::QUERY_DELETE,
-			"_table_name": table_name != "" ? table_name : this._table_name,
-			"_table_name_alias": alias_name,
-		};
+	Query delete(string table_name = "", string alias_name = "t")
+	{
+		this._kind = static::QUERY_DELETE;
+		this._table_name = table_name != "" ? table_name : this._table_name;
+		this._table_name_alias = alias_name;
+		return this;
+	}
 	
 	
 	/**
 	 * Set kind
 	 */
-	Query kind(string kind) =>
-		this.clone{
-			"_kind": kind,
-		};
+	Query kind(string kind)
+	{
+		this._kind = kind;
+		return this;
+	}
 	
 	
 	/**
 	 * Set fields
 	 */
-	Query fields(Collection fields) =>
-		this.clone{
-			"_fields": fields,
-		};
+	Query fields(Collection fields)
+	{
+		this._fields = fields.toVector();
+		return this;
+	}
 	
 	
 	/**
 	 * Add field
 	 */
-	Query addField(string field_name) =>
-		this.clone{
-			"_fields": this._fields.pushIm(field_name),
-		};
+	Query addField(string field_name)
+	{
+		this._fields.pushValue(field_name);
+		return this;
+	}
 	
 	
 	/**
 	 * Add fields
 	 */
-	Query addFields(Collection<string> fields) =>
-		this.clone{
-			"_fields": this._fields.concat(fields),
-		};
+	Query addFields(Collection<string> fields)
+	{
+		this._fields.appendVector(fields);
+		return this;
+	}
 	
 	
 	/**
 	 * Set data
 	 */
-	Query values(Dict data) =>
-		this.clone{
-			"_data": data,
-		};
+	Query values(Dict data)
+	{
+		this._data = data.toMap();
+		return this;
+	}
 	
 	
 	/**
 	 * Set data
 	 */
-	Query data(Dict data) =>
-		this.clone{
-			"_data": data,
-		};
+	Query data(Dict data)
+	{
+		this._data = data.toMap();
+		return this;
+	}
 	
 	
 	/**
@@ -259,119 +268,129 @@ struct Query extends BaseStruct
 		int start = page * limit;
 		if (start < 0) start = 0;
 		
-		return this.clone{
-			"_start": start,
-			"_limit": (limit > 0) ? limit : this._limit,
-		};
+		this._start = start;
+		this._limit = (limit > 0) ? limit : this._limit;
+		return this;
 	}
 	
 	
 	/**
 	 * Set offset
 	 */
-	Query offset(int start) =>
-		this.clone{
-			"_start": start,
-		};
+	Query offset(int start)
+	{
+		this._start = start;
+		return this;
+	}
 	
 	
 	/**
 	 * Set start
 	 */
-	Query start(int start) =>
-		this.clone{
-			"_start": start,
-		};
+	Query start(int start)
+	{
+		this._start = start;
+		return this;
+	}
 	
 	
 	/**
 	 * Set limit
 	 */
-	Query limit(int limit) =>
-		this.clone{
-			"_limit": limit,
-		};
+	Query limit(int limit)
+	{
+		this._limit = limit;
+		return this;
+	}
 	
 	
 	/**
 	 * Clear order
 	 */
-	Query clearOrder() =>
-		this.clone{
-			"_order": [],
-		};
+	Query clearOrder()
+	{
+		this._order = new Vector;
+		return this;
+	}
 	
 	
 	/**
 	 * Set order
 	 */
-	Query orderBy(string name, string sort) =>
-		this.clone{
-			"_order": this._order.pushIm([ name, sort ]),
-		};
+	Query orderBy(string name, string sort)
+	{
+		this._order.pushValue([ name, sort ]);
+		return this;
+	}
 	
 	
 	/**
 	 * Add where
 	 */
-	Query where(string key, string op, var value) =>
-		this.clone{
-			"_filter": this._filter.pushIm([ key, op, value ]),
-		};
+	Query where(string key, string op, var value)
+	{
+		this._filter.pushValue([ key, op, value ]);
+		return this;
+	}
 	
 	
 	/**
 	 * Add filter
 	 */
-	Query filter(Collection filter) =>
-		this.clone{
-			"_filter": this._filter.concat(filter),
-		};
+	Query filter(Collection filter)
+	{
+		this._filter.appendVector(filter);
+		return this;
+	}
 	
 	
 	/**
 	 * Add filter
 	 */
-	Query addFilter(QueryFilter filter) =>
-		this.clone{
-			"_filter": this._filter.concat(filter),
-		};
+	Query addFilter(QueryFilter filter)
+	{
+		this._filter.appendVector(filter);
+		return this;
+	}
 	
 	
 	/**
 	 * Clear filter
 	 */
-	Query clearFilter() =>
-		this.clone{
-			"_filter": [],
-		};
+	Query clearFilter()
+	{
+		this._filter = [];
+		return this;
+	}
 	
 	
 	/**
 	 * Inner join
 	 */
-	Query innerJoin(string table_name, string alias_name, string where) =>
-		this.clone{
-			"_join": this._join.pushIm({
-				"kind": "join",
-				"table_name": table_name,
-				"alias_name": alias_name,
-				"where": where,
-			}),
-		};
+	Query innerJoin(string table_name, string alias_name, string where)
+	{
+		this._join.pushValue({
+			"kind": "join",
+			"table_name": table_name,
+			"alias_name": alias_name,
+			"where": where,
+		});
+		return this;
+	}
 	
 	
 	/**
 	 * Left join
 	 */
-	Query leftJoin(string table_name, string alias_name, Collection filter) =>
-		this.clone{
-			"_join": this._join.pushIm({
-				"kind": "left",
-				"table_name": table_name,
-				"alias_name": alias_name,
-				"filter": filter,
-			}),
-		};
+	Query leftJoin(string table_name, string alias_name, Collection filter)
+	{
+		this._join.pushValue({
+			"kind": "left",
+			"table_name": table_name,
+			"alias_name": alias_name,
+			"filter": filter,
+		});
+		return this;
+	}
 	
 }

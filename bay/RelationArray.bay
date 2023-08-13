@@ -18,39 +18,32 @@
 
 namespace Runtime.ORM;
 
-use Runtime.BaseProvider;
-use Runtime.Exceptions.RuntimeException;
-use Runtime.ORM.Connection;
-use Runtime.ORM.Annotations.AutoIncrement;
-use Runtime.ORM.Annotations.BaseType;
-use Runtime.ORM.Annotations.Primary;
+use Runtime.BaseStruct;
+use Runtime.ORM.Relation;
 
 
-class Provider extends BaseProvider
+class RelationArray extends Vector<Relation>
 {
-	Dict connection_list = {};
-	
-	
-	/**
-	 * Returns connection
+    string relation = "";
+    
+    
+    /**
+     * Resolve foreign key
+     */
+    RelationArray resolve(string alias_name)
+    {
+        return null;
+    }
+    
+    
+    /**
+	 * Transform items
 	 */
-	Connection getConnection(string name)
+	Collection<BaseStruct> toModel(string class_name)
 	{
-		if (not this.connection_list.has(name))
-		{
-			throw new RuntimeException("Connection " ~ name ~ " not found");
-		}
-		
-		return this.connection_list[name];
+		return this.map(
+            Dict (Relation item) use (class_name) => item.toModel( class_name )
+        ).toCollection();
 	}
-	
-	
-	/**
-	 * Add new connection
-	 */
-	void addConnection(Connection conn)
-	{
-		this.connection_list = this.connection_list.setIm(conn.getName(), conn);
-	}
-	
+    
 }

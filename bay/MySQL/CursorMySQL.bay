@@ -96,8 +96,15 @@ class CursorMySQL extends Cursor
 	{
 		#ifcode PHP then
 		
-		$data = \Runtime\rtl::PrimitiveToNative($ctx, $data);
-		$this->st = $this->conn->pdo->prepare($sql, array(\PDO::ATTR_CURSOR => \PDO::CURSOR_FWDONLY));
+		if ($data instanceof \Runtime\Dict)
+		{
+			$data = $data->_map;
+		}
+		
+		/* $data = \Runtime\rtl::PrimitiveToNative($ctx, $data); */
+		$this->st = $this->conn->pdo->prepare(
+			$sql, array(\PDO::ATTR_CURSOR => \PDO::CURSOR_FWDONLY)
+		);
 		$this->st->execute($data);
 		
 		#endif

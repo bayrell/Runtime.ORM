@@ -16,41 +16,44 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM;
+namespace Runtime.ORM.SQLite;
 
-use Runtime.BaseProvider;
-use Runtime.Exceptions.RuntimeException;
-use Runtime.ORM.Connection;
-use Runtime.ORM.Annotations.AutoIncrement;
-use Runtime.ORM.Annotations.BaseType;
-use Runtime.ORM.Annotations.Primary;
+use Runtime.ORM.MySQL.ConnectionMySQL;
 
 
-class Provider extends BaseProvider
+class ConnectionSQLite extends ConnectionMySQL
 {
-	Dict connection_list = {};
-	
-	
-	/**
-	 * Returns connection
+    public string path = "";
+    
+    
+    /**
+	 * Connect
 	 */
-	Connection getConnection(string name)
+	async ConnectionMySQL connect()
 	{
-		if (not this.connection_list.has(name))
+		this.connect_error = "";
+		
+		#ifcode PHP then
+		
+		try
 		{
-			throw new RuntimeException("Connection " ~ name ~ " not found");
+			$str = 'sqlite:'.$this->database;
+			$this->pdo = new \PDO($str);
+			$this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+			$this->pdo->exec("set names utf8");
+		}
+		catch (\PDOException $e)
+		{
+			$this->connect_error = 'Failed connected to database!';
+		}
+		catch (\Excepion $e)
+		{
+			$this->connect_error = $e->getMessage();
 		}
 		
-		return this.connection_list[name];
+		#endif
+		
+		return this;
 	}
-	
-	
-	/**
-	 * Add new connection
-	 */
-	void addConnection(Connection conn)
-	{
-		this.connection_list = this.connection_list.setIm(conn.getName(), conn);
-	}
-	
+    
 }

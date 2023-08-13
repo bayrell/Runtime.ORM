@@ -23,6 +23,7 @@ use Runtime.BaseObject;
 use Runtime.BaseStruct;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
+use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
 use Runtime.ORM.Annotations.AutoIncrement;
 use Runtime.ORM.Annotations.BaseType;
@@ -31,6 +32,7 @@ use Runtime.ORM.Annotations.Primary;
 
 class Relation extends BaseObject
 {
+	protected string table_name = "";
 	protected Map old_data = null;
 	protected Map new_data = new Map;
 	protected bool is_dirty = false;
@@ -39,79 +41,15 @@ class Relation extends BaseObject
 	/**
 	 * Returns table name
 	 */
-	static string getTableName() => "";
-	
-	
-	/**
-	 * Returns relation attributes
-	 */
-	static Collection<BaseStruct> annotations() => [];
-	
-	
-	/**
-	 * Returns true if primary key is auto increment
-	 */
-	static memorize AutoIncrement isAutoIncrement()
-	{
-		Collection<BaseStruct> annotations = static::annotations();
-		for (int i=0; i<annotations.count(); i++)
-		{
-			BaseStruct annotation = annotations[i];
-			if (annotation instanceof AutoIncrement)
-			{
-				return annotation;
-			}
-		}
-		return null;
-	}
-	
-	
-	/**
-	 * To database
-	 */
-	pure Dict toDatabase(Connection conn, Dict data, bool is_update)
-	{
-		if (data == null) return null;
-		
-		Collection<BaseStruct> annotations = static::annotations();
-		for (int i=0; i<annotations.count(); i++)
-		{
-			BaseStruct annotation = annotations[i];
-			if (annotation instanceof BaseType)
-			{
-				data = annotation.toDatabase(conn, data, is_update);
-			}
-		}
-		return data;
-	}
-	
-	
-	/**
-	 * From database
-	 */
-	pure Dict fromDatabase(Connection conn, Dict data)
-	{
-		if (data == null) return null;
-		
-		Collection<BaseStruct> annotations = static::annotations();
-		for (int i=0; i<annotations.count(); i++)
-		{
-			BaseStruct annotation = annotations[i];
-			if (annotation instanceof BaseType)
-			{
-				data = annotation.fromDatabase(conn, data);
-			}
-		}
-		return data;
-	}
+	string getTableName() => this.table_name;
 	
 	
 	/**
 	 * Create Instance of class
 	 */
-	pure Relation newInstance(Dict data = null)
+	pure Relation newInstance(string table_name, Dict data = null)
 	{
-		Relation instance = rtl::newInstance(static::getClassName());
+		Relation instance = rtl::newInstance(static::getClassName(), [table_name]);
 		instance._setNewData(data);
 		return instance;
 	}
@@ -120,10 +58,10 @@ class Relation extends BaseObject
 	/**
 	 * Create Instance of class from database
 	 */
-	pure Relation newInstanceFromDatabase(Connection conn, Dict data = null)
+	pure Relation newInstanceFromDatabase(string table_name, Connection conn, Dict data = null)
 	{
-		data = static::fromDatabase(conn, data);
-		data = static::newInstance(data);
+		data = static::fromDatabase(table_name, conn, data);
+		data = static::newInstance(table_name, data);
 		return data;
 	}
 	
@@ -144,25 +82,80 @@ class Relation extends BaseObject
 	
 	
 	/**
-	 * Transform items
+	 * Returns table annotations
 	 */
-	pure Collection<BaseStruct> transformItems(Collection<Relation> items, string class_name)
+	pure memorize Collection<BaseStruct> getAnotations(string relation_name)
 	{
-		return items
-			|> lib::map(
-				Dict (Relation item) use (class_name) => item.toModel( class_name )
-			)
-		;
+		Provider provider = @.provider(classof Provider);
+		return [];
 	}
 	
 	
 	/**
-	 * Returns primary keys
+	 * To database
 	 */
-	static memorize Collection getPrimaryKeys()
+	static Dict toDatabase(string table_name, Connection conn, Dict data, bool is_update)
+	{
+		if (data == null) return null;
+		
+		Collection<BaseStruct> annotations = static::getAnotations(table_name);
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof BaseType)
+			{
+				data = annotation.toDatabase(conn, data, is_update);
+			}
+		}
+		return data;
+	}
+	
+	
+	/**
+	 * From database
+	 */
+	static Dict fromDatabase(string table_name, Connection conn, Dict data)
+	{
+		if (data == null) return null;
+		
+		Collection<BaseStruct> annotations = static::getAnotations(table_name);
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof BaseType)
+			{
+				data = annotation.fromDatabase(conn, data);
+			}
+		}
+		return data;
+	}
+	
+	
+	/**
+	 * Returns true if primary key is auto increment
+	 */
+	pure memorize AutoIncrement getAutoIncrement(string table_name)
+	{
+		Collection<BaseStruct> annotations = static::getAnotations(table_name);
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof AutoIncrement)
+			{
+				return annotation;
+			}
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * Returns primary keys of table
+	 */
+	pure memorize Collection<string> getPrimaryKeys(string table_name)
 	{
 		Vector primary_keys = new Vector();
-		Collection<BaseStruct> annotations = static::annotations();
+		Collection<BaseStruct> annotations = static::getAnotations(table_name);
 		for (int i=0; i<annotations.count(); i++)
 		{
 			BaseStruct annotation = annotations[i];
@@ -179,10 +172,10 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary data
 	 */
-	static Dict getPrimaryFromData(Dict data)
+	pure Dict getPrimaryFromData(string table_name, Dict data)
 	{
 		Map primary_data = new Map();
-		Collection<BaseStruct> annotations = static::annotations();
+		Collection<BaseStruct> annotations = static::getAnotations(table_name);
 		for (int i=0; i<annotations.count(); i++)
 		{
 			BaseStruct annotation = annotations[i];
@@ -203,11 +196,11 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary filter by data
 	 */
-	static Collection getPrimaryFilter(Dict data, bool use_alias)
+	pure Collection getPrimaryFilter(string table_name, Dict data, bool use_alias)
 	{
 		Vector filter = new Vector();
 		
-		Dict pk = static::getPrimaryFromData(data);
+		Dict pk = static::getPrimaryFromData(table_name, data);
 		pk.each(
 			void (var value, string key) use (filter, use_alias)
 			{
@@ -231,7 +224,7 @@ class Relation extends BaseObject
 	 */
 	public Dict getPrimaryKey()
 	{
-		return static::getPrimaryFromData(this.new_data);
+		return static::getPrimaryFromData(this.table_name, this.new_data);
 	}
 	
 	
@@ -240,7 +233,7 @@ class Relation extends BaseObject
 	 */
 	public Dict pk()
 	{
-		return static::getPrimaryFromData(this.new_data);
+		return static::getPrimaryFromData(this.table_name, this.new_data);
 	}
 	
 	
@@ -323,29 +316,24 @@ class Relation extends BaseObject
 	
 	
 	/**
-	 * Query
-	 */
-	static void query() => (new Query()).relation(static::getClassName());
-	
-	
-	/**
 	 * Find item
 	 */
-	async static Relation findById(Connection conn, string id, Dict params = null)
+	async static Relation findById
+		(string table_name, Connection conn, string id, Dict params = null)
 	{
 		Collection pk = static::pk();
 		string pk_name = pk.get(0);
 		if (not pk_name) return null;
 		
 		Query q = new Query
-			|> .select( static::getTableName() )
+			|> .select(table_name)
 			|> .where(pk_name, "=", id)
 		;
 		
 		Dict item = await conn.fetchOne(q, params);
 		if (item)
 		{
-			item = static::newInstanceFromDatabase(conn, item);
+			item = static::newInstanceFromDatabase(table_name, conn, item);
 		}
 		
 		return item;
@@ -355,7 +343,8 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static Relation findItem(Connection conn, Dict item, Dict params = null)
+	async static Relation findItem
+		(string table_name, Connection conn, Dict item, Dict params = null)
 	{
 		Vector filter = new Vector();
 		Collection keys = item.keys();
@@ -365,8 +354,8 @@ class Relation extends BaseObject
 			filter.pushValue(["t." ~ key, "=", item[key]]);
 		}
 		
-		Query q = static::query()
-			|> .select( static::getTableName() )
+		Query q = new Query
+			|> .select(table_name)
 			|> .filter(filter)
 			|> .limit(1)
 		;
@@ -379,12 +368,11 @@ class Relation extends BaseObject
 	/**
 	 * Find items
 	 */
-	async static Collection<Relation> findItems(
-		Connection conn, Collection filter, Dict params = null
-	)
+	async static Collection<Relation> findItems
+		(string table_name, Connection conn, Collection filter, Dict params = null)
 	{
-		Query q = static::query()
-			|> .select( static::getTableName() )
+		Query q = new Query
+			|> .select(table_name)
 			|> .filter(filter)
 		;
 		
@@ -396,13 +384,15 @@ class Relation extends BaseObject
 	/**
 	 * Find or create
 	 */
-	async static Relation findOrCreate(Connection conn, Dict item, Dict params = null)
+	async static Relation findOrCreate
+		(string table_name, Connection conn, Dict item, Dict params = null)
 	{
-		Relation res = await static::findItem(conn, item, params);
+		/* Find item */
+		Relation res = await static::findItem(table_name, conn, item, params);
 		if (res) return res;
 		
-		res = static::newInstance(item);
-		
+		/* Create if not found */
+		res = static::newInstance(table_name, item);
 		return res;
 	}
 	
@@ -411,16 +401,16 @@ class Relation extends BaseObject
 	 * Update items
 	 */
 	static async void updateItems(
+		string table_name,
 		Connection conn, Collection filter,
 		Dict update_data, Dict params = null
 	)
 	{
-		Query q = static::query()
-			|> .update()
+		Query q = new Query
+			|> .update(table_name)
 			|> .values(update_data)
 			|> .filter(filter)
 		;
-		
 		Cursor c = await conn.executeQuery(q, params);
 		await c.close();
 	}
@@ -430,11 +420,11 @@ class Relation extends BaseObject
 	 * Delete items
 	 */
 	static async void deleteItems(
-		Connection conn, Collection filter, Dict params = null
+		string table_name, Connection conn, Collection filter, Dict params = null
 	)
 	{
-		Query q = static::query()
-			|> .delete()
+		Query q = new Query
+			|> .delete(table_name)
 			|> .filter(filter)
 		;
 		
@@ -469,12 +459,14 @@ class Relation extends BaseObject
 			Collection updated_data_keys = updated_data.keys();
 			if (updated_data_keys.count() > 0)
 			{
-				Collection filter = static::getPrimaryFilter(this.old_data, false);
+				Collection filter = static::getPrimaryFilter(this.table_name, this.old_data, false);
 				if (filter.count() > 0)
 				{
-					Dict db_updated_data = static::toDatabase(conn, updated_data, is_update);
+					Dict db_updated_data = static::toDatabase
+						(this.table_name, conn, updated_data, is_update);
+					
 					await conn.update(
-						static::getTableName(),
+						this.table_name,
 						filter,
 						db_updated_data,
 						params
@@ -490,9 +482,11 @@ class Relation extends BaseObject
 		}
 		else
 		{
-			Dict db_updated_data = static::toDatabase(conn, updated_data, is_update);
+			Dict db_updated_data = static::toDatabase
+				(this.table_name, conn, updated_data, is_update);
+			
 			var last_id = await conn.insert(
-				static::getTableName(),
+				this.table_name,
 				db_updated_data,
 				true,
 				params
@@ -517,12 +511,12 @@ class Relation extends BaseObject
 	 */
 	async Relation delete(Connection conn, Dict params = null)
 	{
-		Collection filter = static::getPrimaryFilter(this.old_data, false);
+		Collection filter = static::getPrimaryFilter(this.table_name, this.old_data, false);
 		
 		if (filter.count() > 0)
 		{
 			await conn.delete(
-				static::getTableName(),
+				this.table_name,
 				filter,
 				params
 			);
@@ -538,18 +532,18 @@ class Relation extends BaseObject
 	async Relation refresh(Connection conn, Dict params = null)
 	{
 		Dict item = null;
-		Collection filter = static::getPrimaryFilter(this.old_data, false);
+		Collection filter = static::getPrimaryFilter(this.table_name, this.old_data, false);
 		
 		if (filter.count() > 0)
 		{
 			Query q = new Query
-				|> .select( static::getTableName() )
+				|> .select(this.table_name)
 				|> .filter(filter)
 				|> .limit(1)
 			;
 			
 			item = await conn.fetchOne(q, params);
-			item = static::fromDatabase(conn, item);
+			item = static::fromDatabase(this.table_name, conn, item);
 		}
 		
 		this._setNewData(item);

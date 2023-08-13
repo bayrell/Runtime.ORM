@@ -38,18 +38,18 @@ class ConnectionMySQL extends Connection
 	public string connect_error = "";	
 	public var pdo = null;
 	public bool is_transaction = false;
-    
+	
 	
 	/**
 	 * Connect
 	 */
-	ConnectionMySQL connect()
+	async ConnectionMySQL connect()
 	{
 		this.connect_error = "";
-        
+		
 		#ifcode PHP then
-        
-        try
+		
+		try
 		{
 			$str = 'mysql:host='.$this->host;
 			if ($this->port != null) $str .= ':'.$this->port;
@@ -71,9 +71,9 @@ class ConnectionMySQL extends Connection
 		{
 			$this->connect_error = $e->getMessage();
 		}
-        
-        #endif
-        
+		
+		#endif
+		
 		return this;
 	}
 	
@@ -178,7 +178,7 @@ class ConnectionMySQL extends Connection
 			Dict data = res[1];
 			
 			Cursor cursor = await this.executeSQL(sql, data, params);
-			cursor.q = q;
+			cursor.q = q.copy();
 		}
 		
 		return cursor;

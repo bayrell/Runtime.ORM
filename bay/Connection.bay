@@ -22,6 +22,8 @@ use Runtime.BaseStruct;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
+use Runtime.ORM.Relation;
+use Runtime.ORM.RelationArray;
 
 
 class Connection
@@ -54,7 +56,7 @@ class Connection
 	/**
 	 * Connect
 	 */
-	Connection connect()
+	async Connection connect()
 	{
 	}
 	
@@ -87,7 +89,8 @@ class Connection
 	/**
 	 * Insert query
 	 */
-	async var insert(string table_name, Dict insert_data, bool get_last_id = true, Dict params = null)
+	async var insert
+		(string table_name, Dict insert_data, bool get_last_id = true, Dict params = null)
 	{
 		var last_id = null;
 		
@@ -112,7 +115,8 @@ class Connection
 	/**
 	 * Update query
 	 */
-	async void update(string table_name, Collection filter, Dict update_data, Dict params = null)
+	async void update
+		(string table_name, Collection filter, Dict update_data, Dict params = null)
 	{
 		Query q = new Query()
 			|> .update(table_name)
@@ -128,7 +132,8 @@ class Connection
 	/**
 	 * Delete item
 	 */
-	async void delete(string table_name, Collection filter, Dict params = null)
+	async void delete
+		(string table_name, Collection filter, Dict params = null)
 	{
 		Query q = new Query()
 			|> .delete(table_name)
@@ -182,7 +187,7 @@ class Connection
 	async Collection fetchAll(Query q, Dict params = null)
 	{
 		Cursor cursor = await this.executeQuery(q, params);
-		Collection res = await cursor.fetchAll();
+		RelationArray res = await cursor.fetchAll();
 		await cursor.close();
 		return res;
 	}
@@ -194,7 +199,7 @@ class Connection
 	async Dict fetch(Query q, Dict params = null)
 	{
 		Cursor cursor = await this.executeQuery(q, params);
-		Collection res = await cursor.fetch();
+		Relation res = await cursor.fetch();
 		await cursor.close();
 		return res;
 	}
@@ -204,10 +209,10 @@ class Connection
 	/**
 	 * Fetch variable
 	 */
-	async Dict fetchVar(Query q, string var_name, Dict params = null)
+	async var fetchVar(Query q, string var_name, Dict params = null)
 	{
 		Cursor cursor = await this.executeQuery(q, params);
-		Collection res = await cursor.fetchVar(var_name);
+		Dict res = await cursor.fetchVar(var_name);
 		await cursor.close();
 		return res;
 	}
