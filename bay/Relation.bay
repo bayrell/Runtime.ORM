@@ -21,6 +21,7 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseObject;
 use Runtime.BaseStruct;
+use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Provider;
@@ -39,6 +40,21 @@ class Relation extends BaseObject
 	
 	
 	/**
+	 * Constructor
+	 */
+	void constructor(string table_name)
+	{
+		parent();
+		
+		if (table_name == "")
+		{
+			throw new RuntimeException("Table name is empty");
+		}
+		this.table_name = table_name;
+	}
+	
+	
+	/**
 	 * Returns table name
 	 */
 	string getTableName() => this.table_name;
@@ -50,7 +66,6 @@ class Relation extends BaseObject
 	pure Relation newInstance(string table_name, Dict data = null)
 	{
 		Relation instance = rtl::newInstance(static::getClassName(), [table_name]);
-		instance.table_name = table_name;
 		instance._setNewData(data);
 		return instance;
 	}
@@ -496,7 +511,7 @@ class Relation extends BaseObject
 			
 			this._setNewData(this.new_data);
 			
-			AutoIncrement auto_increment = static::isAutoIncrement();
+			AutoIncrement auto_increment = static::getAutoIncrement(this.table_name);
 			if (auto_increment and auto_increment.name)
 			{
 				this.old_data.setValue(auto_increment.name, last_id);

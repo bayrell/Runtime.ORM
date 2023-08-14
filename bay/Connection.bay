@@ -19,6 +19,7 @@
 namespace Runtime.ORM;
 
 use Runtime.BaseStruct;
+use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
@@ -94,6 +95,11 @@ class Connection
 	{
 		var last_id = null;
 		
+		if (table_name == "")
+		{
+			throw new RuntimeException("Table name is empty");
+		}
+		
 		Query q = new Query()
 			|> .insert(table_name)
 			|> .values(insert_data)
@@ -118,6 +124,11 @@ class Connection
 	async void update
 		(string table_name, Collection filter, Dict update_data, Dict params = null)
 	{
+		if (table_name == "")
+		{
+			throw new RuntimeException("Table name is empty");
+		}
+		
 		Query q = new Query()
 			|> .update(table_name)
 			|> .values(update_data)
@@ -135,6 +146,11 @@ class Connection
 	async void delete
 		(string table_name, Collection filter, Dict params = null)
 	{
+		if (table_name == "")
+		{
+			throw new RuntimeException("Table name is empty");
+		}
+		
 		Query q = new Query()
 			|> .delete(table_name)
 			|> .filter(filter)

@@ -25,4 +25,5 @@ use Runtime.ORM.Annotations.BaseType;
 struct StringType extends BaseType
 {
 	int length = 255;
+	string default = "";
 }

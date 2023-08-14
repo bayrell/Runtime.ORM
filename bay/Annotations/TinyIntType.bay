@@ -25,7 +25,8 @@ use Runtime.ORM.Connection;
 
 struct TinyIntType extends BaseType
 {
-    
+    int default = 0;
+	
     /**
 	 * Process item from database
 	 */

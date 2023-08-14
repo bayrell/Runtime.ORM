@@ -25,6 +25,7 @@ use Runtime.ORM.Connection;
 
 struct BigIntType extends BaseType
 {
+	int default = 0;
 	
 	/**
 	 * Process item from database

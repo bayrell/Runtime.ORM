@@ -28,6 +28,7 @@ struct BaseType extends BaseStruct
 	string name = "";
 	string comment = "";
 	bool nullable = false;
+	bool no_default = false;
 	
 	
 	/**
@@ -43,8 +44,12 @@ struct BaseType extends BaseStruct
 	/**
 	 * Process item to database
 	 */
-	async var toDatabase(Connection conn, Dict item)
+	async var toDatabase(Connection conn, Dict item, bool is_update)
 	{
+		if (not is_update and this.name != "" and not item.has(this.name) and not this.no_default)
+		{
+			item <= { this.name } <= this.default;
+		}
 		item = await conn.toDatabase(this, item, this.name);
 		return item;
 	}

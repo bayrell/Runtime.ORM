@@ -44,7 +44,7 @@ struct DateTimeType extends BaseType
 	/**
 	 * Process item to database
 	 */
-	async var toDatabase(Connection conn, Dict item)
+	async var toDatabase(Connection conn, Dict item, bool is_update)
 	{
 		DateTime value = item[this.name];
 		if (value instanceof DateTime)
