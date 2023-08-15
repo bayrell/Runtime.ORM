@@ -24,6 +24,7 @@ use Runtime.BaseStruct;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
+use Runtime.ORM.DatabaseSchema;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
 use Runtime.ORM.Annotations.AutoIncrement;
@@ -451,25 +452,17 @@ class Relation extends BaseObject
 	
 	
 	/**
-	 * Before save
-	 */
-	Dict beforeSave(Dict updated_data, bool is_update) => updated_data;
-	
-	
-	/**
-	 * After save
-	 */
-	void afterSave(Dict updated_data, bool is_update){}
-	
-	
-	/**
 	 * Save model
 	 */
 	async void save(Connection conn, Dict params = null)
 	{
+		/* Call before save */
+		await @.callAsyncHook(DatabaseSchema::SAVE_BEFORE, {
+			"item": this,
+		});
+		
 		bool is_update = this.isUpdate();
 		Dict updated_data = this.getUpdatedData();
-		updated_data = await this.beforeSave(updated_data, is_update);
 		
 		if (is_update)
 		{
@@ -519,7 +512,10 @@ class Relation extends BaseObject
 			}
 		}
 		
-		await this.afterSave(updated_data, is_update);
+		/* Call before after */
+		await @.callAsyncHook(DatabaseSchema::SAVE_AFTER, {
+			"item": this,
+		});
 	}
 	
 	
