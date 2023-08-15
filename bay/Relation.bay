@@ -558,7 +558,10 @@ class Relation extends BaseObject
 			item = await conn.fetchOne(q, params);
 		}
 		
-		this._setNewData(item.toDict());
+		if (item)
+		{
+			this._setNewData(item.toDict());
+		}
 		
 		return this;
 	}
