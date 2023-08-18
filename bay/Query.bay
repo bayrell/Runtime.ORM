@@ -46,7 +46,7 @@ class Query extends BaseStruct
 	Vector<string> _fields = Vector::from(["t.*"]);
 	Vector<Dict> _join = new Vector();
 	Vector<Collection> _order = new Vector();
-	Vector<Collection> _filter = new Vector();
+	Vector<QueryFilter> _filter = new Vector();
 	string _sql = "";
 	Map _data = new Map();
 	int _start = 0;
@@ -329,7 +329,11 @@ class Query extends BaseStruct
 	 */
 	Query where(string key, string op, var value)
 	{
-		this._filter.pushValue([ key, op, value ]);
+		QueryFilter filter = new QueryFilter;
+		filter.key = key;
+		filter.op = op;
+		filter.value = value;
+		this._filter.pushValue(filter);
 		return this;
 	}
 	
@@ -337,9 +341,9 @@ class Query extends BaseStruct
 	/**
 	 * Add filter
 	 */
-	Query filter(Collection filter)
+	Query setFilter(Collection<QueryFilter> filter)
 	{
-		this._filter.appendVector(filter);
+		this._filter = filter.toVector();
 		return this;
 	}
 	
@@ -347,9 +351,16 @@ class Query extends BaseStruct
 	/**
 	 * Add filter
 	 */
-	Query addFilter(QueryFilter filter)
+	Query addFilter(var filter)
 	{
-		this._filter.appendVector(filter);
+		if (filter instanceof QueryFilter)
+		{
+			this.pushValue(filter)
+		}
+		else if (filter instanceof Collection)
+		{
+			this._filter.appendVector(filter);
+		}
 		return this;
 	}
 	

@@ -132,7 +132,7 @@ class Connection
 		Query q = new Query()
 			|> .update(table_name)
 			|> .values(update_data)
-			|> .filter(filter)
+			|> .setFilter(filter)
 		;
 		
 		Cursor c = await this.executeQuery(q, params);
@@ -153,7 +153,7 @@ class Connection
 		
 		Query q = new Query()
 			|> .delete(table_name)
-			|> .filter(filter)
+			|> .setFilter(filter)
 		;
 		
 		Cursor c = await this.executeQuery(q, params);

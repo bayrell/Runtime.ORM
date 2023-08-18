@@ -27,6 +27,7 @@ use Runtime.ORM.Cursor;
 use Runtime.ORM.DatabaseSchema;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
+use Runtime.ORM.QueryFilter;
 use Runtime.ORM.Annotations.AutoIncrement;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Annotations.Primary;
@@ -214,7 +215,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary filter by data
 	 */
-	pure Collection getPrimaryFilter(string table_name, Dict data, bool use_alias)
+	pure Collection<QueryFilter> getPrimaryFilter(string table_name, Dict data, bool use_alias)
 	{
 		Vector filter = new Vector();
 		
@@ -222,14 +223,15 @@ class Relation extends BaseObject
 		pk.each(
 			void (var value, string key) use (filter, use_alias)
 			{
+				QueryFilter item = new QueryFilter;
+				item.key = key;
+				item.op = "=";
+				item.value = value;
 				if (use_alias)
 				{
-					filter.pushValue(["t." ~ key, "=", value]);
+					item.key = "t." ~ key;
 				}
-				else
-				{
-					filter.pushValue([key, "=", value]);
-				}
+				filter.pushValue(item);
 			}
 		);
 		
@@ -374,7 +376,7 @@ class Relation extends BaseObject
 		
 		Query q = new Query
 			|> .select(table_name)
-			|> .filter(filter)
+			|> .setFilter(filter)
 			|> .limit(1)
 		;
 		
@@ -391,7 +393,7 @@ class Relation extends BaseObject
 	{
 		Query q = new Query
 			|> .select(table_name)
-			|> .filter(filter)
+			|> .setFilter(filter)
 		;
 		
 		Collection<Relation> items = await conn.fetchAll(q, params);
@@ -427,7 +429,7 @@ class Relation extends BaseObject
 		Query q = new Query
 			|> .update(table_name)
 			|> .values(update_data)
-			|> .filter(filter)
+			|> .setFilter(filter)
 		;
 		Cursor c = await conn.executeQuery(q, params);
 		await c.close();
@@ -443,7 +445,7 @@ class Relation extends BaseObject
 	{
 		Query q = new Query
 			|> .delete(table_name)
-			|> .filter(filter)
+			|> .setFilter(filter)
 		;
 		
 		Cursor c = await conn.executeQuery(q, params);
@@ -545,13 +547,13 @@ class Relation extends BaseObject
 	async Relation refresh(Connection conn, Dict params = null)
 	{
 		Dict item = null;
-		Collection filter = static::getPrimaryFilter(this.table_name, this.old_data, false);
+		Collection<QueryFilter> filter = static::getPrimaryFilter(this.table_name, this.old_data, false);
 		
 		if (filter.count() > 0)
 		{
 			Query q = new Query
 				|> .select(this.table_name)
-				|> .filter(filter)
+				|> .setFilter(filter)
 				|> .limit(1)
 			;
 			

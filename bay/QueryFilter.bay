@@ -18,10 +18,10 @@
 
 namespace Runtime.ORM;
 
-use Runtime.BaseStruct;
+use Runtime.BaseObject;
 
 
-struct QueryFilter extends BaseStruct
+class QueryFilter extends BaseObject
 {
     string key = "";
     string op = "";
