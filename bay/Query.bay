@@ -355,7 +355,7 @@ class Query extends BaseStruct
 	{
 		if (filter instanceof QueryFilter)
 		{
-			this.pushValue(filter)
+			this._filter.pushValue(filter)
 		}
 		else if (filter instanceof Collection)
 		{
