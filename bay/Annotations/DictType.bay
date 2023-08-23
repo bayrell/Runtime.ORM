@@ -25,14 +25,14 @@ use Runtime.ORM.Connection;
 
 struct DictType extends BaseType
 {
-    
-    /**
+	
+	/**
 	 * Process item from database
 	 */
 	async var fromDatabase(Connection conn, Dict item)
 	{
 		string value = item[this.name];
-        Dict obj = rtl::json_decode(value);
+		Dict obj = rtl::json_decode(value);
 		item <= { this.name } <= obj;
 		item = await conn.fromDatabase(this, item, this.name);
 		return item;
@@ -52,5 +52,5 @@ struct DictType extends BaseType
 		item = await conn.toDatabase(this, item, this.name);
 		return item;
 	}
-    
+	
 }
