@@ -24,7 +24,7 @@ use Runtime.ORM.ConnectionInterface as Connection;
 
 struct BaseType extends BaseStruct
 {
-	var default = "";
+	var default = null;
 	string name = "";
 	string comment = "";
 	bool nullable = false;
@@ -46,7 +46,11 @@ struct BaseType extends BaseStruct
 	 */
 	async var toDatabase(Connection conn, Dict item, bool is_update)
 	{
-		if (not is_update and this.name != "" and not item.has(this.name) and not this.no_default)
+		if (not is_update and
+			this.name != "" and
+			this.default !== null and
+			not item.has(this.name) and
+			not this.no_default)
 		{
 			item <= { this.name } <= this.default;
 		}
