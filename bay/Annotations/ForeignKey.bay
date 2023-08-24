@@ -18,14 +18,64 @@
 
 namespace Runtime.ORM.Annotations;
 
+use Runtime.lib;
 use Runtime.BaseStruct;
+use Runtime.ORM.Connection;
+use Runtime.ORM.Query;
+use Runtime.ORM.Relation;
+use Runtime.ORM.RelationArray;
 
 
 struct ForeignKey extends BaseStruct
 {
 	string name = "";
-	string class_name = "";
-	string delete = "";
-	string update = "";
-	Collection<Dict> keys = null;
+	string table_name = "";
+	var primary_key = null;
+	var foreign_key = null;
+	
+	
+	/**
+	 * Build search query
+	 */
+	async Query buildSearchQuery(Query q) => q;
+	
+	
+	/**
+	 * Resolve foreign key
+	 */
+	async RelationArray resolve(Connection conn, RelationArray items)
+	{
+		Collection ids = items
+			.map( string (Relation item) => item.get(this.foreign_key) )
+			.removeDuplicates()
+		;
+		
+		Query q = new Query
+			|> .select(this.table_name)
+			|> .where(this.primary_key, "=", ids)
+		;
+		
+		/* Filter */
+		q = await this.buildSearchQuery(q);
+		
+		RelationArray result = await conn.fetchAll(q);
+		return result;
+	}
+	
+	
+	/**
+	 * Resolve all
+	 */
+	async RelationArray resolveAll(Connection conn)
+	{
+		Query q = new Query
+			|> .select(this.table_name)
+		;
+		
+		/* Filter */
+		q = await this.buildSearchQuery(q);
+		
+		RelationArray result = await conn.fetchAll(q);
+		return result;
+	}
 }

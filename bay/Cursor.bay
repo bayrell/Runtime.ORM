@@ -135,7 +135,9 @@ class Cursor extends BaseObject
 	 */
 	async RelationArray fetchAll()
 	{
-		RelationArray items = new RelationArray();
+		string table_name = this.q._table_name;
+		RelationArray items = new RelationArray(table_name);
+		
 		while (true)
 		{
 			Dict row = await this.fetch();

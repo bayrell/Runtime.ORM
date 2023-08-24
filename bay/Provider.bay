@@ -20,19 +20,22 @@ namespace Runtime.ORM;
 
 use Runtime.lib;
 use Runtime.BaseProvider;
+use Runtime.BaseStruct;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Annotations.AutoIncrement;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Annotations.Database;
+use Runtime.ORM.Annotations.ForeignKey;
 use Runtime.ORM.Annotations.Primary;
 use Runtime.ORM.Annotations.Table;
 
 
 class Provider extends BaseProvider
 {
-	Map connection_list = new Map;
-	Map tables = new Map;
+	protected Map foreign_keys = new Map;
+	protected Map connection_list = new Map;
+	protected Map tables = new Map;
 	
 	
 	/**
@@ -54,6 +57,26 @@ class Provider extends BaseProvider
 	void addConnection(Connection conn)
 	{
 		this.connection_list.setValue(conn.getName(), conn);
+	}
+	
+	
+	/**
+	 * Returns table annotations
+	 */
+	Collection<BaseStruct> getAnotations(string table_name)
+	{
+		if (not this.tables.has(table_name)) return [];
+		return this.tables[table_name, "annotations"];
+	}
+	
+	
+	/**
+	 * Returns foreign_key by name
+	 */
+	ForeignKey getForeignKey(string name)
+	{
+		if (not this.foreign_keys.has(name)) return null;
+		return this.foreign_keys.get(name);
 	}
 	
 	
@@ -87,6 +110,27 @@ class Provider extends BaseProvider
 						"annotations": annotations,
 						"table": table,
 					});
+					
+					for (int i=0; i<annotations.count(); i++)
+					{
+						BaseStruct annotation = annotations.get(i);
+						if (annotation instanceof ForeignKey)
+						{
+							if (annotation.name != "")
+							{
+								if (this.foreign_keys.has(annotation.name))
+								{
+									throw new RuntimeException("Duplicate foreign_key name");
+								}
+								
+								this.foreign_keys.setValue(
+									annotation.name,
+									annotation
+								);
+							}
+						}
+					}
+					
 				}
 			}
 		}

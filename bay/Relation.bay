@@ -30,6 +30,7 @@ use Runtime.ORM.Query;
 use Runtime.ORM.QueryFilter;
 use Runtime.ORM.Annotations.AutoIncrement;
 use Runtime.ORM.Annotations.BaseType;
+use Runtime.ORM.Annotations.ForeignKey;
 use Runtime.ORM.Annotations.Primary;
 
 
@@ -105,8 +106,17 @@ class Relation extends BaseObject
 	pure memorize Collection<BaseStruct> getAnotations(string table_name)
 	{
 		Provider provider = @.provider(classof Provider);
-		if (not provider.tables.has(table_name)) return [];
-		return provider.tables[table_name, "annotations"];
+		return provider.getAnotations(table_name);
+	}
+	
+	
+	/**
+	 * Returns foreign_key
+	 */
+	pure memorize ForeignKey getForeignKey(string name)
+	{
+		Provider provider = @.provider(classof Provider);
+		return provider.getForeignKey(name);
 	}
 	
 	

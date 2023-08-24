@@ -20,30 +20,38 @@ namespace Runtime.ORM;
 
 use Runtime.BaseStruct;
 use Runtime.ORM.Relation;
+use Runtime.ORM.Annotations.ForeignKey;
 
 
 class RelationArray extends Vector<Relation>
 {
-    string relation = "";
-    
-    
-    /**
-     * Resolve foreign key
-     */
-    RelationArray resolve(string alias_name)
-    {
-        return null;
-    }
-    
-    
-    /**
+	protected string table_name = "";
+	
+	
+	/**
+	 * Create new RelationArray
+	 */
+	void constructor(string table_name = "")
+	{
+		parent();
+		this.table_name = table_name;
+	}
+	
+	
+	/**
+	 * Returns table name
+	 */
+	string getTableName() => this.table_name;
+	
+	
+	/**
 	 * Transform items
 	 */
 	Collection<BaseStruct> toModel(string class_name)
 	{
 		return this.map(
-            Dict (Relation item) use (class_name) => item.toModel( class_name )
-        ).toCollection();
+			Dict (Relation item) use (class_name) => item.toModel( class_name )
+		).toCollection();
 	}
-    
+	
 }
