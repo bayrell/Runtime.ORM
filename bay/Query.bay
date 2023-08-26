@@ -378,13 +378,12 @@ class Query extends BaseStruct
 	/**
 	 * Inner join
 	 */
-	Query innerJoin(string table_name, string alias_name, string where)
+	Query innerJoin(string table_name, Collection filter)
 	{
 		this._join.pushValue({
 			"kind": "join",
 			"table_name": table_name,
-			"alias_name": alias_name,
-			"where": where,
+			"filter": filter,
 		});
 		return this;
 	}
@@ -393,12 +392,11 @@ class Query extends BaseStruct
 	/**
 	 * Left join
 	 */
-	Query leftJoin(string table_name, string alias_name, Collection filter)
+	Query leftJoin(string table_name, Collection filter)
 	{
 		this._join.pushValue({
 			"kind": "left",
 			"table_name": table_name,
-			"alias_name": alias_name,
 			"filter": filter,
 		});
 		return this;

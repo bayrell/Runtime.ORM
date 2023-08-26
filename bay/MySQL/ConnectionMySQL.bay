@@ -285,7 +285,12 @@ class ConnectionMySQL extends Connection
 					string kind = join["kind"];
 					string table_name = join["table_name"];
 					string alias_name = join["alias_name"];
-					string where = join["where"];
+					
+					Collection filter = join["filter"];
+					list res = this.convertFilter(filter, field_index);
+					string where = res[0];
+					data = data.concat(res[1]);
+					field_index = res[2];
 					
 					if (kind == "left") sql ~= " LEFT JOIN ";
 					else sql ~= " INNER JOIN ";
@@ -438,6 +443,12 @@ class ConnectionMySQL extends Connection
 		for (int i=0; i<filter.count(); i++)
 		{
 			list item = filter[i];
+			
+			if (rtl::isString(item))
+			{
+				where.pushValue(item);
+				continue;
+			}
 			
 			string field_name = "", op = "";
 			var value = "";
