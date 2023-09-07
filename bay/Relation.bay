@@ -190,8 +190,12 @@ class Relation extends BaseObject
 			BaseStruct annotation = annotations[i];
 			if (annotation instanceof Primary)
 			{
-				string field_name = annotation.name;
-				primary_keys.pushValue(field_name);
+				Collection keys = annotation.keys;
+				for (int j=0; j<keys.count(); j++)
+				{
+					string field_name = keys[j];
+					primary_keys.pushValue(field_name);
+				}
 			}
 		}
 		return primary_keys.toCollection();
@@ -351,7 +355,7 @@ class Relation extends BaseObject
 	async static Relation findById
 		(string table_name, Connection conn, string id, Dict params = null)
 	{
-		Collection pk = static::pk();
+		Collection pk = static::getPrimaryKeys(table_name);
 		string pk_name = pk.get(0);
 		if (not pk_name) return null;
 		
@@ -360,12 +364,7 @@ class Relation extends BaseObject
 			|> .where(pk_name, "=", id)
 		;
 		
-		Dict item = await conn.fetchOne(q, params);
-		if (item)
-		{
-			item = static::newInstanceFromDatabase(table_name, conn, item);
-		}
-		
+		Relation item = await conn.fetchOne(q, params);
 		return item;
 	}
 	
