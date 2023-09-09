@@ -35,7 +35,10 @@ struct BaseType extends BaseStruct
 	 */
 	async var fromDatabase(Connection conn, Dict item)
 	{
-		item = await conn.fromDatabase(this, item, this.name);
+		if (item.has(this.name))
+		{
+			item = await conn.fromDatabase(this, item, this.name);
+		}
 		return item;
 	}
 	

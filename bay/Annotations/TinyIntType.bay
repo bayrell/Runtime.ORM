@@ -30,8 +30,11 @@ struct TinyIntType extends BaseType
 	 */
 	async var fromDatabase(Connection conn, Dict item)
 	{
-		string value = item[this.name];
-		item <= { this.name } <= (int)value;
+		if (item.has(this.name))
+		{
+			string value = item[this.name];
+			item <= { this.name } <= (int)value;
+		}
 		return item;
 	}
 }

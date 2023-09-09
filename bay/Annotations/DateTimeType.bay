@@ -33,10 +33,13 @@ struct DateTimeType extends BaseType
 	 */
 	async var fromDatabase(Connection conn, Dict item)
 	{
-		string value = item[this.name];
-		DateTime dt = DateTime::from(value);
-		item <= { this.name } <= dt;
-		item = await conn.fromDatabase(this, item, this.name);
+		if (item.has(this.name))
+		{
+			string value = item[this.name];
+			DateTime dt = DateTime::from(value);
+			item <= { this.name } <= dt;
+			item = await conn.fromDatabase(this, item, this.name);
+		}
 		return item;
 	}
 	

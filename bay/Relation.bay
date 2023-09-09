@@ -493,6 +493,10 @@ class Relation extends BaseObject
 						params
 					);
 				}
+				else
+				{
+					throw new RuntimeException("Primary key does not exists in " ~ this.table_name);
+				}
 				
 				for (int i=0; i<updated_data_keys.count(); i++)
 				{
@@ -544,6 +548,10 @@ class Relation extends BaseObject
 				filter,
 				params
 			);
+		}
+		else
+		{
+			throw new RuntimeException("Primary key does not exists in " ~ this.table_name);
 		}
 		
 		return this;

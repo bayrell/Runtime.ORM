@@ -31,10 +31,13 @@ struct DictType extends BaseType
 	 */
 	async var fromDatabase(Connection conn, Dict item)
 	{
-		string value = item[this.name];
-		Dict obj = rtl::json_decode(value);
-		item <= { this.name } <= obj;
-		item = await conn.fromDatabase(this, item, this.name);
+		if (item.has(this.name))
+		{
+			string value = item[this.name];
+			Dict obj = rtl::json_decode(value);
+			item <= { this.name } <= obj;
+			item = await conn.fromDatabase(this, item, this.name);
+		}
 		return item;
 	}
 	

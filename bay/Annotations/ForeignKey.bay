@@ -30,6 +30,7 @@ struct ForeignKey extends BaseStruct
 {
 	string name = "";
 	string table_name = "";
+	string table_name_reverse = "";
 	var primary_key = null;
 	var foreign_key = null;
 	
@@ -37,13 +38,13 @@ struct ForeignKey extends BaseStruct
 	/**
 	 * Build search query
 	 */
-	async Query buildSearchQuery(Query q) => q;
+	async Query buildSearchQuery(string kind, Connection conn, Query q) => q;
 	
 	
 	/**
-	 * Resolve foreign key
+	 * Build query for resolve foreign key
 	 */
-	async RelationArray resolve(Connection conn, RelationArray items)
+	async Query resolveQuery(Connection conn, RelationArray items)
 	{
 		Collection ids = items
 			.map( string (Relation item) => item.get(this.foreign_key) )
@@ -56,8 +57,51 @@ struct ForeignKey extends BaseStruct
 		;
 		
 		/* Filter */
-		q = await this.buildSearchQuery(q);
+		q = await this.buildSearchQuery("resolve", conn, q);
 		
+		return q;
+	}
+	
+	
+	/**
+	 * Resolve foreign key
+	 */
+	async RelationArray resolve(Connection conn, RelationArray items)
+	{
+		Query q = await static::resolveQuery(conn, items);
+		RelationArray result = await conn.fetchAll(q);
+		return result;
+	}
+	
+	
+	/**
+	 * Build query for reverse resolve foreign key
+	 */
+	async Query resolveReverseQuery(Connection conn, RelationArray items)
+	{
+		Collection ids = items
+			.map( string (Relation item) => item.get(this.primary_key) )
+			.removeDuplicates()
+		;
+		
+		Query q = new Query
+			|> .select(this.table_name_reverse)
+			|> .where(this.foreign_key, "=", ids)
+		;
+		
+		/* Filter */
+		q = await this.buildSearchQuery("resolveReverse", conn, q);
+		
+		return q;
+	}
+	
+	
+	/**
+	 * Reverse resolve foreign key
+	 */
+	async RelationArray resolveReverse(Connection conn, RelationArray items)
+	{
+		Query q = await static::resolveReverseQuery(conn, items);
 		RelationArray result = await conn.fetchAll(q);
 		return result;
 	}

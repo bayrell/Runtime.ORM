@@ -123,6 +123,8 @@ class Provider extends BaseProvider
 									throw new RuntimeException("Duplicate foreign_key name");
 								}
 								
+								annotation <= table_name_reverse <= table_name;
+								
 								this.foreign_keys.setValue(
 									annotation.name,
 									annotation

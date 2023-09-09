@@ -19,6 +19,8 @@
 namespace Runtime.ORM;
 
 use Runtime.BaseStruct;
+use Runtime.ORM.Connection;
+use Runtime.ORM.Query;
 use Runtime.ORM.Relation;
 use Runtime.ORM.Annotations.ForeignKey;
 
@@ -52,6 +54,61 @@ class RelationArray extends Vector<Relation>
 		return this.map(
 			Dict (Relation item) use (class_name) => item.toModel( class_name )
 		).toCollection();
+	}
+	
+	
+	/**
+	 * Build query for resolve foreign key
+	 */
+	async Query resolveQuery(Connection conn, string key_name = "")
+	{
+		ForeignKey foreign_key = Relation::getForeignKey(key_name);
+		Query q = await foreign_key.resolveQuery(conn, this);
+		return q;
+	}
+	
+	
+	/**
+	 * Resolve foreign key
+	 */
+	async RelationArray resolve(Connection conn, string key_name)
+	{
+		ForeignKey foreign_key = Relation::getForeignKey(key_name);
+		RelationArray items = await foreign_key.resolve(conn, this);
+		return items;
+	}
+	
+	
+	/**
+	 * Build query for reverse resolve foreign key
+	 */
+	async Query resolveReverseQuery(Connection conn, string key_name)
+	{
+		ForeignKey foreign_key = Relation::getForeignKey(key_name);
+		RelationArray items = await foreign_key.resolveReverseQuery(conn, this);
+		return items;
+	}
+	
+	
+	/**
+	 * Reverse resolve foreign key
+	 */
+	async RelationArray resolveReverse(Connection conn, string key_name)
+	{
+		ForeignKey foreign_key = Relation::getForeignKey(key_name);
+		RelationArray items = await foreign_key.resolveReverse(conn, this);
+		return items;
+	}
+	
+	
+	/**
+	 * Resolve all
+	 */
+	async RelationArray resolveAll(Connection conn, string key_name)
+	{
+		ForeignKey foreign_key = Relation::getForeignKey(key_name);
+		RelationArray items = await foreign_key.resolveAll(conn, this);
+		return items;
 	}
 	
 }
