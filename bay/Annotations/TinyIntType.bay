@@ -25,9 +25,7 @@ use Runtime.ORM.Connection;
 
 struct TinyIntType extends BaseType
 {
-    int default = 0;
-	
-    /**
+	/**
 	 * Process item from database
 	 */
 	async var fromDatabase(Connection conn, Dict item)
@@ -36,5 +34,4 @@ struct TinyIntType extends BaseType
 		item <= { this.name } <= (int)value;
 		return item;
 	}
-    
 }

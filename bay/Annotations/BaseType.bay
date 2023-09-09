@@ -28,7 +28,6 @@ struct BaseType extends BaseStruct
 	string name = "";
 	string comment = "";
 	bool nullable = false;
-	bool no_default = false;
 	
 	
 	/**
@@ -49,8 +48,8 @@ struct BaseType extends BaseStruct
 		if (not is_update and
 			this.name != "" and
 			this.default !== null and
-			not item.has(this.name) and
-			not this.no_default)
+			not item.has(this.name)
+		)
 		{
 			item <= { this.name } <= this.default;
 		}
