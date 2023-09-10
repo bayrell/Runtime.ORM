@@ -21,39 +21,98 @@ namespace Runtime.ORM;
 use Runtime.BaseStruct;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
+use Runtime.ORM.QueryField;
 use Runtime.ORM.Relation;
 use Runtime.ORM.Annotations.ForeignKey;
 
 
-class RelationArray extends Vector<Relation>
+class QueryResult extends Vector<Dict>
 {
-	protected string table_name = "";
+	Query q = null;
+	Connection conn = null;
 	
 	
 	/**
-	 * Create new RelationArray
+	 * Create new QueryResult
 	 */
-	void constructor(string table_name = "")
+	void constructor()
 	{
 		parent();
-		this.table_name = table_name;
 	}
 	
 	
 	/**
-	 * Returns table name
+	 * Returns converted item
 	 */
-	string getTableName() => this.table_name;
+	Dict getItem(Dict item)
+	{
+		Dict item = this.get(item);
+		item = this.convertItem(item);
+		return item;
+	}
 	
 	
 	/**
-	 * Transform items
+	 * Convert item
+	 */
+	Dict convertItem(Dict item)
+	{
+		Vector fields = this.q._fields;
+		
+		for (int i=0; i<fields.count(); i++)
+		{
+			var field = fields[i];
+			if (field instanceof QueryField)
+			{
+				item = field.annotation.fromDatabase(this.conn, item);
+			}
+		}
+		
+		return item;
+	}
+	
+	
+	/**
+	 * Transform items to model
 	 */
 	Collection<BaseStruct> toModel(string class_name)
 	{
-		return this.map(
-			Dict (Relation item) use (class_name) => item.toModel( class_name )
-		).toCollection();
+		return this
+			.map( method this.convertItem )
+			.map(
+				BaseStruct (Dict item) use (class_name)
+					=> rtl::newInstance(class_name, [item])
+			)
+			.toCollection()
+		;
+	}
+	
+	
+	/**
+	 * Transform item to Relation
+	 */
+	Relation toRelation()
+	{
+		string table_name = this.q._table_name;
+		return this
+			.map( method this.convertItem )
+			.map(
+				BaseStruct (Dict item) use (table_name)
+					=> Relation::newInstance(table_name, [item])
+			)
+			.toCollection()
+		;
+	}
+	
+	
+	/**
+	 * Returns relation by index
+	 */
+	Relation getRelation(int index)
+	{
+		string table_name = this.q._table_name;
+		Dict item = this.getItem(index);
+		return Relation::newInstance(table_name, item);
 	}
 	
 	
@@ -71,10 +130,10 @@ class RelationArray extends Vector<Relation>
 	/**
 	 * Resolve foreign key
 	 */
-	async RelationArray resolve(Connection conn, string key_name)
+	async QueryResult resolve(Connection conn, string key_name)
 	{
 		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		RelationArray items = await foreign_key.resolve(conn, this);
+		QueryResult items = await foreign_key.resolve(conn, this);
 		return items;
 	}
 	
@@ -85,7 +144,7 @@ class RelationArray extends Vector<Relation>
 	async Query resolveReverseQuery(Connection conn, string key_name)
 	{
 		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		RelationArray items = await foreign_key.resolveReverseQuery(conn, this);
+		QueryResult items = await foreign_key.resolveReverseQuery(conn, this);
 		return items;
 	}
 	
@@ -93,10 +152,10 @@ class RelationArray extends Vector<Relation>
 	/**
 	 * Reverse resolve foreign key
 	 */
-	async RelationArray resolveReverse(Connection conn, string key_name)
+	async QueryResult resolveReverse(Connection conn, string key_name)
 	{
 		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		RelationArray items = await foreign_key.resolveReverse(conn, this);
+		QueryResult items = await foreign_key.resolveReverse(conn, this);
 		return items;
 	}
 	
@@ -104,10 +163,10 @@ class RelationArray extends Vector<Relation>
 	/**
 	 * Resolve all
 	 */
-	async RelationArray resolveAll(Connection conn, string key_name)
+	async QueryResult resolveAll(Connection conn, string key_name)
 	{
 		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		RelationArray items = await foreign_key.resolveAll(conn, this);
+		QueryResult items = await foreign_key.resolveAll(conn, this);
 		return items;
 	}
 	

@@ -136,6 +136,7 @@ class Relation extends BaseObject
 				data = annotation.toDatabase(conn, data, is_update);
 			}
 		}
+		
 		return data;
 	}
 	
@@ -156,6 +157,7 @@ class Relation extends BaseObject
 				data = annotation.fromDatabase(conn, data);
 			}
 		}
+		
 		return data;
 	}
 	
@@ -352,8 +354,12 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static Relation findById
-		(string table_name, Connection conn, string id, Dict params = null)
+	async static Relation findById(
+		string table_name,
+		Connection conn,
+		string id,
+		Dict params = null
+	)
 	{
 		Collection pk = static::getPrimaryKeys(table_name);
 		string pk_name = pk.get(0);
@@ -364,7 +370,7 @@ class Relation extends BaseObject
 			|> .where(pk_name, "=", id)
 		;
 		
-		Relation item = await conn.fetchOne(q, params);
+		Relation item = await conn.fetchRelation(q, params);
 		return item;
 	}
 	
@@ -372,8 +378,12 @@ class Relation extends BaseObject
 	/**
 	 * Find item
 	 */
-	async static Relation findItem
-		(string table_name, Connection conn, Dict item, Dict params = null)
+	async static Relation findItem(
+		string table_name,
+		Connection conn,
+		Dict item,
+		Dict params = null
+	)
 	{
 		Vector filter = new Vector();
 		Collection keys = item.keys();
@@ -389,7 +399,7 @@ class Relation extends BaseObject
 			|> .limit(1)
 		;
 		
-		Relation item = await conn.fetchOne(q, params);
+		Relation item = await conn.fetchRelation(q, params);
 		return item;
 	}
 	
@@ -397,8 +407,12 @@ class Relation extends BaseObject
 	/**
 	 * Find items
 	 */
-	async static Collection<Relation> findItems
-		(string table_name, Connection conn, Collection filter, Dict params = null)
+	async static Collection<Relation> findItems(
+		string table_name,
+		Connection conn,
+		Collection filter,
+		Dict params = null
+	)
 	{
 		Query q = new Query
 			|> .select(table_name)
@@ -406,15 +420,19 @@ class Relation extends BaseObject
 		;
 		
 		Collection<Relation> items = await conn.fetchAll(q, params);
-		return items;
+		return items.toRelation();
 	}
 	
 	
 	/**
 	 * Find or create
 	 */
-	async static Relation findOrCreate
-		(string table_name, Connection conn, Dict item, Dict params = null)
+	async static Relation findOrCreate(
+		string table_name,
+		Connection conn,
+		Dict item,
+		Dict params = null
+	)
 	{
 		/* Find item */
 		Relation res = await static::findItem(table_name, conn, item, params);
@@ -449,7 +467,10 @@ class Relation extends BaseObject
 	 * Delete items
 	 */
 	static async void deleteItems(
-		string table_name, Connection conn, Collection filter, Dict params = null
+		string table_name,
+		Connection conn,
+		Collection filter,
+		Dict params = null
 	)
 	{
 		Query q = new Query

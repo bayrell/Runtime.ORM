@@ -23,8 +23,8 @@ use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
+use Runtime.ORM.QueryResult;
 use Runtime.ORM.Relation;
-use Runtime.ORM.RelationArray;
 
 
 class Connection
@@ -200,10 +200,10 @@ class Connection
 	/**
 	 * Fetch all data by Query
 	 */
-	async Collection fetchAll(Query q, Dict params = null)
+	async QueryResult fetchAll(Query q, Dict params = null)
 	{
 		Cursor cursor = await this.executeQuery(q, params);
-		RelationArray res = await cursor.fetchAll();
+		QueryResult res = await cursor.fetchAll();
 		await cursor.close();
 		return res;
 	}
@@ -220,6 +220,18 @@ class Connection
 		return res;
 	}
 	async Dict fetchOne(Query q, Dict params = null) => await this.fetch(q, params);
+	
+	
+	/**
+	 * Fetch relation
+	 */
+	async Dict fetchRelation(Query q, Dict params = null)
+	{
+		Cursor cursor = await this.executeQuery(q, params);
+		Relation res = await cursor.fetchRelation();
+		await cursor.close();
+		return res;
+	}
 	
 	
 	/**

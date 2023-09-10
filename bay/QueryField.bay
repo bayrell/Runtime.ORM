@@ -1,0 +1,122 @@
+/*!
+ *  Bayrell Runtime Library
+ *
+ *  (c) Copyright 2016-2023 "Ildar Bikmamatov" <support@bayrell.org>
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+namespace Runtime.ORM;
+
+use Runtime.BaseObject;
+use Runtime.Exceptions.RuntimeException;
+use Runtime.ORM.Annotations.BaseType;
+use Runtime.ORM.Provider;
+use Runtime.ORM.Query;
+use Runtime.ORM.QueryFilter;
+
+
+class QueryField extends BaseObject
+{
+	BaseType annotation = null;
+	string table_name = "";
+	string field_name = "";
+	string alias_name = "";
+	QueryFilter filter = null;
+	Query q = null;
+	
+	
+	/**
+	 * Returns row column name
+	 */
+	string getRowColumnName()
+	{
+		if (this.alias_name != "") return this.alias_name;
+		return this.field_name;
+	}
+	
+	
+	/**
+	 * Returns table name alias
+	 */
+	string getTableNameAlias()
+	{
+		if (this.q == null)
+		{
+			return this.table_name;
+		}
+		
+		if (
+			this.q._table_name != "" and
+			this.q._table_name_alias != "" and
+			this.table_name == this.q._table_name
+		)
+		{
+			return this.q._table_name_alias;
+		}
+		
+		return this.table_name;
+	}
+	
+	
+	/**
+	 * Create from field name
+	 */
+	static QueryField create(
+		string table_name = "",
+		string field_name = "",
+		string alias_name = "",
+		Query q = null
+	)
+	{
+		QueryField field = new QueryField;
+		
+		field.alias_name = rs::trim(alias_name);
+		field.field_name = rs::trim(field_name);
+		field.table_name = rs::trim(table_name);
+		field.q = q;
+		
+		Provider provider = @.provider(classof Provider);
+		if (q != null and q._table_name_alias == table_name)
+		{
+			field.annotation = provider.getFieldType(q._table_name, field_name);
+		}
+		else
+		{
+			field.annotation = provider.getFieldType(table_name, field_name);
+		}
+		
+		if (field.annotation == null)
+		{
+			throw new RuntimeException("Field " ~ field_name ~ " not found in table " ~ table_name);
+		}
+		
+		return field;
+	}
+	
+	
+	/**
+	 * Create from string
+	 */
+	static QueryField fromString(string s, Query q = null)
+	{
+		Collection res1 = rs::split("as", s);
+		Collection res2 = rs::split(".", res1[0]);
+		
+		string alias_name = res1.count() > 1 ? res1.get(1) : "";
+		string field_name = res2.count() == 0 ? res2.get(0) : res2.get(1);
+		string table_name = res2.count() > 1 ? res2.get(0) : "t";
+		
+		return QueryField::create(table_name, field_name, alias_name, q);
+	}
+}

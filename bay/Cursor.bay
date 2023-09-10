@@ -22,8 +22,8 @@ use Runtime.math;
 use Runtime.BaseObject;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
+use Runtime.ORM.QueryResult;
 use Runtime.ORM.Relation;
-use Runtime.ORM.RelationArray;
 
 
 class Cursor extends BaseObject
@@ -122,6 +122,17 @@ class Cursor extends BaseObject
 	{
 		Relation row = await this.fetchDict();
 		if (!row) return null;
+		return row;
+	}
+	
+	
+	/**
+	 * Fetch next row
+	 */
+	async Relation fetchRelation()
+	{
+		Relation row = await this.fetchDict();
+		if (!row) return null;
 		
 		string table_name = this.q._table_name;
 		row = Relation::newInstanceFromDatabase(table_name, this.conn, row);
@@ -133,10 +144,13 @@ class Cursor extends BaseObject
 	/**
 	 * Fetch all rows
 	 */
-	async RelationArray fetchAll()
+	async QueryResult fetchAll()
 	{
 		string table_name = this.q._table_name;
-		RelationArray items = new RelationArray(table_name);
+		QueryResult items = new QueryResult(this.q);
+		
+		items.q = this.q.copy();
+		items.conn = this.conn;
 		
 		while (true)
 		{

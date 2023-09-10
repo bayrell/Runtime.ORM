@@ -46,10 +46,11 @@ class CursorMySQL extends Cursor
 			return 0;
 		}
 		
-		Query q = this.q
-			|> .fields([ 'count(1) as c' ])
-			|> .limit(-1)
-			|> .clearOrder()
+		Query q = this.q.copy()
+			.clearFields()
+			.addRawField('count(1) as c')
+			.start(0).limit(1)
+			.clearOrder()
 		;
 		
 		Cursor cursor = await this.conn.executeQuery(q);

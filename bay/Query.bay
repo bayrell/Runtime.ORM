@@ -19,18 +19,24 @@
 namespace Runtime.ORM;
 
 use Runtime.lib;
+use Runtime.Exceptions.RuntimeException;
+use Runtime.BaseObject;
 use Runtime.BaseStruct;
+use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Annotations.Primary;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Driver;
+use Runtime.ORM.ForeignKey;
 use Runtime.ORM.Helper;
+use Runtime.ORM.Provider;
+use Runtime.ORM.QueryField;
 use Runtime.ORM.QueryFilter;
 use Runtime.ORM.Record;
 use Runtime.ORM.StructBuilder;
 
 
-class Query extends BaseStruct
+class Query extends BaseObject
 {
 	static const string QUERY_RAW = "raw";
 	static const string QUERY_SELECT = "select";
@@ -43,7 +49,7 @@ class Query extends BaseStruct
 	string _kind = "";
 	string _table_name = "";
 	string _table_name_alias = "t";
-	Vector<string> _fields = Vector::from(["t.*"]);
+	Vector<string> _fields = new Vector();
 	Vector<Dict> _join = new Vector();
 	Vector<Collection> _order = new Vector();
 	Vector<QueryFilter> _filter = new Vector();
@@ -55,6 +61,26 @@ class Query extends BaseStruct
 	bool _distinct = false;
 	bool _calc_found_rows = false;
 	Dict _db_params = null;
+	Provider _provider = null;
+	
+	
+	/**
+	 * Constructor
+	 */
+	void constructor()
+	{
+		parent();
+		this._provider = @.provider(classof Provider);
+	}
+	
+	
+	/**
+	 * Copy query
+	 */
+	Query copy()
+	{
+		return this;
+	}
 	
 	
 	/**
@@ -85,16 +111,6 @@ class Query extends BaseStruct
 	Query calcFoundRows(bool value = true)
 	{
 		this._calc_found_rows = value;
-		return this;
-	}
-	
-	
-	/**
-	 * Set relation class name
-	 */
-	Query relation(string table_name)
-	{
-		this._table_name = table_name;
 		return this;
 	}
 	
@@ -135,9 +151,9 @@ class Query extends BaseStruct
 	Query select(string table_name = "", string alias_name = "t")
 	{
 		this._kind = static::QUERY_SELECT;
-		this._fields = Vector::from(["t.*"]);
-		this._table_name = table_name != "" ? table_name : this._table_name;
-		this._table_name_alias = alias_name;
+		this.alias(alias_name);
+		this.table(table_name);
+		this.fields(["t.*"]);
 		return this;
 	}
 	
@@ -210,11 +226,26 @@ class Query extends BaseStruct
 	
 	
 	/**
+	 * Clear fields
+	 */
+	Query clearFields()
+	{
+		this.fields = new Vector();
+		return this;
+	}
+	
+	
+	/**
 	 * Set fields
 	 */
 	Query fields(Collection fields)
 	{
-		this._fields = fields.toVector();
+		this.fields = new Vector();
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_name = fields[i];
+			this.addField(field_name);
+		}
 		return this;
 	}
 	
@@ -223,6 +254,49 @@ class Query extends BaseStruct
 	 * Add field
 	 */
 	Query addField(string field_name)
+	{
+		field_name = rs::trim(field_name);
+		
+		Collection res1 = rs::split("as", field_name);
+		Collection res2 = rs::split(".", res1[0]);
+		
+		if (res2.count() > 1 and res2.get(1) == "*")
+		{
+			string table_name = res2.get(0);
+			if (table_name == this._table_name_alias)
+			{
+				table_name = this._table_name;
+			}
+			Collection<BaseStruct> annotations = this._provider.getAnotations(table_name);
+			for (int i=0; i<annotations.count(); i++)
+			{
+				BaseStruct annotation = annotations[i];
+				if (annotation instanceof BaseType)
+				{
+					QueryField field = new QueryField();
+					field.annotation = annotation;
+					field.field_name = annotation.name;
+					field.table_name = table_name;
+					field.q = this;
+					this._fields.pushValue(field);
+				}
+			}
+		}
+		
+		else
+		{
+			QueryField field = QueryField::fromString(field_name, this);
+			this._fields.pushValue(field);
+		}
+		
+		return this;
+	}
+	
+	
+	/**
+	 * Add raw field
+	 */
+	Query addRawField(string field_name)
 	{
 		this._fields.pushValue(field_name);
 		return this;
@@ -234,7 +308,11 @@ class Query extends BaseStruct
 	 */
 	Query addFields(Collection<string> fields)
 	{
-		this._fields.appendVector(fields);
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_name = fields[i];
+			this.addField(field_name);
+		}
 		return this;
 	}
 	
@@ -390,6 +468,68 @@ class Query extends BaseStruct
 	
 	
 	/**
+	 * Inner join by key
+	 */
+	Query innerJoinKey(string key_name)
+	{
+		ForeignKey key = this._provider.getForeignKey(key_name);
+		
+		if (key == null)
+		{
+			throw new RuntimeException("Foreign key '" ~ key_name ~ "' not found");
+		}
+		
+		Vector filter = new Vector();
+		filter.pushValue(
+			key.table_name ~ "." ~ key.primary_key ~ "=" ~
+			key.table_name_source ~ "." ~ key.foreign_key
+		);
+		
+		this._join.pushValue({
+			"kind": "join",
+			"table_name": key.table_name,
+			"filter": filter.toCollection(),
+		});
+		
+		return this;
+	}
+	
+	
+	/**
+	 * Reverse join by key
+	 */
+	Query reverseJoinKey(string key_name)
+	{
+		ForeignKey key = this._provider.getForeignKey(key_name);
+		
+		if (key == null)
+		{
+			throw new RuntimeException("Foreign key '" ~ key_name ~ "' not found");
+		}
+		
+		string table_name = key.table_name;
+		if (this._table_name_alias != "" and table_name == this._table_name)
+		{
+			table_name = this._table_name_alias;
+		}
+		
+		Vector filter = new Vector();
+		filter.pushValue(
+			table_name ~ "." ~ key.primary_key ~ "=" ~
+			key.table_name_source ~ "." ~ key.foreign_key
+		);
+		
+		this._join.pushValue({
+			"kind": "join",
+			"table_name": key.table_name_source,
+			"filter": filter.toCollection(),
+		});
+		
+		return this;
+	}
+	
+	
+	/**
 	 * Left join
 	 */
 	Query leftJoin(string table_name, Collection filter)
@@ -399,6 +539,34 @@ class Query extends BaseStruct
 			"table_name": table_name,
 			"filter": filter,
 		});
+		return this;
+	}
+	
+	
+	/**
+	 * Left join by key
+	 */
+	Query leftJoinKey(string key_name)
+	{
+		ForeignKey key = this._provider.getForeignKey(key_name);
+		
+		if (key == null)
+		{
+			throw new RuntimeException("Foreign key '" ~ key_name ~ "' not found");
+		}
+		
+		Vector filter = new Vector();
+		filter.pushValue(
+			key.table_name ~ "." ~ key.primary_key ~ "=" ~
+			this._table_name ~ "." ~ key.foreign_key
+		);
+		
+		this._join.pushValue({
+			"kind": "left",
+			"table_name": key.table_name,
+			"filter": filter.toCollection(),
+		});
+		
 		return this;
 	}
 	

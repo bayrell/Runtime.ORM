@@ -81,6 +81,27 @@ class Provider extends BaseProvider
 	
 	
 	/**
+	 * Returns fields from table
+	 */
+	BaseType getFieldType(string table_name, string field_name)
+	{
+		Collection<BaseStruct> annotations = static::getAnotations(table_name);
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof BaseType)
+			{
+				if (annotation.name == field_name)
+				{
+					return annotation;
+				}
+			}
+		}
+		return null;
+	}
+	
+	
+	/**
 	 * Start provider
 	 */
 	async void start()
@@ -105,7 +126,13 @@ class Provider extends BaseProvider
 				{
 					Table table = annotations.findItem( lib::isInstance(classof Table) );
 					string table_name = table.name;
+					
 					Collection annotations = rtl::callMethod(class_name, method_name);
+					for (int i=0; i<annotations.count(); i++)
+					{
+						annotations <= { i } <= table_name_source <= table_name;
+					}
+					
 					this.tables.setValue(table_name, {
 						"annotations": annotations,
 						"table": table,
@@ -122,9 +149,6 @@ class Provider extends BaseProvider
 								{
 									throw new RuntimeException("Duplicate foreign_key name");
 								}
-								
-								annotation <= table_name_reverse <= table_name;
-								
 								this.foreign_keys.setValue(
 									annotation.name,
 									annotation
