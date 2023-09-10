@@ -237,7 +237,7 @@ class Relation extends BaseObject
 		
 		Dict pk = static::getPrimaryFromData(table_name, data);
 		pk.each(
-			void (var value, string key) use (filter, use_alias)
+			void (var value, string key) use (table_name, filter, use_alias)
 			{
 				QueryFilter item = new QueryFilter;
 				item.key = key;
@@ -245,7 +245,7 @@ class Relation extends BaseObject
 				item.value = value;
 				if (use_alias)
 				{
-					item.key = "t." ~ key;
+					item.key = table_name ~ "." ~ key;
 				}
 				filter.pushValue(item);
 			}

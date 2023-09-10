@@ -48,7 +48,6 @@ class Query extends BaseObject
 	string _class_name_relation = "";
 	string _kind = "";
 	string _table_name = "";
-	string _table_name_alias = "t";
 	Vector<string> _fields = new Vector();
 	Vector<Dict> _join = new Vector();
 	Vector<Collection> _order = new Vector();
@@ -116,16 +115,6 @@ class Query extends BaseObject
 	
 	
 	/**
-	 * Set alias
-	 */
-	Query alias(string alias_name)
-	{
-		this._table_name_alias = alias_name;
-		return this;
-	}
-	
-	
-	/**
 	 * Set distinct
 	 */
 	Query distinct(bool value = true)
@@ -151,9 +140,8 @@ class Query extends BaseObject
 	Query select(string table_name = "", string alias_name = "t")
 	{
 		this._kind = static::QUERY_SELECT;
-		this.alias(alias_name);
 		this.table(table_name);
-		this.fields(["t.*"]);
+		this.addTableFields(table_name);
 		return this;
 	}
 	
@@ -171,10 +159,9 @@ class Query extends BaseObject
 	/**
 	 * Set table
 	 */
-	Query from(string table_name = "", string alias_name = "t")
+	Query from(string table_name = "")
 	{
 		this._table_name = table_name != "" ? table_name : this._table_name;
-		this._table_name_alias = alias_name;
 		return this;
 	}
 	
@@ -182,11 +169,10 @@ class Query extends BaseObject
 	/**
 	 * Insert query
 	 */
-	Query insert(string table_name = "", string alias_name = "t")
+	Query insert(string table_name = "")
 	{
 		this._kind = static::QUERY_INSERT;
 		this._table_name = table_name != "" ? table_name : this._table_name;
-		this._table_name_alias = alias_name;
 		return this;
 	}
 	
@@ -194,11 +180,10 @@ class Query extends BaseObject
 	/**
 	 * Select query
 	 */
-	Query update(string table_name = "", string alias_name = "t")
+	Query update(string table_name = "")
 	{
 		this._kind = static::QUERY_UPDATE;
 		this._table_name = table_name != "" ? table_name : this._table_name;
-		this._table_name_alias = alias_name;
 		return this;
 	}
 	
@@ -206,11 +191,10 @@ class Query extends BaseObject
 	/**
 	 * Delete query
 	 */
-	Query delete(string table_name = "", string alias_name = "t")
+	Query delete(string table_name = "")
 	{
 		this._kind = static::QUERY_DELETE;
 		this._table_name = table_name != "" ? table_name : this._table_name;
-		this._table_name_alias = alias_name;
 		return this;
 	}
 	
@@ -251,6 +235,28 @@ class Query extends BaseObject
 	
 	
 	/**
+	 * Add table fields
+	 */
+	Query addTableFields(string table_name)
+	{
+		Collection<BaseStruct> annotations = this._provider.getAnotations(table_name);
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseStruct annotation = annotations[i];
+			if (annotation instanceof BaseType)
+			{
+				QueryField field = new QueryField();
+				field.annotation = annotation;
+				field.field_name = annotation.name;
+				field.table_name = table_name;
+				field.q = this;
+				this._fields.pushValue(field);
+			}
+		}
+	}
+	
+	
+	/**
 	 * Add field
 	 */
 	Query addField(string field_name)
@@ -263,10 +269,6 @@ class Query extends BaseObject
 		if (res2.count() > 1 and res2.get(1) == "*")
 		{
 			string table_name = res2.get(0);
-			if (table_name == this._table_name_alias)
-			{
-				table_name = this._table_name;
-			}
 			Collection<BaseStruct> annotations = this._provider.getAnotations(table_name);
 			for (int i=0; i<annotations.count(); i++)
 			{
@@ -508,10 +510,6 @@ class Query extends BaseObject
 		}
 		
 		string table_name = key.table_name;
-		if (this._table_name_alias != "" and table_name == this._table_name)
-		{
-			table_name = this._table_name_alias;
-		}
 		
 		Vector filter = new Vector();
 		filter.pushValue(

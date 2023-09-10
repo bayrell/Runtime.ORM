@@ -262,7 +262,7 @@ class ConnectionMySQL extends Connection
 									field_index = res[2];
 								}
 								
-								field_name = item.getTableNameAlias() ~ "." ~ item.field_name;
+								field_name = item.table_name ~ "." ~ item.field_name;
 								if (item.alias_name != "")
 								{
 									field_name ~= " as " ~ item.alias_name;
@@ -286,9 +286,6 @@ class ConnectionMySQL extends Connection
 			
 			/* Add table name */
 			sql ~= " FROM " ~ this.prefix ~ q._table_name;
-			
-			/* Add table alias */
-			if (q._table_name_alias != "") sql ~= " AS " ~ q._table_name_alias;
 			
 			/* New line */
 			sql ~= "\n";
@@ -408,7 +405,6 @@ class ConnectionMySQL extends Connection
 			
 			/* Build sql */
 			string sql = "UPDATE " ~ this.prefix ~ q._table_name ~
-				" AS " ~ q._table_name_alias ~
 				" SET " ~ rs::join(", ", update_arr) ~ " WHERE " ~ where_str
 			;
 			

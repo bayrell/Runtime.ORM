@@ -47,29 +47,6 @@ class QueryField extends BaseObject
 	
 	
 	/**
-	 * Returns table name alias
-	 */
-	string getTableNameAlias()
-	{
-		if (this.q == null)
-		{
-			return this.table_name;
-		}
-		
-		if (
-			this.q._table_name != "" and
-			this.q._table_name_alias != "" and
-			this.table_name == this.q._table_name
-		)
-		{
-			return this.q._table_name_alias;
-		}
-		
-		return this.table_name;
-	}
-	
-	
-	/**
 	 * Create from field name
 	 */
 	static QueryField create(
@@ -81,20 +58,12 @@ class QueryField extends BaseObject
 	{
 		QueryField field = new QueryField;
 		
+		field.q = q;
+		field.annotation = q._provider.getFieldType(table_name, field_name);
+
 		field.alias_name = rs::trim(alias_name);
 		field.field_name = rs::trim(field_name);
 		field.table_name = rs::trim(table_name);
-		field.q = q;
-		
-		Provider provider = @.provider(classof Provider);
-		if (q != null and q._table_name_alias == table_name)
-		{
-			field.annotation = provider.getFieldType(q._table_name, field_name);
-		}
-		else
-		{
-			field.annotation = provider.getFieldType(table_name, field_name);
-		}
 		
 		if (field.annotation == null)
 		{

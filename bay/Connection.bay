@@ -90,8 +90,12 @@ class Connection
 	/**
 	 * Insert query
 	 */
-	async var insert
-		(string table_name, Dict insert_data, bool get_last_id = true, Dict params = null)
+	async var insert(
+		string table_name,
+		Dict insert_data,
+		bool get_last_id = true,
+		Dict params = null
+	)
 	{
 		var last_id = null;
 		
@@ -101,8 +105,8 @@ class Connection
 		}
 		
 		Query q = new Query()
-			|> .insert(table_name)
-			|> .values(insert_data)
+			.insert(table_name)
+			.values(insert_data)
 		;
 		
 		Cursor c = await this.executeQuery(q, params);
@@ -121,8 +125,12 @@ class Connection
 	/**
 	 * Update query
 	 */
-	async void update
-		(string table_name, Collection filter, Dict update_data, Dict params = null)
+	async void update(
+		string table_name,
+		Collection filter,
+		Dict update_data,
+		Dict params = null
+	)
 	{
 		if (table_name == "")
 		{
@@ -130,9 +138,9 @@ class Connection
 		}
 		
 		Query q = new Query()
-			|> .update(table_name)
-			|> .values(update_data)
-			|> .setFilter(filter)
+			.update(table_name)
+			.values(update_data)
+			.setFilter(filter)
 		;
 		
 		Cursor c = await this.executeQuery(q, params);
@@ -143,8 +151,11 @@ class Connection
 	/**
 	 * Delete item
 	 */
-	async void delete
-		(string table_name, Collection filter, Dict params = null)
+	async void delete(
+		string table_name,
+		Collection filter,
+		Dict params = null
+	)
 	{
 		if (table_name == "")
 		{
