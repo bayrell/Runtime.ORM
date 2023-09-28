@@ -390,7 +390,7 @@ class Relation extends BaseObject
 		for (int i=0; i<keys.count(); i++)
 		{
 			string key = keys[i];
-			filter.pushValue(["t." ~ key, "=", item[key]]);
+			filter.pushValue([key, "=", item[key]]);
 		}
 		
 		Query q = new Query
