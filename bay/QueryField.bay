@@ -58,16 +58,21 @@ class QueryField extends BaseObject
 	{
 		QueryField field = new QueryField;
 		
+		table_name = rs::trim(table_name);
+		field_name = rs::trim(field_name);
+		table_name = rs::trim(table_name);
+		
 		field.q = q;
 		field.annotation = q._provider.getFieldType(table_name, field_name);
 
-		field.alias_name = rs::trim(alias_name);
-		field.field_name = rs::trim(field_name);
-		field.table_name = rs::trim(table_name);
+		field.alias_name = alias_name;
+		field.field_name = field_name;
+		field.table_name = table_name;
 		
 		if (field.annotation == null)
 		{
-			throw new RuntimeException("Field " ~ field_name ~ " not found in table " ~ table_name);
+			throw new RuntimeException("Field '" ~ field_name ~
+				"' not found in table '" ~ table_name ~ "'");
 		}
 		
 		return field;

@@ -53,7 +53,7 @@ struct ForeignKey extends BaseStruct
 		
 		Query q = new Query
 			|> .select(this.table_name)
-			|> .where(this.primary_key, "=", ids)
+			|> .where(this.table_name ~ "." ~ this.primary_key, "=", ids)
 		;
 		
 		/* Filter */
@@ -86,7 +86,7 @@ struct ForeignKey extends BaseStruct
 		
 		Query q = new Query
 			|> .select(this.table_name_source)
-			|> .where(this.foreign_key, "=", ids)
+			|> .where(this.table_name_source ~ "." ~ this.foreign_key, "=", ids)
 		;
 		
 		/* Filter */

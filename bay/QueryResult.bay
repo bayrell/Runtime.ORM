@@ -133,6 +133,7 @@ class QueryResult extends Vector<Dict>
 	async QueryResult resolve(Connection conn, string key_name)
 	{
 		ForeignKey foreign_key = Relation::getForeignKey(key_name);
+		rtl::assert(foreign_key, "Foreign key '" ~ key_name ~ "' not found");
 		QueryResult items = await foreign_key.resolve(conn, this);
 		return items;
 	}
@@ -144,6 +145,7 @@ class QueryResult extends Vector<Dict>
 	async Query resolveReverseQuery(Connection conn, string key_name)
 	{
 		ForeignKey foreign_key = Relation::getForeignKey(key_name);
+		rtl::assert(foreign_key, "Foreign key '" ~ key_name ~ "' not found");
 		QueryResult items = await foreign_key.resolveReverseQuery(conn, this);
 		return items;
 	}
