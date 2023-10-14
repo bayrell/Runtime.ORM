@@ -75,9 +75,7 @@ class QueryResult extends Vector<Dict>
 	/**
 	 * Transform items to model
 	 */
-	Collection<BaseStruct> toModel(string class_name)
-	{
-		return this
+	Collection<BaseStruct> toModel(string class_name) => this
 			.map( method this.convertItem )
 			.map(
 				BaseStruct (Dict item) use (class_name)
@@ -85,7 +83,21 @@ class QueryResult extends Vector<Dict>
 			)
 			.toCollection()
 		;
-	}
+	
+	
+	/**
+	 * Convert to Dict
+	 */
+	Collection<Dict> toDict(Collection fields = null) => this
+		.map( method this.convertItem )
+		.map(
+			BaseStruct (Dict item) use (fields)
+				=> (fields == null)
+					? item.toDict()
+					: item.intersect(fields)
+		)
+		.toCollection()
+	;
 	
 	
 	/**

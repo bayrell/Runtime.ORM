@@ -96,8 +96,10 @@ class Relation extends BaseObject
 	/**
 	 * Convert to Dict
 	 */
-	Dict toDict() => this.new_data.toDict();
-	Dict data() => this.new_data.toDict();
+	Dict toDict(Collection fields = null) =>
+		(fields == null) ? this.new_data.toDict() : this.new_data.intersect(fields)
+	;
+	Dict data(Collection fields = null) => this.toDict();
 	
 	
 	/**
