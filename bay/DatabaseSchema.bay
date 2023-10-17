@@ -49,7 +49,7 @@ class DatabaseSchema extends BaseHook
 	/**
 	 * Save before item
 	 */
-	static Dict onBeforeSave(Dict d)
+	Dict onBeforeSave(Dict d)
 	{
 		return d;
 	}
@@ -58,7 +58,7 @@ class DatabaseSchema extends BaseHook
 	/**
 	 * Save after item
 	 */
-	static Dict onAfterSave(Dict d)
+	Dict onAfterSave(Dict d)
 	{
 		return d;
 	}
