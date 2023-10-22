@@ -32,8 +32,15 @@ struct BigIntType extends BaseType
 	{
 		if (item.has(this.name))
 		{
-			string value = item[this.name];
-			item <= { this.name } <= (int)value;
+			var value = item[this.name];
+			if (value === null and this.nullable)
+			{
+				item <= { this.name } <= null;
+			}
+			else
+			{
+				item <= { this.name } <= (int)value;
+			}
 		}
 		return item;
 	}

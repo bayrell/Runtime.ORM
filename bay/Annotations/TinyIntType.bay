@@ -33,7 +33,14 @@ struct TinyIntType extends BaseType
 		if (item.has(this.name))
 		{
 			string value = item[this.name];
-			item <= { this.name } <= (int)value;
+			if (value === null and this.nullable)
+			{
+				item <= { this.name } <= null;
+			}
+			else
+			{
+				item <= { this.name } <= (int)value;
+			}
 		}
 		return item;
 	}
