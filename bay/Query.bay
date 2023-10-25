@@ -214,7 +214,7 @@ class Query extends BaseObject
 	 */
 	Query clearFields()
 	{
-		this.fields = new Vector();
+		this._fields = new Vector();
 		return this;
 	}
 	
@@ -224,7 +224,7 @@ class Query extends BaseObject
 	 */
 	Query fields(Collection fields)
 	{
-		this.fields = new Vector();
+		this._fields = new Vector();
 		for (int i=0; i<fields.count(); i++)
 		{
 			string field_name = fields[i];
