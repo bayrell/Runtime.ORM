@@ -78,7 +78,24 @@ class Query extends BaseObject
 	 */
 	Query copy()
 	{
-		return this;
+		Query q = new Query();
+		q._class_name_relation = this._class_name_relation;
+		q._kind = this._kind;
+		q._table_name = this._table_name;
+		q._fields = this._fields.toVector();
+		q._join = this._join.toVector();
+		q._order = this._order.toVector();
+		q._filter = this._filter.toVector();
+		q._sql = this._sql;
+		q._data = this._data.toMap();
+		q._start = this._start;
+		q._limit = this._limit;
+		q._debug = this._debug;
+		q._distinct = this._distinct;
+		q._calc_found_rows = this._calc_found_rows;
+		q._db_params = this._db_params;
+		q._provider = this._provider;
+		return q;
 	}
 	
 	

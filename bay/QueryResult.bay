@@ -58,7 +58,6 @@ class QueryResult extends Vector<Dict>
 	Dict convertItem(Dict item)
 	{
 		Vector fields = this.q._fields;
-		
 		for (int i=0; i<fields.count(); i++)
 		{
 			var field = fields[i];
