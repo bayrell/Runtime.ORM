@@ -441,7 +441,16 @@ class Relation extends BaseObject
 		if (res) return res;
 		
 		/* Create if not found */
-		res = static::newInstance(table_name, item);
+		res = static::newInstance(table_name, null);
+		
+		/* Set new data */
+		item.each(
+			void (var value, string key) use (res)
+			{
+				res.set(key, value);
+			}
+		);
+		
 		return res;
 	}
 	

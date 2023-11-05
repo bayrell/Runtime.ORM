@@ -22,6 +22,7 @@ use Runtime.math;
 use Runtime.BaseObject;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
+use Runtime.ORM.QueryField;
 use Runtime.ORM.QueryResult;
 use Runtime.ORM.Relation;
 
@@ -116,12 +117,32 @@ class Cursor extends BaseObject
 	
 	
 	/**
+	 * Convert item
+	 */
+	Dict convertItem(Dict item)
+	{
+		Vector fields = this.q._fields;
+		for (int i=0; i<fields.count(); i++)
+		{
+			var field = fields[i];
+			if (field instanceof QueryField)
+			{
+				item = field.annotation.fromDatabase(this.conn, item);
+			}
+		}
+		
+		return item;
+	}
+	
+	
+	/**
 	 * Fetch next row
 	 */
-	async Relation fetch()
+	async Dict fetch()
 	{
-		Relation row = await this.fetchDict();
+		Dict row = await this.fetchDict();
 		if (!row) return null;
+		row = this.convertItem(row);
 		return row;
 	}
 	

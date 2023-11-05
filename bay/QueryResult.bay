@@ -42,32 +42,13 @@ class QueryResult extends Vector<Dict>
 	
 	
 	/**
-	 * Returns converted item
+	 * Returns relation by index
 	 */
-	Dict getItem(Dict item)
+	Relation getRelation(int index)
 	{
-		Dict item = this.get(item);
-		item = this.convertItem(item);
-		return item;
-	}
-	
-	
-	/**
-	 * Convert item
-	 */
-	Dict convertItem(Dict item)
-	{
-		Vector fields = this.q._fields;
-		for (int i=0; i<fields.count(); i++)
-		{
-			var field = fields[i];
-			if (field instanceof QueryField)
-			{
-				item = field.annotation.fromDatabase(this.conn, item);
-			}
-		}
-		
-		return item;
+		string table_name = this.q._table_name;
+		Dict item = this.get(index);
+		return Relation::newInstance(table_name, item);
 	}
 	
 	
@@ -75,7 +56,6 @@ class QueryResult extends Vector<Dict>
 	 * Transform items to model
 	 */
 	Collection<BaseStruct> toModel(string class_name) => this
-			.map( method this.convertItem )
 			.map(
 				BaseStruct (Dict item) use (class_name)
 					=> rtl::newInstance(class_name, [item])
@@ -88,7 +68,6 @@ class QueryResult extends Vector<Dict>
 	 * Convert to Dict
 	 */
 	Collection<Dict> toDict(Collection fields = null) => this
-		.map( method this.convertItem )
 		.map(
 			BaseStruct (Dict item) use (fields)
 				=> (fields == null)
@@ -106,24 +85,12 @@ class QueryResult extends Vector<Dict>
 	{
 		string table_name = this.q._table_name;
 		return this
-			.map( method this.convertItem )
 			.map(
 				BaseStruct (Dict item) use (table_name)
 					=> Relation::newInstance(table_name, [item])
 			)
 			.toCollection()
 		;
-	}
-	
-	
-	/**
-	 * Returns relation by index
-	 */
-	Relation getRelation(int index)
-	{
-		string table_name = this.q._table_name;
-		Dict item = this.getItem(index);
-		return Relation::newInstance(table_name, item);
 	}
 	
 	
