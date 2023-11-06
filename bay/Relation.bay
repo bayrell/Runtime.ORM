@@ -39,7 +39,6 @@ class Relation extends BaseObject
 	protected string table_name = "";
 	protected Map old_data = null;
 	protected Map new_data = new Map;
-	protected bool is_dirty = false;
 	
 	
 	/**
@@ -320,7 +319,6 @@ class Relation extends BaseObject
 	 */
 	protected void _setNewData(Dict data = null)
 	{
-		this.is_dirty = false;
 		this.old_data = data != null ? new Map(data) : null;
 		this.new_data = data != null ? new Map(data) : new Map();
 	}
@@ -347,9 +345,43 @@ class Relation extends BaseObject
 	/**
 	 * Returns true if model is changed
 	 */
-	bool isDirty()
+	bool isChanged()
 	{
-		return this.is_dirty;
+		Dict d1 = this.old_data;
+		Dict d2 = this.new_data;
+		
+		Collection d1_keys = d1.keys();
+		Collection d2_keys = d2.keys();
+		
+		for (int i=0; i<d1_keys.count(); i++)
+		{
+			string key1 = d1_keys.get(i);
+			
+			if (not d2.has(key1))
+			{
+				return true;
+			}
+			
+			var value1 = d1.get(key1);
+			var value2 = d2.get(key1);
+			
+			if (value1 != value2)
+			{
+				return true;
+			}
+		}
+		
+		for (int i=0; i<d2_keys.count(); i++)
+		{
+			string key2 = d2_keys.get(i);
+			
+			if (not d1.has(key2))
+			{
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	
