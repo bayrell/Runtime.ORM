@@ -81,10 +81,28 @@ class Connection
 	
 	
 	/**
-	 * Execute cursor
+	 * Prepare field
 	 */
-	async Cursor executeQuery(Query q, Dict params = null) => null;
-	async Cursor execute(Query q, Dict params = null) => this.executeQuery(q, params);
+	string prepare_field(var item) => item;
+	
+	
+	/**
+	 * Prepare value
+	 */
+	string prepare_value(string item, string op) => item;
+	
+	
+	/**
+	 * Quote
+	 */
+	string quote(string value) => value;
+	
+	
+	/**
+	 * Execute Query
+	 */
+	async Cursor execute(Query q, Dict params = null) => null;
+	async Cursor executeQuery(Query q, Dict params = null) => this.execute(q, params);
 	
 	
 	/**
@@ -109,7 +127,7 @@ class Connection
 			.values(insert_data)
 		;
 		
-		Cursor c = await this.executeQuery(q, params);
+		Cursor c = await this.execute(q, params);
 		
 		if (get_last_id)
 		{
@@ -143,7 +161,7 @@ class Connection
 			.setFilter(filter)
 		;
 		
-		Cursor c = await this.executeQuery(q, params);
+		Cursor c = await this.execute(q, params);
 		await c.close();
 	}
 	
@@ -167,32 +185,8 @@ class Connection
 			|> .setFilter(filter)
 		;
 		
-		Cursor c = await this.executeQuery(q, params);
+		Cursor c = await this.execute(q, params);
 		await c.close();
-	}
-	
-	
-	/**
-	 * Begin transaction
-	 */
-	async void beginTransaction()
-	{
-	}
-	
-	
-	/**
-	 * Commit
-	 */
-	async void commit()
-	{
-	}
-	
-	
-	/**
-	 * rollBack
-	 */
-	async void rollBack()
-	{
 	}
 	
 	
@@ -209,40 +203,28 @@ class Connection
 	
 	
 	/**
-	 * Fetch all data by Query
+	 * Fetch all
 	 */
-	async QueryResult fetchAll(Query q, Dict params = null)
+	async QueryResult fetchAll(Query q, Dict params)
 	{
-		Cursor cursor = await this.executeQuery(q, params);
-		QueryResult res = await cursor.fetchAll();
-		await cursor.close();
-		return res;
+		Cursor c = await this.execute(q, params);
+		QueryResult items = await c.fetchAll();
+		await c.close();
+		return items;
 	}
 	
 	
 	/**
-	 * Fetch item by Query
+	 * Fetch
 	 */
-	async Dict fetch(Query q, Dict params = null)
+	async QueryResult fetch(Query q, Dict params)
 	{
-		Cursor cursor = await this.executeQuery(q, params);
-		Relation res = await cursor.fetch();
-		await cursor.close();
-		return res;
+		Cursor c = await this.execute(q, params);
+		QueryResult items = await c.fetch();
+		await c.close();
+		return items;
 	}
 	async Dict fetchOne(Query q, Dict params = null) => await this.fetch(q, params);
-	
-	
-	/**
-	 * Fetch relation
-	 */
-	async Dict fetchRelation(Query q, Dict params = null)
-	{
-		Cursor cursor = await this.executeQuery(q, params);
-		Relation res = await cursor.fetchRelation();
-		await cursor.close();
-		return res;
-	}
 	
 	
 	/**
@@ -250,27 +232,116 @@ class Connection
 	 */
 	async var fetchVar(Query q, string var_name, Dict params = null)
 	{
-		Cursor cursor = await this.executeQuery(q, params);
-		Dict res = await cursor.fetchVar(var_name);
+		Cursor cursor = await this.execute(q, params);
+		var item = await cursor.fetchVar(var_name);
 		await cursor.close();
-		return res;
+		return item;
 	}
 	
 	
 	/**
-	 * Returns sql string
+	 * Find relation by object
 	 */
-	async string getSQL(Query q)
+	async Relation findRelationByObject
+		(string table_name, Dict item, Dict params = null)
 	{
-		return "";
+		/* Build filter */
+		Vector filter = item.transition(
+			QueryFilter (var value, string key)
+			{
+				return new QueryFilter(key, "=", value);
+			}
+		);
+		
+		/* Find relation */
+		return await this.findRelation(table_name, filter, params);
 	}
 	
 	
 	/**
-	 * Returns sql string
+	 * Find relation by object
 	 */
-	async list buildQuery(Query q)
+	async Relation findRelationById
+		(string table_name, var id, Dict params = null)
 	{
-		return [null, null];
+		/* Get primary keys */
+		Vector pk = Relation::getPrimaryKeys(table_name);
+		string pk_name = pk.get(0);
+	
+		/* Build filter */
+		Vector filter = [
+			new QueryFilter(pk_name, "=", id)
+		];
+		
+		/* Find relation */
+		return await this.findRelation(table_name, filter, params);
+	}
+	
+	
+	/**
+	 * Find relation by filter
+	 */
+	async Relation findRelation
+		(string table_name, Collection<QueryFilter> filter, Dict params = null)
+	{
+		Query q = new Query
+			|> .select(table_name)
+			|> .setFilter(filter)
+			|> .limit(1)
+		;
+		Cursor c = await this.execute(q, params);
+		Relation item = await c.fetchRelation(q, params);
+		await c.close();
+		return item;
+	}
+	
+	
+	/**
+	 * Find relations by filter
+	 */
+	async Vector<Relation> findRelations
+		(string table_name, Collection<QueryFilter> filter, Dict params = null)
+	{
+		Query q = new Query
+			|> .select(table_name)
+			|> .setFilter(filter)
+		;
+		Cursor c = await this.execute(q, params);
+		QueryResult items = await c.fetchAll(q, params);
+		await c.close();
+		return item.toRelation();
+	}
+	
+	
+	/**
+	 * Find or create
+	 */
+	async Relation findOrCreate
+		(string table_name, Dict item, Dict params = null)
+	{
+		/* Build filter */
+		Vector filter = item.transition(
+			QueryFilter (var value, string key)
+			{
+				return new QueryFilter(key, "=", value);
+			}
+		);
+		
+		/* Find item */
+		Relation relation = await this.findRelation(table_name, filter, params);
+		if (res) return res;
+		
+		/* Create if not found */
+		relation = Relation::newInstance(table_name);
+		
+		/* Set new data */
+		item.each(
+			void (var value, string key) use (relation)
+			{
+				relation.set(key, value);
+			}
+		);
+		
+		return relation;
 	}
 }

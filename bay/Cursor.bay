@@ -18,8 +18,8 @@
 
 namespace Runtime.ORM;
 
-use Runtime.math;
 use Runtime.BaseObject;
+use Runtime.Math;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
 use Runtime.ORM.QueryField;
@@ -70,7 +70,7 @@ class Cursor extends BaseObject
 		if (this.q) limit = this.q._limit;
 		if (limit <= 0) return 0;
 		int rows = await this.foundRows();
-		return rows > 0 ? math::floor((rows - 1) / limit) + 1 : 0;
+		return rows > 0 ? Math::floor((rows - 1) / limit) + 1 : 0;
 	}
 	
 	
@@ -88,25 +88,15 @@ class Cursor extends BaseObject
 		}
 		if (limit <= 0) return 0;
 		if (offset <= 0) return 0;
-		return math::floor(offset / limit);
-	}
-	
-	
-	/**
-	 * Execute sql query
-	 */
-	async Cursor executeSQL(string sql, Dict data = null)
-	{
-		return this;
+		return Math::floor(offset / limit);
 	}
 	
 	
 	/**
 	 * Close query
 	 */
-	async Cursor close()
+	async void close()
 	{
-		return this;
 	}
 	
 	
@@ -152,13 +142,11 @@ class Cursor extends BaseObject
 	 */
 	async Relation fetchRelation()
 	{
-		Relation row = await this.fetchDict();
+		Relation row = await this.fetch();
 		if (!row) return null;
 		
 		string table_name = this.q._table_name;
-		row = Relation::newInstanceFromDatabase(table_name, this.conn, row);
-		
-		return row;
+		return Relation::newInstance(table_name, row);
 	}
 	
 	

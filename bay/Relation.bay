@@ -74,17 +74,6 @@ class Relation extends BaseObject
 	
 	
 	/**
-	 * Create Instance of class from database
-	 */
-	pure Relation newInstanceFromDatabase(string table_name, Connection conn, Dict data = null)
-	{
-		data = static::fromDatabase(table_name, conn, data);
-		data = static::newInstance(table_name, data);
-		return data;
-	}
-	
-	
-	/**
 	 * Convert to model
 	 */
 	BaseStruct toModel(string class_name) =>
@@ -108,16 +97,6 @@ class Relation extends BaseObject
 	{
 		Provider provider = @.provider(classof Provider);
 		return provider.getAnotations(table_name);
-	}
-	
-	
-	/**
-	 * Returns foreign_key
-	 */
-	pure memorize ForeignKey getForeignKey(string name)
-	{
-		Provider provider = @.provider(classof Provider);
-		return provider.getForeignKey(name);
 	}
 	
 	
@@ -169,15 +148,8 @@ class Relation extends BaseObject
 	pure memorize AutoIncrement getAutoIncrement(string table_name)
 	{
 		Collection<BaseStruct> annotations = static::getAnotations(table_name);
-		for (int i=0; i<annotations.count(); i++)
-		{
-			BaseStruct annotation = annotations[i];
-			if (annotation instanceof AutoIncrement)
-			{
-				return annotation;
-			}
-		}
-		return null;
+		AutoIncrement annotation = annotations.findItem( lib::isInstance(classof AutoIncrement) );
+		return annotation;
 	}
 	
 	
@@ -186,22 +158,12 @@ class Relation extends BaseObject
 	 */
 	pure memorize Collection<string> getPrimaryKeys(string table_name)
 	{
-		Vector primary_keys = new Vector();
+		/* Get primary annotation */
 		Collection<BaseStruct> annotations = static::getAnotations(table_name);
-		for (int i=0; i<annotations.count(); i++)
-		{
-			BaseStruct annotation = annotations[i];
-			if (annotation instanceof Primary)
-			{
-				Collection keys = annotation.keys;
-				for (int j=0; j<keys.count(); j++)
-				{
-					string field_name = keys[j];
-					primary_keys.pushValue(field_name);
-				}
-			}
-		}
-		return primary_keys.toCollection();
+		Primary primary = annotations.findItem( lib::isInstance(classof Primary) );
+		
+		if (primary == null) return null;
+		return primary.keys;
 	}
 	
 	
@@ -210,35 +172,28 @@ class Relation extends BaseObject
 	 */
 	pure Dict getPrimaryFromData(string table_name, Dict data)
 	{
-		Map primary_data = new Map();
-		Collection<BaseStruct> annotations = static::getAnotations(table_name);
-		for (int i=0; i<annotations.count(); i++)
+		/* Get primary annotation */
+		Collection<string> primary_keys = static::getPrimaryKeys(table_name);
+		
+		/* Check if primary keys if exists */
+		if (primary_keys == null)
 		{
-			BaseStruct annotation = annotations[i];
-			if (annotation instanceof Primary)
-			{
-				Collection<string> keys = annotation.keys;
-				for (int j=0; j<keys.count(); j++)
-				{
-					string field_name = keys[j];
-					primary_data.setValue(field_name, data[field_name]);
-				}
-			}
+			throw new ItemNotFound(table_name, "Primary keys");
 		}
-		return primary_data.toDict();
+		
+		/* Intersect values */
+		return data.intersect(primary_keys, false);
 	}
 	
 	
 	/**
 	 * Returns primary filter by data
 	 */
-	pure Collection<QueryFilter> getPrimaryFilter(string table_name, Dict data, bool use_alias)
+	pure Vector<QueryFilter> getPrimaryFilter(string table_name, Dict data, bool use_alias)
 	{
-		Vector filter = new Vector();
-		
 		Dict pk = static::getPrimaryFromData(table_name, data);
-		pk.each(
-			void (var value, string key) use (table_name, filter, use_alias)
+		Vector filter = pk.transition(
+			QueryFilter (var value, string key) use (table_name, use_alias)
 			{
 				QueryFilter item = new QueryFilter;
 				item.key = key;
@@ -248,11 +203,10 @@ class Relation extends BaseObject
 				{
 					item.key = table_name ~ "." ~ key;
 				}
-				filter.pushValue(item);
+				return item;
 			}
 		);
-		
-		return filter.toCollection();
+		return filter;
 	}
 	
 	
@@ -385,147 +339,6 @@ class Relation extends BaseObject
 		}
 		
 		return false;
-	}
-	
-	
-	/**
-	 * Find item
-	 */
-	async static Relation findById(
-		string table_name,
-		Connection conn,
-		string id,
-		Dict params = null
-	)
-	{
-		Collection pk = static::getPrimaryKeys(table_name);
-		string pk_name = pk.get(0);
-		if (not pk_name) return null;
-		
-		Query q = new Query
-			|> .select(table_name)
-			|> .where(pk_name, "=", id)
-		;
-		
-		Relation item = await conn.fetchRelation(q, params);
-		return item;
-	}
-	
-	
-	/**
-	 * Find item
-	 */
-	async static Relation findItem(
-		string table_name,
-		Connection conn,
-		Dict item,
-		Dict params = null
-	)
-	{
-		Vector filter = new Vector();
-		Collection keys = item.keys();
-		for (int i=0; i<keys.count(); i++)
-		{
-			string key = keys[i];
-			filter.pushValue([key, "=", item[key]]);
-		}
-		
-		Query q = new Query
-			|> .select(table_name)
-			|> .setFilter(filter)
-			|> .limit(1)
-		;
-		
-		Relation item = await conn.fetchRelation(q, params);
-		return item;
-	}
-	
-	
-	/**
-	 * Find items
-	 */
-	async static Collection<Relation> findItems(
-		string table_name,
-		Connection conn,
-		Collection filter,
-		Dict params = null
-	)
-	{
-		Query q = new Query
-			|> .select(table_name)
-			|> .setFilter(filter)
-		;
-		
-		Collection<Relation> items = await conn.fetchAll(q, params);
-		return items.toRelation();
-	}
-	
-	
-	/**
-	 * Find or create
-	 */
-	async static Relation findOrCreate(
-		string table_name,
-		Connection conn,
-		Dict item,
-		Dict params = null
-	)
-	{
-		/* Find item */
-		Relation res = await static::findItem(table_name, conn, item, params);
-		if (res) return res;
-		
-		/* Create if not found */
-		res = static::newInstance(table_name, null);
-		
-		/* Set new data */
-		item.each(
-			void (var value, string key) use (res)
-			{
-				res.set(key, value);
-			}
-		);
-		
-		return res;
-	}
-	
-	
-	/**
-	 * Update items
-	 */
-	static async void updateItems(
-		string table_name,
-		Connection conn, Collection filter,
-		Dict update_data, Dict params = null
-	)
-	{
-		Query q = new Query
-			|> .update(table_name)
-			|> .values(update_data)
-			|> .setFilter(filter)
-		;
-		Cursor c = await conn.executeQuery(q, params);
-		await c.close();
-	}
-	
-	
-	/**
-	 * Delete items
-	 */
-	static async void deleteItems(
-		string table_name,
-		Connection conn,
-		Collection filter,
-		Dict params = null
-	)
-	{
-		Query q = new Query
-			|> .delete(table_name)
-			|> .setFilter(filter)
-		;
-		
-		Cursor c = await conn.executeQuery(q, params);
-		await c.close();
 	}
 	
 	

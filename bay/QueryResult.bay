@@ -53,101 +53,31 @@ class QueryResult extends Vector<Dict>
 	
 	
 	/**
-	 * Transform items to model
+	 * Convert to Vector
 	 */
-	Collection<BaseStruct> toModel(string class_name) => this
-			.map(
-				BaseStruct (Dict item) use (class_name)
-					=> rtl::newInstance(class_name, [item])
-			)
-			.toCollection()
-		;
-	
-	
-	/**
-	 * Convert to Dict
-	 */
-	Collection<Dict> toDict(Collection fields = null) => this
+	Vector<Dict> toDict(Collection fields = null) => this
 		.map(
 			BaseStruct (Dict item) use (fields)
 				=> (fields == null)
 					? item.toDict()
 					: item.intersect(fields)
 		)
-		.toCollection()
+		.toVector()
 	;
 	
 	
 	/**
 	 * Transform item to Relation
 	 */
-	Relation toRelation()
+	Vector<Relation> toRelation()
 	{
 		string table_name = this.q._table_name;
 		return this
 			.map(
 				BaseStruct (Dict item) use (table_name)
-					=> Relation::newInstance(table_name, [item])
+					=> Relation::newInstance(table_name, item)
 			)
-			.toCollection()
+			.toVector()
 		;
 	}
-	
-	
-	/**
-	 * Build query for resolve foreign key
-	 */
-	async Query resolveQuery(Connection conn, string key_name = "")
-	{
-		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		Query q = await foreign_key.resolveQuery(conn, this);
-		return q;
-	}
-	
-	
-	/**
-	 * Resolve foreign key
-	 */
-	async QueryResult resolve(Connection conn, string key_name)
-	{
-		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		rtl::assert(foreign_key, "Foreign key '" ~ key_name ~ "' not found");
-		QueryResult items = await foreign_key.resolve(conn, this);
-		return items;
-	}
-	
-	
-	/**
-	 * Build query for reverse resolve foreign key
-	 */
-	async Query resolveReverseQuery(Connection conn, string key_name)
-	{
-		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		rtl::assert(foreign_key, "Foreign key '" ~ key_name ~ "' not found");
-		QueryResult items = await foreign_key.resolveReverseQuery(conn, this);
-		return items;
-	}
-	
-	
-	/**
-	 * Reverse resolve foreign key
-	 */
-	async QueryResult resolveReverse(Connection conn, string key_name)
-	{
-		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		QueryResult items = await foreign_key.resolveReverse(conn, this);
-		return items;
-	}
-	
-	
-	/**
-	 * Resolve all
-	 */
-	async QueryResult resolveAll(Connection conn, string key_name)
-	{
-		ForeignKey foreign_key = Relation::getForeignKey(key_name);
-		QueryResult items = await foreign_key.resolveAll(conn, this);
-		return items;
-	}
-	
 }

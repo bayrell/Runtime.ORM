@@ -95,482 +95,47 @@ class ConnectionMySQL extends Connection
 	
 	
 	/**
-	 * Begin transaction
+	 * Execute Query
 	 */
-	async void beginTransaction()
+	async Cursor execute(Query q, Dict params = null)
 	{
-		#ifcode PHP then
+		if (params == null) params = {};
 		
-		$this->pdo->beginTransaction();
-		$this->is_transaction = true;
-		
-		#endif
-	}
-	
-	
-	/**
-	 * Commit
-	 */
-	async void commit()
-	{
-		#ifcode PHP then
-		
-		if ($this->is_transaction)
+		/* Check is debug */
+		bool is_debug = params["debug"] |> default bool false;
+		if (q._debug)
 		{
-			$this->pdo->commit();
-			$this->is_transaction = false;
+			is_debug = true;
 		}
 		
-		#endif
-	}
-	
-	
-	/**
-	 * rollBack
-	 */
-	async void rollBack()
-	{
-		#ifcode PHP then
+		/* Build query */
+		SQLBuilder builder = new SQLBuilder(q);
 		
-		if ($this->is_transaction)
+		/* Check builder correct */
+		if (not builder.isValid())
 		{
-			$this->pdo->rollBack();
-			$this->is_transaction = false;
+			return null;
 		}
 		
-		#endif
-	}
-	
-	
-	/**
-	 * Execute sql query
-	 */
-	async Cursor executeSQL(string sql, Dict data = null, Dict params = null)
-	{
+		/* Create cursor */
 		Cursor cursor = this.createCursor();
 		
-		bool is_debug = params["debug"] |> default bool false;
+		/* Get sql */
+		string sql = builder.getSQL();
+		Dict data = builder.getData();
+		
+		/* Debug sql */
 		if (is_debug)
 		{
-			string sql2 = this.formatSQL(sql, data);
-			io::print(sql2);
+			string sql = builder.formatSQL();
+			io::print(sql);
 		}
 		
-		await cursor.executeSQL(sql, data);
+		/* Execute sql */
+		Cursor cursor = await cursor.executeSQL(sql, data, params);
+		cursor.q = q.copy();
 		
 		return cursor;
-	}
-	
-	
-	/**
-	 * Execute cursor
-	 */
-	async Cursor executeQuery(Query q, Dict params = null)
-	{
-		if (params == null) params = {};				
-		if (q._debug) params <= debug <= true;
-		
-		Cursor cursor = null;
-		list res = await this.buildQuery(q);
-		
-		if (res)
-		{
-			string sql = res[0];
-			Dict data = res[1];
-			
-			Cursor cursor = await this.executeSQL(sql, data, params);
-			cursor.q = q.copy();
-		}
-		
-		return cursor;
-	}
-	
-	
-	/**
-	 * Returns sql string
-	 */
-	async string getSQL(Query q)
-	{
-		list res = await this.buildQuery(q);
-		if (res == null) return "";
-		
-		string sql = res[0];
-		Dict data = res[1];
-		sql = this.formatSQL(sql, data);
-		
-		return sql;
-	}
-	
-	
-	/**
-	 * Format sql
-	 */
-	string formatSQL(string sql, Dict data = null)
-	{
-		if (data == null) return sql;
-		
-		data.each(
-			void (string value, string key) use (sql)
-			{
-				if (value === null)
-				{
-					sql = rs::replace(":" ~ key, "null", sql);
-				}
-				else
-				{
-					value = this.quote(value);
-					sql = rs::replace(":" ~ key, value, sql);
-				}
-			}
-		);
-		
-		return sql;
-	}
-	
-
-	/**
-	 * Returns query sql
-	 */
-	async list buildQuery(Query q)
-	{
-		/* Select query */
-		if (q._kind == Query::QUERY_SELECT)
-		{
-			string sql = "SELECT ";
-			Dict data = {};
-			int field_index = 0;
-			
-			/* Add distinct */
-			if (q._distinct != "") sql ~= " DISTINCT ";
-			
-			/* Add fields */
-			if (q._fields != null)
-			{
-				Collection fields = q._fields
-					.map(
-						string (var item) use (data, field_index)
-						{
-							string field_name = "";
-							
-							if (item instanceof QueryField)
-							{
-								if (item.filter != null)
-								{
-									list res = this.convertFilter([ item.filter ], field_index);
-									field_name = res[0];
-									data = data.concat(res[1]);
-									field_index = res[2];
-								}
-								
-								field_name = item.table_name ~ "." ~ item.field_name;
-								if (item.alias_name != "")
-								{
-									field_name ~= " as " ~ item.alias_name;
-								}
-							}
-							else
-							{
-								field_name = item;
-							}
-							
-							return field_name;
-						}
-					)
-				;
-				sql ~= rs::join(", ", fields);
-			}
-			else sql ~= " * ";
-			
-			/* New line */
-			sql ~= "\n";
-			
-			/* Add table name */
-			sql ~= " FROM " ~ this.prefix ~ q._table_name;
-			
-			/* New line */
-			sql ~= "\n";
-			
-			/* Add joins */
-			if (q._join != null and q._join.count() > 0)
-			{
-				for (int i=0; i<q._join.count(); i++)
-				{
-					Dict join = q._join[i];
-					
-					string kind = join["kind"];
-					string table_name = join["table_name"];
-					string alias_name = join["alias_name"];
-					
-					Collection filter = join["filter"];
-					list res = this.convertFilter(filter, field_index);
-					string where = res[0];
-					data = data.concat(res[1]);
-					field_index = res[2];
-					
-					if (kind == "left") sql ~= " LEFT JOIN ";
-					else sql ~= " INNER JOIN ";
-					
-					sql ~= this.prefix ~ table_name;
-					if (alias_name != "") sql ~= " AS " ~ alias_name;
-					sql ~= " ON (" ~ where ~ ")";
-					
-					/* New line */
-					sql ~= "\n";
-				}
-			}
-			
-			/* Add where */
-			if (q._filter != null and q._filter.count() > 0)
-			{
-				list res = this.convertFilter(q._filter, field_index);
-				string where = res[0];
-				data = data.concat(res[1]);
-				field_index = res[2];
-				
-				if (where != "") sql ~= " WHERE " ~ where;
-				
-				/* New line */
-				sql ~= "\n";
-			}
-			
-			/* Add order */
-			if (q._order != null and q._order.count() > 0)
-			{
-				Collection order = q._order.map
-				(
-					string (Collection item) => item[0] ~ " " ~ item[1]
-				);
-				
-				sql ~= " ORDER BY " ~ rs::join(",", order);
-				
-				/* New line */
-				sql ~= "\n";
-			}
-			
-			/* Add order */
-			if (q._limit >= 0) sql ~= " LIMIT " ~ q._limit;
-			if (q._limit >= 0 and q._start >= 0) sql ~= " OFFSET " ~ q._start;
-			
-			return [sql, data];
-		}
-		
-		else if (q._kind == Query::QUERY_INSERT)
-		{
-			Vector keys = new Vector();
-			Vector values = new Vector();
-			
-			if (q._data)
-			{
-				q._data.each(
-					void (var value, string key) use (keys, values)
-					{
-						keys.pushValue( "`" ~ key ~ "`" );
-						values.pushValue( ":" ~ key );
-					}
-				);
-			}
-			
-			/* Build sql */
-			string sql = "INSERT INTO " ~ this.prefix ~ q._table_name ~
-				" (" ~ rs::join(",", keys) ~ ") VALUES (" ~ rs::join(",", values) ~ ")"
-			;
-			
-			return [sql, q._data];
-		}
-		
-		else if (q._kind == Query::QUERY_UPDATE)
-		{
-			Vector update_arr = new Vector();
-			Vector values = new Vector();
-			Map data = new Map();
-			
-			/* Build update */
-			if (q._data)
-			{
-				q._data.each(
-					void (var value, string key) use (update_arr, data)
-					{
-						string field_key = "update_" ~ key;
-						string field_name = this.prepare_field(key)
-						update_arr.pushValue(field_name ~ " = :" ~ field_key);
-						data = data.setValue(field_key, value);
-					}
-				);
-			}
-			
-			/* Build where */
-			list res = this.convertFilter(q._filter);
-			string where_str = res[0];
-			data = data.concat(res[1]);
-			
-			/* Build sql */
-			string sql = "UPDATE " ~ this.prefix ~ q._table_name ~
-				" SET " ~ rs::join(", ", update_arr) ~ " WHERE " ~ where_str
-			;
-			
-			return [sql, data.toDict()];
-		}
-		
-		else if (q._kind == Query::QUERY_DELETE)
-		{
-			/* Build where */
-			list res = this.convertFilter(q._filter);
-			string where_str = res[0];
-			Dict data = res[1];
-			
-			/* Delete item */
-			string sql = "DELETE FROM " ~ this.prefix ~ q._table_name ~
-				" WHERE " ~ where_str;
-			
-			return [sql, data];
-		}
-		
-		else if (q._kind == Query::QUERY_RAW)
-		{
-			return [q._sql, q._data];
-		}
-		
-		return null;
-	}
-	
-	
-	/**
-	 * Convert filter
-	 */
-	list convertFilter(Collection filter, int field_index = 0)
-	{
-		Vector where = new Vector();
-		Map data = new Map();
-		Collection allow_operations = [
-			"=", "!=", ">=", "<=", "<", ">",
-			"like", "%like%", "like%", "%like",
-			"match"
-		];
-		
-		fn convert_key = string (string s)
-		{
-			s = re::replace("[,\\.]", "_", s);
-			s = re::replace("[^0-9A-Za-z_]", "", s);
-			return s;
-		};
-		
-		for (int i=0; i<filter.count(); i++)
-		{
-			list item = filter[i];
-			
-			if (rtl::isString(item))
-			{
-				where.pushValue(item);
-				continue;
-			}
-			
-			string field_name = "", op = "";
-			var value = "";
-			
-			/* If QueryFilter */
-			if (item instanceof QueryFilter)
-			{
-				field_name = item.key;
-				op = item.op;
-				value = item.value;
-			}
-			else
-			{
-				field_name = item[0];
-				op = item[1];
-				value = item[2];
-			}
-			
-			/* OR */
-			if (field_name == "$or")
-			{
-				Vector where_or = new Vector();
-				
-				for (int j=0; j<value.count(); j++)
-				{
-					list res_or = this.convertFilter(value[j], field_index);
-					where_or.pushValue( res_or[0] );
-					data.concat( res_or[1] );
-					field_index = res_or[2];
-				}
-				
-				where.pushValue( "(" ~ rs::join(" OR ", where_or) ~ ")" );
-				
-				continue;
-			}
-			
-			/* Check operation */
-			if (allow_operations.indexOf(op) == -1)
-			{
-				op = "=";
-			}
-			
-			if (value === null)
-			{
-				if (op == "!=")
-				{
-					where.pushValue( this.prepare_field(field_name) ~ " is not null" );
-				}
-				else
-				{
-					where.pushValue( this.prepare_field(field_name) ~ " is null" );
-				}
-			}
-			
-			else if (value instanceof Collection)
-			{
-				if (op == "=")
-				{
-					if (value.count() == 0)
-					{
-						where.pushValue( "1 = 0" );
-					}
-					else
-					{
-						Vector res = new Vector();
-						
-						for (int j=0; j<value.count(); j++)
-						{
-							string field_key = convert_key( field_index ~ "_where_" ~ field_name );
-							data.setValue( field_key, value[j] );
-							res.pushValue( ":" ~ field_key );
-							field_index++;
-						}
-						
-						where.pushValue( this.prepare_field(field_name) ~
-							" in (" ~ rs::join(",", res) ~ ")" );
-					}
-				}
-			}
-			
-			else
-			{
-				string field_key = convert_key( field_index ~ "_where_" ~ field_name );
-				field_name = this.prepare_field(field_name);
-				
-				list res = this.prepare_value(value, op);
-				value = res[0];
-				op = res[1];
-				
-				if (op == "match")
-				{
-					where.pushValue( "MATCH(" ~ field_name ~ ") AGAINST (:" ~
-						field_key ~ " IN BOOLEAN MODE)" );
-				}
-				else
-				{
-					where.pushValue( field_name ~ " " ~ op ~ " :" ~ field_key );
-				}
-				
-				data.setValue( field_key, value );
-				
-				field_index++;
-			}
-		}
-		
-		string where_str = rs::join(" AND ", where);
-		
-		return [where_str, data.toDict(), field_index];
 	}
 	
 	
@@ -583,7 +148,7 @@ class ConnectionMySQL extends Connection
 	/**
 	 * Prepare value
 	 */
-	string prepare_value(var item, string op)
+	string prepare_value(string item, string op)
 	{
 		if (op == "%like%")
 		{

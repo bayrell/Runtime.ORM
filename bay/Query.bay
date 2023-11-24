@@ -266,7 +266,6 @@ class Query extends BaseObject
 				field.annotation = annotation;
 				field.field_name = annotation.name;
 				field.table_name = table_name;
-				field.q = this;
 				this._fields.pushValue(field);
 			}
 		}
@@ -280,7 +279,7 @@ class Query extends BaseObject
 	{
 		field_name = rs::trim(field_name);
 		
-		Collection res1 = rs::split("as", field_name);
+		Collection res1 = rs::split(" as ", field_name);
 		Collection res2 = rs::split(".", res1[0]);
 		
 		if (res2.count() > 1 and res2.get(1) == "*")
@@ -296,7 +295,6 @@ class Query extends BaseObject
 					field.annotation = annotation;
 					field.field_name = annotation.name;
 					field.table_name = table_name;
-					field.q = this;
 					this._fields.pushValue(field);
 				}
 			}
@@ -304,7 +302,7 @@ class Query extends BaseObject
 		
 		else
 		{
-			QueryField field = QueryField::fromString(field_name, this);
+			QueryField field = QueryField::fromString(field_name);
 			this._fields.pushValue(field);
 		}
 		
@@ -487,64 +485,6 @@ class Query extends BaseObject
 	
 	
 	/**
-	 * Inner join by key
-	 */
-	Query innerJoinKey(string key_name)
-	{
-		ForeignKey key = this._provider.getForeignKey(key_name);
-		
-		if (key == null)
-		{
-			throw new RuntimeException("Foreign key '" ~ key_name ~ "' not found");
-		}
-		
-		Vector filter = new Vector();
-		filter.pushValue(
-			key.table_name ~ "." ~ key.primary_key ~ "=" ~
-			key.table_name_source ~ "." ~ key.foreign_key
-		);
-		
-		this._join.pushValue({
-			"kind": "join",
-			"table_name": key.table_name,
-			"filter": filter.toCollection(),
-		});
-		
-		return this;
-	}
-	
-	
-	/**
-	 * Reverse join by key
-	 */
-	Query reverseJoinKey(string key_name)
-	{
-		ForeignKey key = this._provider.getForeignKey(key_name);
-		
-		if (key == null)
-		{
-			throw new RuntimeException("Foreign key '" ~ key_name ~ "' not found");
-		}
-		
-		string table_name = key.table_name;
-		
-		Vector filter = new Vector();
-		filter.pushValue(
-			table_name ~ "." ~ key.primary_key ~ "=" ~
-			key.table_name_source ~ "." ~ key.foreign_key
-		);
-		
-		this._join.pushValue({
-			"kind": "join",
-			"table_name": key.table_name_source,
-			"filter": filter.toCollection(),
-		});
-		
-		return this;
-	}
-	
-	
-	/**
 	 * Left join
 	 */
 	Query leftJoin(string table_name, Collection filter)
@@ -556,33 +496,4 @@ class Query extends BaseObject
 		});
 		return this;
 	}
-	
-	
-	/**
-	 * Left join by key
-	 */
-	Query leftJoinKey(string key_name)
-	{
-		ForeignKey key = this._provider.getForeignKey(key_name);
-		
-		if (key == null)
-		{
-			throw new RuntimeException("Foreign key '" ~ key_name ~ "' not found");
-		}
-		
-		Vector filter = new Vector();
-		filter.pushValue(
-			key.table_name ~ "." ~ key.primary_key ~ "=" ~
-			this._table_name ~ "." ~ key.foreign_key
-		);
-		
-		this._join.pushValue({
-			"kind": "left",
-			"table_name": key.table_name,
-			"filter": filter.toCollection(),
-		});
-		
-		return this;
-	}
-	
 }

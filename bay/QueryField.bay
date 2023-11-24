@@ -22,8 +22,6 @@ use Runtime.BaseObject;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Provider;
-use Runtime.ORM.Query;
-use Runtime.ORM.QueryFilter;
 
 
 class QueryField extends BaseObject
@@ -32,8 +30,6 @@ class QueryField extends BaseObject
 	string table_name = "";
 	string field_name = "";
 	string alias_name = "";
-	QueryFilter filter = null;
-	Query q = null;
 	
 	
 	/**
@@ -52,8 +48,7 @@ class QueryField extends BaseObject
 	static QueryField create(
 		string table_name = "",
 		string field_name = "",
-		string alias_name = "",
-		Query q = null
+		string alias_name = ""
 	)
 	{
 		QueryField field = new QueryField;
@@ -62,9 +57,9 @@ class QueryField extends BaseObject
 		field_name = rs::trim(field_name);
 		table_name = rs::trim(table_name);
 		
-		field.q = q;
-		field.annotation = q._provider.getFieldType(table_name, field_name);
-
+		Provider provider = @.provider(classof Provider);
+		field.annotation = provider.getFieldType(table_name, field_name);
+		
 		field.alias_name = alias_name;
 		field.field_name = field_name;
 		field.table_name = table_name;
@@ -82,7 +77,7 @@ class QueryField extends BaseObject
 	/**
 	 * Create from string
 	 */
-	static QueryField fromString(string s, Query q = null)
+	static QueryField fromString(string s)
 	{
 		Collection res1 = rs::split(" as ", s);
 		Collection res2 = rs::split(".", res1[0]);
@@ -91,6 +86,6 @@ class QueryField extends BaseObject
 		string field_name = res2.count() == 0 ? res2.get(0) : res2.get(1);
 		string table_name = res2.count() > 1 ? res2.get(0) : "t";
 		
-		return QueryField::create(table_name, field_name, alias_name, q);
+		return QueryField::create(table_name, field_name, alias_name);
 	}
 }
