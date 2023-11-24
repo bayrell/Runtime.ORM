@@ -254,7 +254,7 @@ class Connection
 		);
 		
 		/* Find relation */
-		return await this.findRelation(table_name, filter, params);
+		return await this.findRelationByFilter(table_name, filter, params);
 	}
 	
 	
@@ -274,14 +274,14 @@ class Connection
 		];
 		
 		/* Find relation */
-		return await this.findRelation(table_name, filter, params);
+		return await this.findRelationByFilter(table_name, filter, params);
 	}
 	
 	
 	/**
 	 * Find relation by filter
 	 */
-	async Relation findRelation
+	async Relation findRelationByFilter
 		(string table_name, Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = new Query
@@ -289,6 +289,15 @@ class Connection
 			|> .setFilter(filter)
 			|> .limit(1)
 		;
+		return await this.findRelation(q);
+	}
+	
+	
+	/**
+	 * Find relation by query
+	 */
+	async Relation findRelation(Query q, Dict params = null)
+	{
 		Cursor c = await this.execute(q, params);
 		Relation item = await c.fetchRelation(q, params);
 		await c.close();
@@ -299,13 +308,22 @@ class Connection
 	/**
 	 * Find relations by filter
 	 */
-	async Vector<Relation> findRelations
+	async Vector<Relation> findRelationsByFilter
 		(string table_name, Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = new Query
 			|> .select(table_name)
 			|> .setFilter(filter)
 		;
+		return await this.findRelations(q, params);
+	}
+	
+	
+	/**
+	 * Find relations by query
+	 */
+	async Relation findRelations(Query q, Dict params = null)
+	{
 		Cursor c = await this.execute(q, params);
 		QueryResult items = await c.fetchAll(q, params);
 		await c.close();
@@ -328,19 +346,14 @@ class Connection
 		);
 		
 		/* Find item */
-		Relation relation = await this.findRelation(table_name, filter, params);
+		Relation relation = await this.findRelationByFilter(table_name, filter, params);
 		if (res) return res;
 		
 		/* Create if not found */
 		relation = Relation::newInstance(table_name);
 		
 		/* Set new data */
-		item.each(
-			void (var value, string key) use (relation)
-			{
-				relation.set(key, value);
-			}
-		);
+		relation.updateData(item);
 		
 		return relation;
 	}

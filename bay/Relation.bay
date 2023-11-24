@@ -77,17 +77,17 @@ class Relation extends BaseObject
 	 * Convert to model
 	 */
 	BaseStruct toModel(string class_name) =>
-		rtl::newInstance(class_name, [ this.toDict() ])
+		rtl::newInstance(class_name, [ this.toMap() ])
 	;
 	
 	
 	/**
 	 * Convert to Dict
 	 */
-	Dict toDict(Collection fields = null) =>
-		(fields == null) ? this.new_data.toDict() : this.new_data.intersect(fields)
+	Map toMap(Collection fields = null) =>
+		(fields == null) ? this.new_data.clone() : this.new_data.intersect(fields)
 	;
-	Dict data(Collection fields = null) => this.toDict();
+	Map data(Collection fields = null) => this.toMap();
 	
 	
 	/**
@@ -189,7 +189,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary filter by data
 	 */
-	pure Vector<QueryFilter> getPrimaryFilter(string table_name, Dict data, bool use_alias)
+	pure Vector<QueryFilter> getPrimaryFilter(string table_name, Dict data, bool use_alias = true)
 	{
 		Dict pk = static::getPrimaryFromData(table_name, data);
 		Vector filter = pk.transition(
@@ -213,7 +213,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary key
 	 */
-	public Dict getPrimaryKey()
+	public Map getPrimaryKey()
 	{
 		return static::getPrimaryFromData(this.table_name, this.new_data);
 	}
@@ -222,7 +222,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary key
 	 */
-	public Dict pk()
+	public Map pk()
 	{
 		return static::getPrimaryFromData(this.table_name, this.new_data);
 	}
@@ -231,7 +231,7 @@ class Relation extends BaseObject
 	/**
 	 * Get updated data
 	 */
-	Dict getUpdatedData()
+	Map getUpdatedData()
 	{
 		if (this.new_data == null) return {};
 		
@@ -245,26 +245,26 @@ class Relation extends BaseObject
 			
 			if (this.old_data == null)
 			{
-				res.setValue(field_name, new_value);
+				res.set(field_name, new_value);
 			}
 			else
 			{
 				if (not this.old_data.has(field_name))
 				{
-					res.setValue(field_name, new_value);
+					res.set(field_name, new_value);
 				}
 				else
 				{
 					var old_value = this.old_data[field_name];
 					if (new_value != old_value)
 					{
-						res.setValue(field_name, new_value);
+						res.set(field_name, new_value);
 					}
 				}
 			}
 		}
 		
-		return res.toDict();
+		return res;
 	}
 	
 	
@@ -343,6 +343,20 @@ class Relation extends BaseObject
 	
 	
 	/**
+	 * Update data
+	 */
+	async void updateData(Dict item)
+	{
+		item.each(
+			void (var value, string key)
+			{
+				this.set(key, value);
+			}
+		);
+	}
+	
+	
+	/**
 	 * Save model
 	 */
 	async void save(Connection conn, Dict params = null)
@@ -381,7 +395,7 @@ class Relation extends BaseObject
 				for (int i=0; i<updated_data_keys.count(); i++)
 				{
 					string field_name = updated_data_keys[i];
-					this.old_data.setValue(field_name, updated_data[field_name]);
+					this.old_data.set(field_name, updated_data[field_name]);
 				}
 			}
 		}
@@ -402,8 +416,8 @@ class Relation extends BaseObject
 			AutoIncrement auto_increment = static::getAutoIncrement(this.table_name);
 			if (auto_increment and auto_increment.name)
 			{
-				this.old_data.setValue(auto_increment.name, last_id);
-				this.new_data.setValue(auto_increment.name, last_id);
+				this.old_data.set(auto_increment.name, last_id);
+				this.new_data.set(auto_increment.name, last_id);
 			}
 		}
 		
@@ -477,6 +491,6 @@ class Relation extends BaseObject
 	 */
 	void set(string name, var value)
 	{
-		this.new_data.setValue(name, value);
+		this.new_data.set(name, value);
 	}
 }

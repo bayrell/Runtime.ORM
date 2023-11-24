@@ -40,4 +40,20 @@ class QueryFilter extends BaseObject
 		this.value = value;
 		this.alias = alias;
 	}
+	
+	
+	/**
+	 * Validate operation
+	 */
+	pure bool validateOp(string op)
+	{
+		if (op == "=") return true;
+		if (op == ">") return true;
+		if (op == ">=") return true;
+		if (op == "<") return true;
+		if (op == "<=") return true;
+		if (op == "!=") return true;
+		return false;
+	}
+	
 }
