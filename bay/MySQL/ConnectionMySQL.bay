@@ -26,6 +26,7 @@ use Runtime.ORM.Query;
 use Runtime.ORM.QueryField;
 use Runtime.ORM.QueryFilter;
 use Runtime.ORM.MySQL.CursorMySQL;
+use Runtime.ORM.MySQL.SQLBuilder;
 
 
 class ConnectionMySQL extends Connection

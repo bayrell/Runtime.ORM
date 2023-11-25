@@ -18,7 +18,12 @@
 
 namespace Runtime.ORM.MySQL;
 
+use Runtime.re;
 use Runtime.BaseObject;
+use Runtime.ORM.Connection;
+use Runtime.ORM.Query;
+use Runtime.ORM.QueryField;
+use Runtime.ORM.QueryFilter;
 
 
 class SQLBuilder extends BaseObject

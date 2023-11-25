@@ -23,6 +23,7 @@ use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
+use Runtime.ORM.QueryFilter;
 use Runtime.ORM.QueryResult;
 use Runtime.ORM.Relation;
 
@@ -327,7 +328,7 @@ class Connection
 		Cursor c = await this.execute(q, params);
 		QueryResult items = await c.fetchAll(q, params);
 		await c.close();
-		return item.toRelation();
+		return items.toRelation();
 	}
 	
 	
@@ -347,7 +348,7 @@ class Connection
 		
 		/* Find item */
 		Relation relation = await this.findRelationByFilter(table_name, filter, params);
-		if (res) return res;
+		if (relation) return relation;
 		
 		/* Create if not found */
 		relation = Relation::newInstance(table_name);
