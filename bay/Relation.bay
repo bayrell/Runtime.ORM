@@ -21,6 +21,7 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseObject;
 use Runtime.BaseStruct;
+use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
@@ -84,10 +85,8 @@ class Relation extends BaseObject
 	/**
 	 * Convert to Dict
 	 */
-	Map toMap(Collection fields = null) =>
-		(fields == null) ? this.new_data.clone() : this.new_data.intersect(fields)
-	;
-	Map data(Collection fields = null) => this.toMap();
+	Map toMap() => this.new_data.clone();
+	Map intersect(Collection fields = null) => this.new_data.intersect(fields);
 	
 	
 	/**

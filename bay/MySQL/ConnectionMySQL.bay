@@ -118,9 +118,6 @@ class ConnectionMySQL extends Connection
 			return null;
 		}
 		
-		/* Create cursor */
-		Cursor cursor = this.createCursor();
-		
 		/* Get sql */
 		string sql = builder.getSQL();
 		Dict data = builder.getData();
@@ -132,10 +129,24 @@ class ConnectionMySQL extends Connection
 			io::print(sql);
 		}
 		
+		/* Create cursor */
+		Cursor cursor = this.createCursor();
+		
 		/* Execute sql */
 		Cursor cursor = await cursor.executeSQL(sql, data, params);
 		cursor.q = q.copy();
 		
+		return cursor;
+	}
+	
+	
+	/**
+	 * Execute Query
+	 */
+	async Cursor executeSQL(string sql, Dict data, Dict params = null)
+	{
+		Cursor cursor = this.createCursor();
+		Cursor cursor = await cursor.executeSQL(sql, data, params);
 		return cursor;
 	}
 	
