@@ -29,7 +29,7 @@ use Runtime.ORM.QueryFilter;
 class SQLBuilder extends BaseObject
 {
 	string sql = null;
-	Map data = new Map;
+	Map data = null;
 	
 	
 	/**
@@ -53,6 +53,12 @@ class SQLBuilder extends BaseObject
 	 * Returns data
 	 */
 	Map getData() => this.data;
+	
+	
+	/**
+	 * Returns true if builder is correct
+	 */
+	bool isValid() => this.sql != null;
 	
 	
 	/**

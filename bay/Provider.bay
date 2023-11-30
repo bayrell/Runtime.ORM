@@ -21,6 +21,7 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseProvider;
 use Runtime.BaseStruct;
+use Runtime.Callback;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Annotations.AutoIncrement;
@@ -28,6 +29,7 @@ use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Annotations.Database;
 use Runtime.ORM.Annotations.ForeignKey;
 use Runtime.ORM.Annotations.Primary;
+use Runtime.ORM.Annotations.Rule;
 use Runtime.ORM.Annotations.Table;
 
 
@@ -56,7 +58,7 @@ class Provider extends BaseProvider
 	 */
 	void addConnection(Connection conn)
 	{
-		this.connection_list.setValue(conn.getName(), conn);
+		this.connection_list.set(conn.getName(), conn);
 	}
 	
 	
@@ -102,65 +104,76 @@ class Provider extends BaseProvider
 	
 	
 	/**
+	 * Add table
+	 */
+	void addTable(Table table, Vector rules)
+	{
+		string table_name = table.name;
+		
+		for (int i=0; i<rules.count(); i++)
+		{
+			BaseStruct rule = rules.get(i);
+			rule <= table_name_source <= table_name;
+			rules.set(i, rule);
+		}
+		
+		this.tables.set(table_name, {
+			"annotations": rules.toCollection(),
+			"table": table,
+		});
+		
+		for (int i=0; i<rules.count(); i++)
+		{
+			BaseStruct rule = rules.get(i);
+			if (rule instanceof ForeignKey)
+			{
+				if (rule.name != "")
+				{
+					if (this.foreign_keys.has(rule.name))
+					{
+						throw new RuntimeException("Duplicate foreign_key name");
+					}
+					this.foreign_keys.set(rule.name, rule);
+				}
+			}
+		}
+	}
+	
+	
+	/**
 	 * Start provider
 	 */
 	async void start()
 	{
 		await parent::start();
 		
-		Collection<Database> items = @.entities.filter( lib::isInstance(classof Database) );
+		Collection<Database> items = @.getEntities(classof Database);
 		for (int i=0; i<items.count(); i++)
 		{
 			Database db = items[i];
 			string class_name = db.name;
-			fn getMethodsList = rtl::method(class_name, "getMethodsList");
-			fn getMethodInfoByName = rtl::method(class_name, "getMethodInfoByName");
+			Callback getMethodsList = new Callback(class_name, "getMethodsList");
+			Callback getMethodInfoByName = new Callback(class_name, "getMethodInfoByName");
 			
-			Collection<string> methods = getMethodsList();
+			Collection<string> methods = rtl::apply(getMethodsList);
 			for (int j=0; j<methods.count(); j++)
 			{
 				string method_name = methods[j];
-				Dict info = getMethodInfoByName(method_name);
-				Collection annotations = info["annotations"];
+				Dict info = rtl::apply(getMethodInfoByName, [method_name]);
+				
+				/* Get methods annotations */
+				Vector annotations = info.get("annotations");
 				if (annotations)
 				{
 					Table table = annotations.findItem( lib::isInstance(classof Table) );
-					string table_name = table.name;
-					
-					Collection annotations = rtl::callMethod(class_name, method_name);
-					for (int i=0; i<annotations.count(); i++)
+					if (table)
 					{
-						annotations <= { i } <= table_name_source <= table_name;
+						Vector rules = rtl::apply(new Callback(class_name, method_name));
+						this.addTable(table, rules);
 					}
-					
-					this.tables.setValue(table_name, {
-						"annotations": annotations,
-						"table": table,
-					});
-					
-					for (int i=0; i<annotations.count(); i++)
-					{
-						BaseStruct annotation = annotations.get(i);
-						if (annotation instanceof ForeignKey)
-						{
-							if (annotation.name != "")
-							{
-								if (this.foreign_keys.has(annotation.name))
-								{
-									throw new RuntimeException("Duplicate foreign_key name");
-								}
-								this.foreign_keys.setValue(
-									annotation.name,
-									annotation
-								);
-							}
-						}
-					}
-					
 				}
 			}
 		}
-		
 	}
 	
 }

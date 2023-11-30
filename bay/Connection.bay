@@ -206,7 +206,7 @@ class Connection
 	/**
 	 * Fetch all
 	 */
-	async QueryResult fetchAll(Query q, Dict params)
+	async QueryResult fetchAll(Query q, Dict params = null)
 	{
 		Cursor c = await this.execute(q, params);
 		QueryResult items = await c.fetchAll();
@@ -218,7 +218,7 @@ class Connection
 	/**
 	 * Fetch
 	 */
-	async QueryResult fetch(Query q, Dict params)
+	async QueryResult fetch(Query q, Dict params = null)
 	{
 		Cursor c = await this.execute(q, params);
 		QueryResult items = await c.fetch();

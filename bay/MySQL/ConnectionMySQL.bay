@@ -110,7 +110,7 @@ class ConnectionMySQL extends Connection
 		}
 		
 		/* Build query */
-		SQLBuilder builder = new SQLBuilder(q);
+		SQLBuilder builder = new SQLBuilder(this, q);
 		
 		/* Check builder correct */
 		if (not builder.isValid())

@@ -266,7 +266,7 @@ class Query extends BaseObject
 				field.annotation = annotation;
 				field.field_name = annotation.name;
 				field.table_name = table_name;
-				this._fields.pushValue(field);
+				this._fields.append(field);
 			}
 		}
 	}
@@ -295,7 +295,7 @@ class Query extends BaseObject
 					field.annotation = annotation;
 					field.field_name = annotation.name;
 					field.table_name = table_name;
-					this._fields.pushValue(field);
+					this._fields.append(field);
 				}
 			}
 		}
@@ -303,7 +303,7 @@ class Query extends BaseObject
 		else
 		{
 			QueryField field = QueryField::fromString(field_name);
-			this._fields.pushValue(field);
+			this._fields.append(field);
 		}
 		
 		return this;
@@ -315,7 +315,7 @@ class Query extends BaseObject
 	 */
 	Query addRawField(string field_name)
 	{
-		this._fields.pushValue(field_name);
+		this._fields.append(field_name);
 		return this;
 	}
 	
@@ -414,7 +414,7 @@ class Query extends BaseObject
 	 */
 	Query orderBy(string name, string sort)
 	{
-		this._order.pushValue([ name, sort ]);
+		this._order.append([ name, sort ]);
 		return this;
 	}
 	
@@ -428,7 +428,7 @@ class Query extends BaseObject
 		filter.key = key;
 		filter.op = op;
 		filter.value = value;
-		this._filter.pushValue(filter);
+		this._filter.append(filter);
 		return this;
 	}
 	
@@ -450,7 +450,7 @@ class Query extends BaseObject
 	{
 		if (filter instanceof QueryFilter)
 		{
-			this._filter.pushValue(filter)
+			this._filter.append(filter)
 		}
 		else if (filter instanceof Collection)
 		{
@@ -475,7 +475,7 @@ class Query extends BaseObject
 	 */
 	Query innerJoin(string table_name, Collection filter)
 	{
-		this._join.pushValue({
+		this._join.append({
 			"kind": "join",
 			"table_name": table_name,
 			"filter": filter,
@@ -489,7 +489,7 @@ class Query extends BaseObject
 	 */
 	Query leftJoin(string table_name, Collection filter)
 	{
-		this._join.pushValue({
+		this._join.append({
 			"kind": "left",
 			"table_name": table_name,
 			"filter": filter,
