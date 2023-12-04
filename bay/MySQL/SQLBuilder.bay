@@ -229,8 +229,8 @@ class SQLBuilder extends BaseObject
 				q._data.each(
 					void (var value, string key) use (keys, values)
 					{
-						keys.pushValue( "`" ~ key ~ "`" );
-						values.pushValue( ":" ~ key );
+						keys.push( "`" ~ key ~ "`" );
+						values.push( ":" ~ key );
 					}
 				);
 			}
@@ -256,8 +256,8 @@ class SQLBuilder extends BaseObject
 					{
 						string field_key = "update_" ~ key;
 						string field_name = this.conn.prepare_field(key)
-						update_arr.pushValue(field_name ~ " = :" ~ field_key);
-						data = data.setValue(field_key, value);
+						update_arr.push(field_name ~ " = :" ~ field_key);
+						data = data.set(field_key, value);
 					}
 				);
 			}
@@ -322,7 +322,7 @@ class SQLBuilder extends BaseObject
 			
 			if (rtl::isString(item))
 			{
-				where.pushValue(item);
+				where.push(item);
 				continue;
 			}
 			
@@ -351,12 +351,12 @@ class SQLBuilder extends BaseObject
 				for (int j=0; j<value.count(); j++)
 				{
 					list res_or = this.convertFilter(value[j], field_index);
-					where_or.pushValue( res_or[0] );
+					where_or.push( res_or[0] );
 					data.concat( res_or[1] );
 					field_index = res_or[2];
 				}
 				
-				where.pushValue( "(" ~ rs::join(" OR ", where_or) ~ ")" );
+				where.push( "(" ~ rs::join(" OR ", where_or) ~ ")" );
 				
 				continue;
 			}
@@ -371,11 +371,11 @@ class SQLBuilder extends BaseObject
 			{
 				if (op == "!=")
 				{
-					where.pushValue( this.conn.prepare_field(field_name) ~ " is not null" );
+					where.push( this.conn.prepare_field(field_name) ~ " is not null" );
 				}
 				else
 				{
-					where.pushValue( this.conn.prepare_field(field_name) ~ " is null" );
+					where.push( this.conn.prepare_field(field_name) ~ " is null" );
 				}
 			}
 			
@@ -385,7 +385,7 @@ class SQLBuilder extends BaseObject
 				{
 					if (value.count() == 0)
 					{
-						where.pushValue( "1 = 0" );
+						where.push( "1 = 0" );
 					}
 					else
 					{
@@ -394,12 +394,12 @@ class SQLBuilder extends BaseObject
 						for (int j=0; j<value.count(); j++)
 						{
 							string field_key = convert_key( field_index ~ "_where_" ~ field_name );
-							data.setValue( field_key, value[j] );
-							res.pushValue( ":" ~ field_key );
+							data.set( field_key, value[j] );
+							res.push( ":" ~ field_key );
 							field_index++;
 						}
 						
-						where.pushValue( this.conn.prepare_field(field_name) ~
+						where.push( this.conn.prepare_field(field_name) ~
 							" in (" ~ rs::join(",", res) ~ ")" );
 					}
 				}
@@ -416,15 +416,15 @@ class SQLBuilder extends BaseObject
 				
 				if (op == "match")
 				{
-					where.pushValue( "MATCH(" ~ field_name ~ ") AGAINST (:" ~
+					where.push( "MATCH(" ~ field_name ~ ") AGAINST (:" ~
 						field_key ~ " IN BOOLEAN MODE)" );
 				}
 				else
 				{
-					where.pushValue( field_name ~ " " ~ op ~ " :" ~ field_key );
+					where.push( field_name ~ " " ~ op ~ " :" ~ field_key );
 				}
 				
-				data.setValue( field_key, value );
+				data.set( field_key, value );
 				
 				field_index++;
 			}

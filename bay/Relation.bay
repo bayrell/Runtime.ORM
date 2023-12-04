@@ -361,7 +361,7 @@ class Relation extends BaseObject
 	async void save(Connection conn, Dict params = null)
 	{
 		/* Call before save */
-		await @.callAsyncHook(DatabaseSchema::SAVE_BEFORE, {
+		await @.callHookAsync(DatabaseSchema::SAVE_BEFORE, {
 			"item": this,
 		});
 		
@@ -421,7 +421,7 @@ class Relation extends BaseObject
 		}
 		
 		/* Call before after */
-		await @.callAsyncHook(DatabaseSchema::SAVE_AFTER, {
+		await @.callHookAsync(DatabaseSchema::SAVE_AFTER, {
 			"item": this,
 		});
 	}
