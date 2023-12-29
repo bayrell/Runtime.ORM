@@ -133,7 +133,7 @@ class CursorMySQL extends Cursor
 	/**
 	 * Fetch next row
 	 */
-	async var fetchDict()
+	async var fetchMap()
 	{
 		#switch
 		#case ifcode PHP then
@@ -141,7 +141,7 @@ class CursorMySQL extends Cursor
 		if ($this->st == null) return null;
 		
 		$row = $this->st->fetch(\PDO::FETCH_ASSOC);
-		$row = ($row != null) ? \Runtime\Dict::from($row) : null;
+		$row = ($row != null) ? \Runtime\Map::from($row) : null;
 		
 		return $row;
 		#endswitch
