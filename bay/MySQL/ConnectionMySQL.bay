@@ -1,7 +1,7 @@
 /*!
  *  Bayrell Runtime Library
  *
- *  (c) Copyright 2016-2023 "Ildar Bikmamatov" <support@bayrell.org>
+ *  (c) Copyright 2016-2024 "Ildar Bikmamatov" <support@bayrell.org>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ use Runtime.ORM.Cursor;
 use Runtime.ORM.Query;
 use Runtime.ORM.QueryField;
 use Runtime.ORM.QueryFilter;
+use Runtime.ORM.Exceptions.OrmException;
 use Runtime.ORM.MySQL.CursorMySQL;
 use Runtime.ORM.MySQL.SQLBuilder;
 
@@ -67,7 +68,8 @@ class ConnectionMySQL extends Connection
 		}
 		catch (\PDOException $e)
 		{
-			$this->connect_error = 'Failed connected to database!';
+			$this->connect_error = $e->getMessage();
+			throw new \Runtime\ORM\Exceptions\OrmException('Failed connected to database!');
 		}
 		catch (\Excepion $e)
 		{
@@ -125,8 +127,8 @@ class ConnectionMySQL extends Connection
 		/* Debug sql */
 		if (is_debug)
 		{
-			string sql = builder.formatSQL();
-			io::print(sql);
+			string sql_debug = builder.formatSQL();
+			io::print(sql_debug);
 		}
 		
 		/* Create cursor */
