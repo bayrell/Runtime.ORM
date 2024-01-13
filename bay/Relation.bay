@@ -432,6 +432,11 @@ class Relation extends BaseObject
 	 */
 	async Relation delete(Connection conn, Dict params = null)
 	{
+		if (this.isNew())
+		{
+			return;
+		}
+		
 		Collection filter = static::getPrimaryFilter(this.table_name, this.old_data, false);
 		
 		if (filter.count() > 0)

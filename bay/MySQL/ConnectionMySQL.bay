@@ -145,7 +145,7 @@ class ConnectionMySQL extends Connection
 	/**
 	 * Execute Query
 	 */
-	async Cursor executeSQL(string sql, Dict data, Dict params = null)
+	async Cursor executeSQL(string sql, Dict data = null, Dict params = null)
 	{
 		Cursor cursor = this.createCursor();
 		Cursor cursor = await cursor.executeSQL(sql, data, params);
