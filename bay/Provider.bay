@@ -31,6 +31,7 @@ use Runtime.ORM.Annotations.ForeignKey;
 use Runtime.ORM.Annotations.Primary;
 use Runtime.ORM.Annotations.Rule;
 use Runtime.ORM.Annotations.Table;
+use Runtime.ORM.Factory.ConnectionFactory;
 
 
 class Provider extends BaseProvider
@@ -146,7 +147,16 @@ class Provider extends BaseProvider
 	async void start()
 	{
 		await parent::start();
-		
+		this.registerTables();
+		this.registerConnections();
+	}
+	
+	
+	/**
+	 * Register tables
+	 */
+	protected void registerTables()
+	{
 		Collection<Database> items = @.getEntities(classof Database);
 		for (int i=0; i<items.count(); i++)
 		{
@@ -176,4 +186,18 @@ class Provider extends BaseProvider
 		}
 	}
 	
+	
+	/**
+	 * Register connections
+	 */
+	protected void registerConnections()
+	{
+		Collection<ConnectionFactory> items = @.getEntities(classof ConnectionFactory);
+		for (int i=0; i<items.count(); i++)
+		{
+			ConnectionFactory factory = items.get(i);
+			Connection conn = factory.createConnection();
+			this.addConnection(conn);
+		}
+	}
 }
