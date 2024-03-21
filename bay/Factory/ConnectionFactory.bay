@@ -16,12 +16,13 @@
  *  limitations under the License.
  */
 
-namespace Runtime.Entity;
+namespace Runtime.ORM.Factory;
 
 use Runtime.BaseObject;
 use Runtime.BaseProvider;
 use Runtime.Entity.Entity;
 use Runtime.ORM.Connection;
+use Runtime.ORM.Provider;
 
 
 struct ConnectionFactory extends Entity
@@ -29,9 +30,9 @@ struct ConnectionFactory extends Entity
 	/**
 	 * Constructor
 	 */
-	void constructor(Dict params)
+	void constructor()
 	{
-		parent(params);
+		parent();
 	}
 	
 	
@@ -41,5 +42,15 @@ struct ConnectionFactory extends Entity
 	Connection createConnection()
 	{
 		return null;
+	}
+	
+	
+	/**
+	 * Register connections
+	 */
+	void registerConnections(Provider provider)
+	{
+		Connection conn = this.createConnection();
+		provider.addConnection(conn);
 	}
 }

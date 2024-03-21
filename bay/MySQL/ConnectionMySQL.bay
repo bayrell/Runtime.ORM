@@ -135,7 +135,7 @@ class ConnectionMySQL extends Connection
 		Cursor cursor = this.createCursor();
 		
 		/* Execute sql */
-		Cursor cursor = await cursor.executeSQL(sql, data, params);
+		Cursor cursor = await cursor.executeSQL(sql, data);
 		cursor.q = q.copy();
 		
 		return cursor;
@@ -145,10 +145,10 @@ class ConnectionMySQL extends Connection
 	/**
 	 * Execute Query
 	 */
-	async Cursor executeSQL(string sql, Dict data = null, Dict params = null)
+	async Cursor executeSQL(string sql, Dict data = null)
 	{
 		Cursor cursor = this.createCursor();
-		Cursor cursor = await cursor.executeSQL(sql, data, params);
+		Cursor cursor = await cursor.executeSQL(sql, data);
 		return cursor;
 	}
 	

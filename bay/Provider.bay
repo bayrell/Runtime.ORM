@@ -196,8 +196,7 @@ class Provider extends BaseProvider
 		for (int i=0; i<items.count(); i++)
 		{
 			ConnectionFactory factory = items.get(i);
-			Connection conn = factory.createConnection();
-			this.addConnection(conn);
+			factory.registerConnections(this);
 		}
 	}
 }
