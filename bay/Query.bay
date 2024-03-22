@@ -158,7 +158,6 @@ class Query extends BaseObject
 	{
 		this._kind = static::QUERY_SELECT;
 		this.table(table_name);
-		this.addTableFields(table_name);
 		return this;
 	}
 	

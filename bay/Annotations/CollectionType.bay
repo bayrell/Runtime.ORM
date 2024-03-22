@@ -25,8 +25,7 @@ use Runtime.ORM.Connection;
 
 struct CollectionType extends BaseType
 {
-    
-    /**
+	/**
 	 * Process item from database
 	 */
 	async var fromDatabase(Connection conn, Dict item)
@@ -55,5 +54,4 @@ struct CollectionType extends BaseType
 		item = await conn.toDatabase(this, item, this.name);
 		return item;
 	}
-    
 }
