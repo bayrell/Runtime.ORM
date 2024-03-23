@@ -76,18 +76,24 @@ class SQLBuilder extends BaseObject
 			{
 				if (value === null)
 				{
-					sql = rs::replace(":" ~ key, "null", sql);
+					sql = rs::replace(this.formatKey(key), "null", sql);
 				}
 				else
 				{
 					value = this.conn.quote(value);
-					sql = rs::replace(":" ~ key, value, sql);
+					sql = rs::replace(this.formatKey(key), value, sql);
 				}
 			}
 		);
 		
 		return sql;
 	}
+	
+	
+	/**
+	 * Format key
+	 */
+	string formatKey(string key) => ":" ~ key;
 	
 	
 	/**
@@ -233,7 +239,7 @@ class SQLBuilder extends BaseObject
 					void (var value, string key) use (keys, values)
 					{
 						keys.push( "`" ~ key ~ "`" );
-						values.push( ":" ~ key );
+						values.push( this.formatKey(key) );
 					}
 				);
 			}
@@ -259,7 +265,7 @@ class SQLBuilder extends BaseObject
 					{
 						string field_key = "update_" ~ key;
 						string field_name = this.conn.prepare_field(key)
-						update_arr.push(field_name ~ " = :" ~ field_key);
+						update_arr.push(field_name ~ " = " ~ this.formatKey(field_key));
 						data = data.set(field_key, value);
 					}
 				);
@@ -398,7 +404,7 @@ class SQLBuilder extends BaseObject
 						{
 							string field_key = convert_key( field_index ~ "_where_" ~ field_name );
 							data.set( field_key, value[j] );
-							res.push( ":" ~ field_key );
+							res.push( this.formatKey(field_key) );
 							field_index++;
 						}
 						
@@ -424,7 +430,7 @@ class SQLBuilder extends BaseObject
 				}
 				else
 				{
-					where.push( field_name ~ " " ~ op ~ " :" ~ field_key );
+					where.push( field_name ~ " " ~ op ~ " " ~ this.formatKey(field_key) );
 				}
 				
 				data.set( field_key, value );

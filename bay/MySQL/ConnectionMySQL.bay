@@ -98,6 +98,12 @@ class ConnectionMySQL extends Connection
 	
 	
 	/**
+	 * Create SQLBuilder
+	 */
+	SQLBuilder createBuilder(Query q) => new SQLBuilder(this, q);
+	
+	
+	/**
 	 * Execute Query
 	 */
 	async Cursor execute(Query q, Dict params = null)
@@ -112,17 +118,13 @@ class ConnectionMySQL extends Connection
 		}
 		
 		/* Build query */
-		SQLBuilder builder = new SQLBuilder(this, q);
+		SQLBuilder builder = this.createBuilder(q);
 		
 		/* Check builder correct */
 		if (not builder.isValid())
 		{
 			return null;
 		}
-		
-		/* Get sql */
-		string sql = builder.getSQL();
-		Dict data = builder.getData();
 		
 		/* Debug sql */
 		if (is_debug)
@@ -135,7 +137,7 @@ class ConnectionMySQL extends Connection
 		Cursor cursor = this.createCursor();
 		
 		/* Execute sql */
-		Cursor cursor = await cursor.executeSQL(sql, data);
+		Cursor cursor = await cursor.executeSQL(builder);
 		cursor.q = q.copy();
 		
 		return cursor;

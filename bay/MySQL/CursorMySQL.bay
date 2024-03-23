@@ -20,6 +20,7 @@ namespace Runtime.ORM.MySQL;
 
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Query;
+use Runtime.ORM.MySQL.SQLBuilder;
 
 
 class CursorMySQL extends Cursor
@@ -94,8 +95,12 @@ class CursorMySQL extends Cursor
 	/**
 	 * Execute sql query
 	 */
-	async CursorMySQL executeSQL(string sql, Dict data = null)
+	async CursorMySQL executeSQL(SQLBuilder builder)
 	{
+		/* Get sql */
+		string sql = builder.getSQL();
+		Dict data = builder.getData();
+		
 		#ifcode PHP then
 		
 		if ($data instanceof \Runtime\Dict)
