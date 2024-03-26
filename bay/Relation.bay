@@ -464,14 +464,17 @@ class Relation extends BaseObject implements MapInterface
 	async Relation refresh(Connection conn, Dict params = null)
 	{
 		Dict item = null;
-		Collection<QueryFilter> filter = static::getPrimaryFilter(this.table_name, this.old_data, false);
+		Collection<QueryFilter> filter = static::getPrimaryFilter(
+			this.table_name, this.old_data, false
+		);
 		
 		if (filter.count() > 0)
 		{
-			Query q = new Query
-				|> .select(this.table_name)
-				|> .setFilter(filter)
-				|> .limit(1)
+			Query q = new Query()
+				.select(this.table_name)
+				.addField(this.table_name ~ ".*")
+				.setFilter(filter)
+				.limit(1)
 			;
 			
 			item = await conn.fetchOne(q, params);
