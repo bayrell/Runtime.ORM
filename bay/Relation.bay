@@ -21,6 +21,7 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseObject;
 use Runtime.BaseStruct;
+use Runtime.MapInterface;
 use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
@@ -35,7 +36,7 @@ use Runtime.ORM.Annotations.ForeignKey;
 use Runtime.ORM.Annotations.Primary;
 
 
-class Relation extends BaseObject
+class Relation extends BaseObject implements MapInterface
 {
 	protected string table_name = "";
 	protected Map old_data = null;
@@ -85,6 +86,7 @@ class Relation extends BaseObject
 	/**
 	 * Convert to Dict
 	 */
+	Map all() => this.new_data.clone();
 	Map toMap() => this.new_data.clone();
 	Map intersect(Collection fields = null) => this.new_data.intersect(fields);
 	
@@ -487,7 +489,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns value
 	 */
-	var get(string name, var def_value = null) => this.new_data[name] |> default def_value;
+	var get(string name, var def_value = null) => this.new_data.get(name, def_value);
 	
 	
 	/**

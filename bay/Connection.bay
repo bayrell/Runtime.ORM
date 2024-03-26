@@ -36,6 +36,7 @@ class Connection
 	/**
 	 * Returns connection
 	 */
+	static Connection get(string name="default") => static::getConnection(name);
 	static Connection getConnection(string name = "default")
 	{
 		if (name == "") name = "default";
