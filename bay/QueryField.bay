@@ -45,32 +45,25 @@ class QueryField extends BaseObject
 	/**
 	 * Create from field name
 	 */
-	static QueryField create(
+	void constructor(
 		string table_name = "",
 		string field_name = "",
 		string alias_name = ""
 	)
 	{
-		QueryField field = new QueryField;
-		
 		table_name = rs::trim(table_name);
 		field_name = rs::trim(field_name);
 		table_name = rs::trim(table_name);
 		
-		Provider provider = @.provider(classof Provider);
-		field.annotation = provider.getFieldType(table_name, field_name);
-		
-		field.alias_name = alias_name;
-		field.field_name = field_name;
-		field.table_name = table_name;
-		
-		if (field.annotation == null)
+		if (table_name and field_name)
 		{
-			throw new RuntimeException("Field '" ~ field_name ~
-				"' not found in table '" ~ table_name ~ "'");
+			Provider provider = @.provider(classof Provider);
+			this.annotation = provider.getFieldType(table_name, field_name);
 		}
 		
-		return field;
+		this.alias_name = alias_name;
+		this.field_name = field_name;
+		this.table_name = table_name;
 	}
 	
 	
@@ -84,8 +77,8 @@ class QueryField extends BaseObject
 		
 		string alias_name = res1.count() > 1 ? res1.get(1) : "";
 		string field_name = res2.count() == 0 ? res2.get(0) : res2.get(1);
-		string table_name = res2.count() > 1 ? res2.get(0) : "t";
+		string table_name = res2.count() > 1 ? res2.get(0) : "";
 		
-		return QueryField::create(table_name, field_name, alias_name);
+		return new QueryField(table_name, field_name, alias_name);
 	}
 }

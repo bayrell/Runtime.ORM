@@ -153,46 +153,4 @@ class ConnectionMySQL extends Connection
 		Cursor cursor = await cursor.executeSQL(sql, data);
 		return cursor;
 	}
-	
-	
-	/**
-	 * Prepare field
-	 */
-	string prepare_field(var item) => item;
-	
-	
-	/**
-	 * Prepare value
-	 */
-	string prepare_value(string item, string op)
-	{
-		if (op == "%like%")
-		{
-			item = "%" ~ item ~ "%";
-			op = "like";
-		}
-		else if (op == "like%")
-		{
-			item = item ~ "%";
-			op = "like";
-		}
-		else if (op == "%like")
-		{
-			item = "%" ~ item;
-			op = "like";
-		}
-		return [item, op];
-	}
-	
-	
-	/**
-	 * Quote
-	 */
-	string quote(string value)
-	{
-		#ifcode PHP then
-		$value = $this->pdo->quote($value);
-		#endif
-		return value;
-	}
 }

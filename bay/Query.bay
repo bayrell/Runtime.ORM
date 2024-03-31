@@ -154,7 +154,7 @@ class Query extends BaseObject
 	/**
 	 * Select query
 	 */
-	Query select(string table_name = "", string alias_name = "t")
+	Query select(string table_name = "")
 	{
 		this._kind = static::QUERY_SELECT;
 		this.table(table_name);
@@ -276,6 +276,12 @@ class Query extends BaseObject
 	 */
 	Query addField(string field_name)
 	{
+		if (field_name instanceof QueryField)
+		{
+			this._fields.append(field_name);
+			return this;
+		}
+		
 		field_name = rs::trim(field_name);
 		
 		Collection res1 = rs::split(" as ", field_name);
