@@ -232,8 +232,8 @@ class SQLBuilder extends BaseObject
 					if (kind == "left") sql ~= " LEFT JOIN ";
 					else sql ~= " INNER JOIN ";
 					
-					sql ~= this.conn.prefix ~ table_name;
-					if (alias_name != "") sql ~= " AS " ~ alias_name;
+					sql ~= "`" ~ this.conn.prefix ~ table_name ~ "`";
+					if (alias_name != "") sql ~= " AS `" ~ alias_name ~ "`";
 					sql ~= " ON (" ~ where ~ ")";
 					
 					/* New line */

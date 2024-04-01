@@ -483,6 +483,7 @@ class Query extends BaseObject
 		this._join.append({
 			"kind": "join",
 			"table_name": table_name,
+			"alias_name": table_name,
 			"filter": filter,
 		});
 		return this;
