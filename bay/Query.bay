@@ -276,7 +276,7 @@ class Query extends BaseObject
 	 */
 	Query addField(string field_name)
 	{
-		if (field_name instanceof QueryField)
+		if (field_name instanceof QueryField or field_name instanceof QueryFilter)
 		{
 			this._fields.append(field_name);
 			return this;
@@ -478,12 +478,13 @@ class Query extends BaseObject
 	/**
 	 * Inner join
 	 */
-	Query innerJoin(string table_name, Collection filter)
+	Query innerJoin(string table_name, Collection filter, string alias_name = "")
 	{
+		if (alias_name == "") alias_name = table_name;
 		this._join.append({
 			"kind": "join",
+			"alias_name": alias_name,
 			"table_name": table_name,
-			"alias_name": table_name,
 			"filter": filter,
 		});
 		return this;
@@ -493,10 +494,12 @@ class Query extends BaseObject
 	/**
 	 * Left join
 	 */
-	Query leftJoin(string table_name, Collection filter)
+	Query leftJoin(string table_name, Collection filter, string alias_name = "")
 	{
+		if (alias_name == "") alias_name = table_name;
 		this._join.append({
 			"kind": "left",
+			"alias_name": alias_name,
 			"table_name": table_name,
 			"filter": filter,
 		});

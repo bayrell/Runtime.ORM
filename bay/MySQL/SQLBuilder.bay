@@ -99,11 +99,19 @@ class SQLBuilder extends BaseObject
 	/**
 	 * Prepare field
 	 */
-	string prepare_field(var item)
+	string prepare_field(string item)
 	{
-		Collection res = rs::split(".", item);
-		res = res.map(string (string name) => "`" ~ name ~ "`");
-		return rs::join(".", res);
+		Collection res1 = rs::split(",", item);
+		res1 = res1.map( string (string s) => rs::trim(s) );
+		res1 = res1.map(
+			string (string s)
+			{
+				Collection res2 = rs::split(".", s);
+				res2 = res2.map(string (string name) => "`" ~ name ~ "`");
+				return rs::join(".", res2);
+			}
+		);
+		return rs::join(",", res1);
 	}
 	
 	
@@ -167,27 +175,28 @@ class SQLBuilder extends BaseObject
 			{
 				Collection fields = q._fields
 					.map(
-						string (var item) use (data, q, field_index)
+						string (var item) use (q, data, field_index)
 						{
 							string field_name = "";
 							
 							if (item instanceof QueryField)
 							{
-								/*
-								if (item.filter != null)
-								{
-									list res = this.convertFilter([ item.filter ], field_index);
-									field_name = res[0];
-									data = data.concat(res[1]);
-									field_index = res[2];
-								}
-								*/
 								string table_name = item.table_name;
 								if (table_name == "") table_name = q._table_name;
 								field_name = "`" ~ table_name ~ "`.`" ~ item.field_name ~ "`";
 								if (item.alias_name != "")
 								{
 									field_name ~= " as `" ~ item.alias_name ~ "`";
+								}
+							}
+							else if (item instanceof QueryFilter)
+							{
+								list res = this.convertFilterItem(item, data, field_index);
+								field_name = res[0];
+								field_index = res[1];
+								if (item.alias != "")
+								{
+									field_name ~= " as `" ~ item.alias ~ "`";
 								}
 							}
 							else
@@ -224,10 +233,9 @@ class SQLBuilder extends BaseObject
 					string alias_name = join["alias_name"];
 					
 					Collection filter = join["filter"];
-					list res = this.convertFilter(filter, field_index);
+					list res = this.convertFilter(filter, data, field_index);
 					string where = res[0];
-					data = data.concat(res[1]);
-					field_index = res[2];
+					field_index = res[1];
 					
 					if (kind == "left") sql ~= " LEFT JOIN ";
 					else sql ~= " INNER JOIN ";
@@ -244,10 +252,9 @@ class SQLBuilder extends BaseObject
 			/* Add where */
 			if (q._filter != null and q._filter.count() > 0)
 			{
-				list res = this.convertFilter(q._filter, field_index);
+				list res = this.convertFilter(q._filter, data, field_index);
 				string where = res[0];
-				data = data.concat(res[1]);
-				field_index = res[2];
+				field_index = res[1];
 				
 				if (where != "") sql ~= " WHERE " ~ where;
 				
@@ -321,9 +328,8 @@ class SQLBuilder extends BaseObject
 			}
 			
 			/* Build where */
-			list res = this.convertFilter(q._filter);
+			list res = this.convertFilter(q._filter, data);
 			string where_str = res[0];
-			data = data.concat(res[1]);
 			
 			/* Build sql */
 			this.sql = "UPDATE " ~ this.conn.prefix ~ q._table_name ~
@@ -335,9 +341,9 @@ class SQLBuilder extends BaseObject
 		else if (q._kind == Query::QUERY_DELETE)
 		{
 			/* Build where */
-			list res = this.convertFilter(q._filter);
+			Map data = {};
+			list res = this.convertFilter(q._filter, data);
 			string where_str = res[0];
-			Dict data = res[1];
 			
 			/* Delete item */
 			this.sql = "DELETE FROM " ~ this.conn.prefix ~ q._table_name ~
@@ -357,10 +363,13 @@ class SQLBuilder extends BaseObject
 	/**
 	 * Convert filter
 	 */
-	list convertFilter(Collection filter, int field_index = 0)
+	list convertFilterItem(var item, Map data, int field_index = 0)
 	{
-		Vector where = new Vector();
-		Map data = new Map();
+		if (rtl::isString(item))
+		{
+			return [item, field_index];
+		}
+		
 		Collection allow_operations = [
 			"=", "!=", ">=", "<=", "<", ">",
 			"like", "%like%", "like%", "%like",
@@ -374,127 +383,142 @@ class SQLBuilder extends BaseObject
 			return s;
 		};
 		
-		for (int i=0; i<filter.count(); i++)
+		string field_name = "", op = "";
+		var value = "";
+		
+		/* If QueryFilter */
+		if (item instanceof QueryFilter)
 		{
-			list item = filter[i];
+			field_name = item.key;
+			op = item.op;
+			value = item.value;
+		}
+		else
+		{
+			field_name = item[0];
+			op = item[1];
+			value = item[2];
+		}
+		
+		/* OR */
+		if (field_name == "$or")
+		{
+			Vector where_or = new Vector();
 			
-			if (rtl::isString(item))
+			for (int j=0; j<value.count(); j++)
 			{
-				where.push(item);
-				continue;
+				list res_or = this.convertFilter(value[j], data, field_index);
+				where_or.push( res_or[0] );
+				data.concat( res_or[1] );
+				field_index = res_or[2];
 			}
 			
-			string field_name = "", op = "";
-			var value = "";
-			
-			/* If QueryFilter */
-			if (item instanceof QueryFilter)
+			string s = "(" ~ rs::join(" OR ", where_or) ~ ")";
+			return [s, field_index];
+		}
+		
+		/* Check operation */
+		if (allow_operations.indexOf(op) == -1)
+		{
+			op = "=";
+		}
+		
+		if (value === null)
+		{
+			if (op == "!=")
 			{
-				field_name = item.key;
-				op = item.op;
-				value = item.value;
+				string s = this.prepare_field(field_name) ~ " is not null";
+				return [s, field_index];
 			}
 			else
 			{
-				field_name = item[0];
-				op = item[1];
-				value = item[2];
-			}
-			
-			/* OR */
-			if (field_name == "$or")
-			{
-				Vector where_or = new Vector();
-				
-				for (int j=0; j<value.count(); j++)
-				{
-					list res_or = this.convertFilter(value[j], field_index);
-					where_or.push( res_or[0] );
-					data.concat( res_or[1] );
-					field_index = res_or[2];
-				}
-				
-				where.push( "(" ~ rs::join(" OR ", where_or) ~ ")" );
-				
-				continue;
-			}
-			
-			/* Check operation */
-			if (allow_operations.indexOf(op) == -1)
-			{
-				op = "=";
-			}
-			
-			if (value === null)
-			{
-				if (op == "!=")
-				{
-					where.push( this.prepare_field(field_name) ~ " is not null" );
-				}
-				else
-				{
-					where.push( this.prepare_field(field_name) ~ " is null" );
-				}
-			}
-			
-			else if (value instanceof Collection)
-			{
-				if (op == "=")
-				{
-					if (value.count() == 0)
-					{
-						where.push( "1 = 0" );
-					}
-					else
-					{
-						Vector res = new Vector();
-						
-						for (int j=0; j<value.count(); j++)
-						{
-							string field_key = convert_key( field_index ~ "_where_" ~ field_name );
-							data.set( field_key, value[j] );
-							res.push( this.formatKey(field_key) );
-							field_index++;
-						}
-						
-						where.push( this.prepare_field(field_name) ~
-							" in (" ~ rs::join(",", res) ~ ")" );
-					}
-				}
-			}
-			
-			else
-			{
-				string field_key = convert_key( field_index ~ "_where_" ~ field_name );
-				field_name = this.prepare_field(field_name);
-				
-				list res = this.prepare_value(value, op);
-				value = res[0];
-				op = res[1];
-				
-				if (op == "match")
-				{
-					where.push( "MATCH(" ~ field_name ~ ") AGAINST (:" ~
-						field_key ~ ")" );
-				}
-				else if (op == "match_boolean")
-				{
-					where.push( "MATCH(" ~ field_name ~ ") AGAINST (:" ~
-						field_key ~ " IN BOOLEAN MODE)" );
-				}
-				else
-				{
-					where.push( field_name ~ " " ~ op ~ " " ~ this.formatKey(field_key) );
-				}
-				
-				data.set( field_key, value );
-				
-				field_index++;
+				string s = this.prepare_field(field_name) ~ " is null";
+				return [s, field_index];
 			}
 		}
 		
-		string where_str = rs::join(" AND ", where);
+		else if (value instanceof Collection)
+		{
+			if (op == "=")
+			{
+				if (value.count() == 0)
+				{
+					return ["1 = 0", data, field_index];
+				}
+				else
+				{
+					Vector res = new Vector();
+					
+					for (int j=0; j<value.count(); j++)
+					{
+						string field_key = convert_key( field_index ~ "_where_" ~ field_name );
+						data.set( field_key, value[j] );
+						res.push( this.formatKey(field_key) );
+						field_index++;
+					}
+					
+					string s = this.prepare_field(field_name) ~
+						" in (" ~ rs::join(",", res) ~ ")"
+					;
+					return [s, field_index];
+				}
+			}
+		}
 		
-		return [where_str, data.toDict(), field_index];
+		else
+		{
+			string s = "";
+			string field_key = convert_key( field_index ~ "_where_" ~ field_name );
+			field_name = this.prepare_field(field_name);
+			
+			list res = this.prepare_value(value, op);
+			value = res[0];
+			op = res[1];
+			
+			if (op == "match")
+			{
+				s = "MATCH(" ~ field_name ~ ") AGAINST (" ~
+					this.formatKey(field_key) ~ ")"
+				;
+			}
+			else if (op == "match_boolean")
+			{
+				s = "MATCH(" ~ field_name ~ ") AGAINST (:" ~
+					this.formatKey(field_key) ~ " IN BOOLEAN MODE)"
+				;
+			}
+			else
+			{
+				s = field_name ~ " " ~ op ~ " " ~ this.formatKey(field_key);
+			}
+			
+			data.set( field_key, value );
+			field_index++;
+			
+			return [s, field_index];
+		}
+		
+		return ["", field_index];
+	}
+	
+	
+	/**
+	 * Convert filter
+	 */
+	list convertFilter(Collection filter, Map data, int field_index = 0)
+	{
+		Vector where = new Vector();
+		
+		for (int i=0; i<filter.count(); i++)
+		{
+			var item = filter.get(i);
+			list res = this.convertFilterItem(item, data, field_index);
+			string s = res.get(0);
+			field_index = res.get(1);
+			if (s != "") where.push(s);
+		}
+		
+		string where_str = rs::join(" AND ", where);
+		return [where_str, field_index];
 	}
 }
