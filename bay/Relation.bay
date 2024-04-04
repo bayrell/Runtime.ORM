@@ -183,7 +183,7 @@ class Relation extends BaseObject implements MapInterface
 		}
 		
 		/* Intersect values */
-		return data.intersect(primary_keys, false);
+		return data ? data.intersect(primary_keys, false) : {};
 	}
 	
 	
