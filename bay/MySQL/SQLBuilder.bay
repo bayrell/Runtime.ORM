@@ -39,7 +39,6 @@ class SQLBuilder extends BaseObject
 	{
 		this.conn = conn;
 		this.q = q;
-		this.build();
 	}
 	
 	
@@ -154,16 +153,16 @@ class SQLBuilder extends BaseObject
 	/**
 	 * Returns query sql
 	 */
-	void build()
+	SQLBuilder build()
 	{
-		if (this.q == null) return;
+		if (this.q == null) return this;
 		
 		Query q = this.q;
 		
 		/* Select query */
 		if (q._kind == Query::QUERY_SELECT)
 		{
-			Map data = {};
+			Map data = q._data.copy();
 			string sql = "SELECT ";
 			int field_index = 0;
 			
@@ -198,6 +197,10 @@ class SQLBuilder extends BaseObject
 								{
 									field_name ~= " as `" ~ item.alias ~ "`";
 								}
+							}
+							else if (rtl::isCallable(item))
+							{
+								return item(this);
 							}
 							else
 							{
@@ -357,6 +360,8 @@ class SQLBuilder extends BaseObject
 			this.sql = q._sql;
 			this.data = q._data;
 		}
+		
+		return this;
 	}
 	
 	
@@ -407,7 +412,7 @@ class SQLBuilder extends BaseObject
 			
 			for (int j=0; j<value.count(); j++)
 			{
-				list res_or = this.convertFilter(value[j], data, field_index);
+				list res_or = this.convertFilterItem(value[j], data, field_index);
 				where_or.push( res_or[0] );
 				field_index = res_or[1];
 			}

@@ -340,6 +340,16 @@ class Query extends BaseObject
 	
 	
 	/**
+	 * Set value
+	 */
+	Query value(string key, string value)
+	{
+		this._data.set(key, value);
+		return this;
+	}
+	
+	
+	/**
 	 * Set data
 	 */
 	Query values(Dict data)
@@ -455,12 +465,22 @@ class Query extends BaseObject
 	{
 		if (filter instanceof QueryFilter)
 		{
-			this._filter.append(filter)
+			this._filter.append(filter);
 		}
 		else if (filter instanceof Collection)
 		{
-			this._filter.appendVector(filter);
+			this._filter.appendItems(filter);
 		}
+		return this;
+	}
+	
+	
+	/**
+	 * Add or filter
+	 */
+	Query addOrFilter(Collection filter)
+	{
+		this._filter.append(["$or", null, filter]);
 		return this;
 	}
 	
