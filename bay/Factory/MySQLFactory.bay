@@ -21,31 +21,30 @@ namespace Runtime.ORM.Factory;
 use Runtime.BaseObject;
 use Runtime.BaseProvider;
 use Runtime.Entity.Entity;
-use Runtime.ORM.Connection;
-use Runtime.ORM.Provider;
+use Runtime.ORM.Factory.ConnectionFactory;
+use Runtime.ORM.MySQL.ConnectionMySQL;
 
 
-struct ConnectionFactory extends Entity
+struct MySQLFactory extends ConnectionFactory
 {
+	string host = "";
+	string login = "";
+	string password = "";
+	string database = "";
+	string prefix = "";
+	
+	
 	/**
 	 * Create connection
 	 */
-	Connection createConnection()
+	ConnectionMySQL createConnection()
 	{
-		return null;
-	}
-	
-	
-	/**
-	 * Register connections
-	 */
-	void registerConnections(Provider provider)
-	{
-		/* Create connection */
-		Connection conn = this.createConnection();
-		await conn.connect();
-		
-		/* Add connection */
-		provider.addConnection(conn);
+		ConnectionMySQL conn = new ConnectionMySQL(this.name);
+		conn.host = this.host;
+		conn.login = this.login;
+		conn.password = this.password;
+		conn.database = this.database;
+		conn.prefix = this.prefix;
+		return conn;
 	}
 }
