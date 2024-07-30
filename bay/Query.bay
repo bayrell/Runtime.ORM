@@ -154,10 +154,10 @@ class Query extends BaseObject
 	/**
 	 * Select query
 	 */
-	Query select(string table_name = "")
+	Query select(Collection fields = null)
 	{
 		this._kind = static::QUERY_SELECT;
-		this.table(table_name);
+		if (fields) this.fields(fields);
 		return this;
 	}
 	

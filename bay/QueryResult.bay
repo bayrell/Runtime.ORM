@@ -30,6 +30,8 @@ class QueryResult extends Vector<Dict>
 {
 	Query q = null;
 	Connection conn = null;
+	int rows = 0;
+	int pages = 0;
 	
 	
 	/**
