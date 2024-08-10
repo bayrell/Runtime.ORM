@@ -66,30 +66,15 @@ class Cursor extends BaseObject
 	 */
 	async int getPages()
 	{
-		int limit = 0;
-		if (this.q) limit = this.q._limit;
-		if (limit <= 0) return 0;
 		int rows = await this.foundRows();
-		return rows > 0 ? Math::floor((rows - 1) / limit) + 1 : 0;
+		return this.q ? this.q.getPages(rows) : 0;
 	}
 	
 	
 	/**
 	 * Returns page
 	 */
-	async int getPage()
-	{
-		int limit = 0;
-		int offset = 0;
-		if (this.q)
-		{
-			limit = this.q._limit;
-			offset = this.q._start;
-		}
-		if (limit <= 0) return 0;
-		if (offset <= 0) return 0;
-		return Math::floor(offset / limit);
-	}
+	async int getPage() => this.q ? this.q.getPage() : 0;
 	
 	
 	/**
@@ -156,11 +141,16 @@ class Cursor extends BaseObject
 	async QueryResult fetchAll()
 	{
 		string table_name = this.q._table_name;
-		QueryResult items = new QueryResult(this.q);
+		QueryResult items = new QueryResult();
 		
-		items.q = this.q.copy();
+		/* Copy settings */
 		items.conn = this.conn;
+		items.q = this.q ? this.q.copy() : null;
 		
+		/* Get rows */
+		items.rows = await this.foundRows();
+		
+		/* Get items */
 		while (true)
 		{
 			Dict row = await this.fetch();

@@ -127,7 +127,7 @@ class CursorMySQL extends Cursor
 	{
 		#ifcode PHP then
 		
-		$this->st->closeCursor();
+		if ($this->st) $this->st->closeCursor();
 		$this->st = null;
 		
 		#endif

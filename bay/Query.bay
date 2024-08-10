@@ -22,6 +22,7 @@ use Runtime.lib;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.BaseObject;
 use Runtime.BaseStruct;
+use Runtime.Math;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Annotations.Primary;
 use Runtime.ORM.Connection;
@@ -411,6 +412,30 @@ class Query extends BaseObject
 	{
 		this._limit = limit;
 		return this;
+	}
+	
+	
+	/**
+	 * Returns page
+	 */
+	int getPage()
+	{
+		int limit = this._limit;
+		int offset = this._start;
+		if (limit <= 0) return 0;
+		if (offset <= 0) return 0;
+		return Math::floor(offset / limit);
+	}
+	
+	
+	/**
+	 * Returns pages
+	 */
+	int getPages(int rows)
+	{
+		int limit = this._limit;
+		if (limit <= 0) return 0;
+		return rows > 0 ? Math::floor((rows - 1) / limit) + 1 : 0;
 	}
 	
 	

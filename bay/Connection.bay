@@ -211,8 +211,6 @@ class Connection
 	{
 		Cursor c = await this.execute(q, params);
 		QueryResult items = await c.fetchAll();
-		items.rows = await c.foundRows();
-		items.pages = await c.getPages();
 		await c.close();
 		return items;
 	}
