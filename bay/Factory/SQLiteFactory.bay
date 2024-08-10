@@ -31,24 +31,14 @@ struct SQLiteFactory extends ConnectionFactory
 	
 	
 	/**
-	 * Constructor
-	 */
-	void constructor(string name, string path)
-	{
-		parent({
-			"name": name,
-			"path": path,
-		});
-	}
-	
-	
-	/**
 	 * Create connection
 	 */
 	ConnectionSQLite createConnection()
 	{
 		ConnectionSQLite conn = new ConnectionSQLite(this.name);
 		conn.database = this.path;
+		await conn.connect();
+		await conn.executeSQL("PRAGMA journal_mode = WAL;");
 		return conn;
 	}
 }

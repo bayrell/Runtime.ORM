@@ -45,6 +45,7 @@ struct MySQLFactory extends ConnectionFactory
 		conn.password = this.password;
 		conn.database = this.database;
 		conn.prefix = this.prefix;
+		await conn.connect();
 		return conn;
 	}
 }

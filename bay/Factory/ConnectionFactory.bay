@@ -43,7 +43,6 @@ struct ConnectionFactory extends Entity
 	{
 		/* Create connection */
 		Connection conn = this.createConnection();
-		await conn.connect();
 		
 		/* Add connection */
 		provider.addConnection(conn);
