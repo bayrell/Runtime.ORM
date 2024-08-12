@@ -287,12 +287,12 @@ class Connection
 		(string table_name, Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = new Query()
-			.select(table_name)
-			.addField(table_name ~ ".*")
+			.select([table_name ~ ".*"])
+			.from(table_name)
 			.setFilter(filter)
 			.limit(1)
 		;
-		return await this.findRelation(q);
+		return await this.findRelation(q, params);
 	}
 	
 	
@@ -315,8 +315,8 @@ class Connection
 		(string table_name, Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = new Query()
-			.select(table_name)
-			.addField(table_name ~ ".*")
+			.select([table_name ~ ".*"])
+			.from(table_name)
 			.setFilter(filter)
 		;
 		return await this.findRelations(q, params);

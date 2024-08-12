@@ -111,7 +111,7 @@ class ConnectionMySQL extends Connection
 		if (params == null) params = {};
 		
 		/* Check is debug */
-		bool is_debug = params["debug"] |> default bool false;
+		bool is_debug = params.get("debug", false);
 		if (q._debug)
 		{
 			is_debug = true;
