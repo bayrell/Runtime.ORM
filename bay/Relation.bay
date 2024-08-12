@@ -471,8 +471,8 @@ class Relation extends BaseObject implements MapInterface
 		if (filter.count() > 0)
 		{
 			Query q = new Query()
-				.select(this.table_name)
-				.addField(this.table_name ~ ".*")
+				.select([this.table_name ~ ".*"])
+				.from(this.table_name)
 				.setFilter(filter)
 				.limit(1)
 			;
