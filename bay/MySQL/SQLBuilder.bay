@@ -28,8 +28,10 @@ use Runtime.ORM.QueryFilter;
 
 class SQLBuilder extends BaseObject
 {
-	string sql = null;
+	Connection conn = null;
 	Map data = null;
+	Query q = null;
+	string sql = null;
 	
 	
 	/**
