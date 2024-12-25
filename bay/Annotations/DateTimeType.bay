@@ -71,7 +71,7 @@ struct DateTimeType extends BaseType
 	static string convertToDatabase(DateTime value)
 	{
 		if (not(value instanceof DateTime)) return "";
-		return value.shiftOffset(0).getDateTimeString();
+		return value.setOffset(0).getDateTimeString();
 	}
 	
 }
