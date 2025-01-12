@@ -39,6 +39,12 @@ class BaseMigration extends BaseObject
 	
 	
 	/**
+	 * Returns branch
+	 */
+	string getBranch() => "";
+	
+	
+	/**
 	 * Returns name
 	 */
 	string getName() => "";

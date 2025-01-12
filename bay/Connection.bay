@@ -20,17 +20,21 @@ namespace Runtime.ORM;
 
 use Runtime.BaseStruct;
 use Runtime.Exceptions.RuntimeException;
+use Runtime.ORM.Factory.CursorFactory;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.Provider;
 use Runtime.ORM.Query;
 use Runtime.ORM.QueryFilter;
+use Runtime.ORM.QueryLog;
 use Runtime.ORM.QueryResult;
 use Runtime.ORM.Relation;
 
 
 class Connection
 {
-	protected string name = "";
+	string name = "";
+	CursorFactory cursor = null;
+	QueryLog log = null;
 	
 	
 	/**
@@ -48,9 +52,33 @@ class Connection
 	
 	
 	/**
+	 * Set cursor factory
+	 */
+	void setCursorFactory(CursorFactory factory)
+	{
+		this.cursor = factory;
+	}
+	
+	
+	/**
+	 * Set query log
+	 */
+	void setQueryLog(QueryLog value)
+	{
+		this.log = value;
+	}
+	
+	
+	/**
+	 * Returns query log
+	 */
+	QueryLog getQueryLog() => this.log;
+	
+	
+	/**
 	 * Constructor
 	 */
-	public void constructor(string name)
+	public void constructor(string name = "")
 	{
 		this.name = name;
 	}
@@ -79,19 +107,34 @@ class Connection
 	/**
 	 * Create new cursor
 	 */
-	Cursor createCursor() => new Cursor();
+	Cursor createCursor()
+	{
+		if (not this.cursor) return;
+		Cursor cursor = this.cursor.createCursor();
+		cursor.setConnection(this);
+		return cursor;
+	}
+	
+	
+	/**
+	 * Fork connection
+	 */
+	Connection fork()
+	{
+		return rtl::newInstance(static::getClassName());
+	}
 	
 	
 	/**
 	 * Prepare field
 	 */
-	string prepare_field(var item) => item;
+	string prepareField(var item) => item;
 	
 	
 	/**
 	 * Prepare value
 	 */
-	string prepare_value(string item, string op) => item;
+	string prepareValue(string item, string op) => item;
 	
 	
 	/**
@@ -104,7 +147,6 @@ class Connection
 	 * Execute Query
 	 */
 	async Cursor execute(Query q, Dict params = null) => null;
-	async Cursor executeQuery(Query q, Dict params = null) => this.execute(q, params);
 	
 	
 	/**

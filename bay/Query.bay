@@ -88,7 +88,7 @@ class Query extends BaseObject
 		q._order = this._order.toVector();
 		q._filter = this._filter.toVector();
 		q._sql = this._sql;
-		q._data = this._data.toMap();
+		q._data = this._data ? this._data.toMap() : null;
 		q._start = this._start;
 		q._limit = this._limit;
 		q._debug = this._debug;
@@ -117,7 +117,7 @@ class Query extends BaseObject
 	{
 		this._kind = static::QUERY_RAW;
 		this._sql = sql;
-		this._data = data.toMap();
+		this._data = data ? data.toMap() : null;
 		return this;
 	}
 	
