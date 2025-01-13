@@ -153,6 +153,19 @@ class SQLBuilder extends BaseObject
 	
 	
 	/**
+	 * Returns table name
+	 */
+	string getTableName()
+	{
+		if (rs::substr(this.q._table_name, 0, 1) != "`")
+		{
+			return "`" ~ this.conn.prefix ~ this.q._table_name ~ "`";
+		}
+		return this.q._table_name;
+	}
+	
+	
+	/**
 	 * Returns query sql
 	 */
 	SQLBuilder build()
@@ -221,7 +234,7 @@ class SQLBuilder extends BaseObject
 			sql ~= "\n";
 			
 			/* Add table name */
-			sql ~= " FROM `" ~ this.conn.prefix ~ q._table_name ~ "` AS `" ~ q._table_name ~ "`";
+			sql ~= " FROM " ~ this.getTableName() ~ " AS `" ~ q._table_alias ~ "`";
 			
 			/* New line */
 			sql ~= "\n";
@@ -306,7 +319,7 @@ class SQLBuilder extends BaseObject
 			}
 			
 			/* Build sql */
-			this.sql = "INSERT INTO " ~ this.conn.prefix ~ q._table_name ~
+			this.sql = "INSERT INTO " ~ this.getTableName() ~
 				" (" ~ rs::join(",", keys) ~ ") VALUES (" ~ rs::join(",", values) ~ ")"
 			;
 			this.data = q._data.clone();
@@ -337,7 +350,7 @@ class SQLBuilder extends BaseObject
 			string where_str = res[0];
 			
 			/* Build sql */
-			this.sql = "UPDATE " ~ this.conn.prefix ~ q._table_name ~
+			this.sql = "UPDATE " ~ this.getTableName() ~
 				" SET " ~ rs::join(", ", update_arr) ~ " WHERE " ~ where_str
 			;
 			this.data = data;
@@ -351,7 +364,7 @@ class SQLBuilder extends BaseObject
 			string where_str = res[0];
 			
 			/* Delete item */
-			this.sql = "DELETE FROM " ~ this.conn.prefix ~ q._table_name ~
+			this.sql = "DELETE FROM " ~ this.getTableName() ~
 				" WHERE " ~ where_str
 			;
 			this.data = data;

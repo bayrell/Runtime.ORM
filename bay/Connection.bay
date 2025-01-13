@@ -144,6 +144,12 @@ class Connection
 	
 	
 	/**
+	 * Returns table name
+	 */
+	string getTableName(string table_name) => this.prefix ~ table_name;
+	
+	
+	/**
 	 * Execute Query
 	 */
 	async Cursor execute(Query q, Dict params = null) => null;

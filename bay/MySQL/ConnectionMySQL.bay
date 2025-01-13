@@ -127,18 +127,54 @@ class ConnectionMySQL extends Connection
 	
 	
 	/**
+	 * Add to query log
+	 */
+	void logQuery(Dict params = null)
+	{
+		if (params == null) params = {};
+		
+		Query q = params.get("query");
+		SQLBuilder builder = params.get("builder", false);
+		
+		/* Check is debug */
+		bool is_debug = params.get("debug", false);
+		if (q != null and q._debug)
+		{
+			is_debug = true;
+		}
+		
+		/* Is debug */
+		if (not is_debug and not this.log) return;
+		
+		/* Get SQL query */
+		string sql_debug = "";
+		if (builder != null) sql_debug = builder.formatSQL();
+		else if (params.has(sql_debug)) sql_debug = params.get("sql_debug");
+		
+		/* Print debug SQL */
+		if (is_debug)
+		{
+			io::print(sql_debug);
+		}
+		
+		/* Query log */
+		if (this.log)
+		{
+			this.log.push({
+				"query": params.get("query"),
+				"builder": params.get("builder"),
+				"sql": sql_debug,
+			});
+		}
+	}
+	
+	
+	/**
 	 * Execute Query
 	 */
 	async Cursor execute(Query q, Dict params = null)
 	{
 		if (params == null) params = {};
-		
-		/* Check is debug */
-		bool is_debug = params.get("debug", false);
-		if (q._debug)
-		{
-			is_debug = true;
-		}
 		
 		/* Build query */
 		SQLBuilder builder = this.createBuilder(q).build();
@@ -149,27 +185,11 @@ class ConnectionMySQL extends Connection
 			throw new OrmException("SQL builder is not correct")
 		}
 		
-		/* Debug sql */
-		if (is_debug or this.log)
-		{
-			string sql_debug = builder.formatSQL();
-			
-			/* Print debug SQL */
-			if (is_debug)
-			{
-				io::print(sql_debug);
-			}
-			
-			/* Query log */
-			if (this.log)
-			{
-				this.log.push({
-					"query": q.copy(),
-					"builder": builder,
-					"sql": sql_debug,
-				});
-			}
-		}
+		/* Log query */
+		this.logQuery(params.concat({
+			"builder": builder,
+			"query": q.copy(),
+		}));
 		
 		/* Create cursor */
 		Cursor cursor = this.createCursor();
@@ -188,16 +208,29 @@ class ConnectionMySQL extends Connection
 	/**
 	 * Execute Query
 	 */
-	async Cursor executeSQL(string sql, Dict data = null)
+	async Cursor executeSQL(string sql, Dict data = null, Dict params = null)
 	{
+		if (params == null) params = {};
+		
 		/* Build query */
 		SQLBuilder builder = this.createBuilder(null);
 		builder.sql = sql;
 		builder.data = data;
 		
-		/* Execute */
+		/* Log query */
+		this.logQuery(params.concat({
+			"builder": builder,
+		}));
+		
+		/* Create cursor */
 		Cursor cursor = this.createCursor();
-		Cursor cursor = await cursor.executeSQL(builder);
+		
+		/* Execute sql */
+		if (cursor instanceof CursorMySQL)
+		{
+			Cursor cursor = await cursor.executeSQL(builder);
+		}
+		
 		return cursor;
 	}
 }
