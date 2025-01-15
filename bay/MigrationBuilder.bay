@@ -140,7 +140,6 @@ class MigrationBuilder extends BaseObject
 		Collection<string> sql = [
 			"CREATE TABLE `" ~ this.connection.getTableName("database_migrations") ~ "` (",
 			"  `id` bigint(20) NOT NULL AUTO_INCREMENT,",
-			"  `branch` varchar(255) NOT NULL,",
 			"  `name` varchar(255) NOT NULL,",
 			"  `gmtime_add` datetime NOT NULL,",
 			"  PRIMARY KEY (`id`),"
@@ -157,7 +156,7 @@ class MigrationBuilder extends BaseObject
 	async void loadHistory()
 	{
 		Query q = (new Query())
-			.select(["id", "branch", "name", "gmtime_add"])
+			.select(["id", "name", "gmtime_add"])
 			.from("database_migrations")
 			.orderBy("id", "asc")
 		;
@@ -252,14 +251,12 @@ class MigrationBuilder extends BaseObject
 	 */
 	async void addMigration(BaseMigration migration)
 	{
-		string branch = migration.getBranch();
 		string name = migration.getName();
 		
 		/* Insert record */
 		await this.connection.insert(
 			"database_migrations",
 			{
-				"branch": branch,
 				"name": name,
 				"gmtime_add": DateTime::now().setOffset(0).getDateTimeString(),
 			}
@@ -272,13 +269,11 @@ class MigrationBuilder extends BaseObject
 	 */
 	async void removeMigration(BaseMigration migration)
 	{
-		string branch = migration.getBranch();
 		string name = migration.getName();
 		
 		/* Remove record */
 		Query q = (new Query)
 			.delete("database_migrations")
-			.where("branch", "=", branch)
 			.where("name", "=", name)
 		;
 		Cursor c = await this.connection.execute(q);
