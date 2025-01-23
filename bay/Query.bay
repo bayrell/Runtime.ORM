@@ -22,6 +22,7 @@ use Runtime.lib;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.BaseObject;
 use Runtime.BaseStruct;
+use Runtime.Callback;
 use Runtime.Math;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Annotations.Primary;
@@ -46,8 +47,8 @@ class Query extends BaseObject
 	static const string QUERY_DELETE = "delete";
 	static const string QUERY_INSERT_OR_UPDATE = "insert_or_update";
 	
-	string _class_name_relation = "";
 	string _kind = "";
+	string _relation_name = "";
 	string _table_name = "";
 	string _table_alias = "";
 	Vector<string> _fields = new Vector();
@@ -81,8 +82,8 @@ class Query extends BaseObject
 	Query copy()
 	{
 		Query q = new Query();
-		q._class_name_relation = this._class_name_relation;
 		q._kind = this._kind;
+		q._relation_name = this._relation_name;
 		q._table_name = this._table_name;
 		q._table_alias = this._table_alias;
 		q._fields = this._fields.toVector();
@@ -110,6 +111,12 @@ class Query extends BaseObject
 		this._db_params = db_params;
 		return this;
 	}
+	
+	
+	/**
+	 * Returns relation class name
+	 */
+	string getRelationName() => this._relation_name;
 	
 	
 	/**
@@ -172,6 +179,23 @@ class Query extends BaseObject
 	{
 		this._table_name = table_name != "" ? table_name : this._table_name;
 		this._table_alias = alias_name == "" ? this._table_name : alias_name;
+		
+		Provider provider = @.provider(classof Provider);
+		this._relation_name = provider.getRelationName(this._table_name);
+		
+		return this;
+	}
+	
+	
+	/**
+	 * Set relation
+	 */
+	Query relation(string class_name = "", string alias_name = "")
+	{
+		string table_name = new Callback(class_name, "getTableName").apply();
+		this._table_name = table_name != "" ? table_name : this._table_name;
+		this._table_alias = alias_name == "" ? this._table_name : alias_name;
+		this._relation_name = class_name;
 		return this;
 	}
 	

@@ -72,20 +72,4 @@ class BaseMigration extends BaseObject
 		q.raw(sql, data);
 		await this.connection.execute(q);
 	}
-	
-	
-	/**
-	 * Migration up
-	 */
-	async void up()
-	{
-	}
-	
-	
-	/**
-	 * Migration down
-	 */
-	async void down()
-	{
-	}
 }

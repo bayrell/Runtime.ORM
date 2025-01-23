@@ -145,8 +145,8 @@ class Cursor extends BaseObject
 		Relation row = await this.fetch();
 		if (!row) return null;
 		
-		string table_name = this.q._table_name;
-		return Relation::newInstance(table_name, row);
+		string class_name = this.q.getRelationName();
+		return Relation::newInstance(class_name, row);
 	}
 	
 	
