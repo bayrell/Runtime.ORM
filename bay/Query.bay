@@ -305,19 +305,17 @@ class Query extends BaseObject
 	/**
 	 * Add field
 	 */
-	Query addField(string field_name)
+	Query addField(QueryField field)
 	{
-		if (field_name instanceof QueryField or field_name instanceof QueryFilter)
+		if (rtl::isString(field))
 		{
-			this._fields.append(field_name);
-			return this;
+			/* Parse field */
+			field = rs::trim(field);
+			field = QueryField::fromString(field);
 		}
 		
-		/* Parse field */
-		field_name = rs::trim(field_name);
-		QueryField field = QueryField::fromString(field_name);
-		
-		if (field.field_name == "*")
+		/* If field name is asterisk */
+		if (field instanceof QueryField and field.field_name == "*")
 		{
 			string table_name = field.table_name;
 			if (table_name == "") return this;
