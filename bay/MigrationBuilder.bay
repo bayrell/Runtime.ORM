@@ -177,9 +177,15 @@ class MigrationBuilder extends BaseObject
 	{
 		Collection<Migration> items = @.getEntities(classof Migration);
 		items = items.map(
-			BaseMigration (Migration annotation) =>
-				rtl::newInstance(annotation.name, [this.connection_query])
+			BaseMigration (Migration annotation) => rtl::newInstance(annotation.name)
 		);
+		
+		/* Extends items */
+		for (int i=0; i<items.count(); i++)
+		{
+			BaseMigration item = items.get(i);
+			items.appendItems(item.buildMigrations());
+		}
 		
 		/* Make index */
 		Dict<BaseMigration> index = {};
@@ -187,6 +193,9 @@ class MigrationBuilder extends BaseObject
 		{
 			BaseMigration item = items.get(i);
 			index.set(item.getName(), item);
+			
+			/* Set connection */
+			item.setConnection(this.connection_query);
 		}
 		
 		/* Add items */
@@ -199,21 +208,26 @@ class MigrationBuilder extends BaseObject
 		{
 			if (item == null) return;
 			if (cache.has(item.getName())) return;
+			
+			/* Add item to cache */
+			cache.set(item.getName(), true);
+			
+			/* Get required migrations */
 			Collection<string> required = item.getRequired();
 			required = required.map
 			(
 				BaseMigration (string name) use (index) => index.get(name)
 			);
 			required = required.filter(lib::equalNot(null));
+			
+			/* Add required migrations */
 			for (int i=0; i<required.count(); i++)
 			{
 				addItem(required.get(i));
 			}
-			if (not cache.has(item.getName()))
-			{
-				migrations.push(item);
-			}
-			cache.set(item.getName(), true);
+			
+			/* Add item */
+			migrations.push(item);
 		};
 		
 		for (int i=0; i<items.count(); i++)
@@ -221,7 +235,7 @@ class MigrationBuilder extends BaseObject
 			addItem(items.get(i));
 		}
 		
-		return items;
+		return migrations;
 	}
 	
 	
@@ -295,7 +309,7 @@ class MigrationBuilder extends BaseObject
 			if (allow == 0) continue;
 			
 			/* Up migration */
-			await migration.up();
+			if (migration.up) await rtl::apply(migration.up);
 			
 			/* Add migration */
 			if (this.execute)
@@ -320,7 +334,7 @@ class MigrationBuilder extends BaseObject
 			if (allow == 0) continue;
 			
 			/* Down */
-			await migration.down();
+			if (migration.down) await rtl::apply(migration.down);
 			
 			/* Remove migration */
 			if (this.execute)

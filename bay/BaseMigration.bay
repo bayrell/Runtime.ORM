@@ -19,21 +19,36 @@
 namespace Runtime.ORM;
 
 use Runtime.BaseObject;
+use Runtime.Callback;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
 
 
 class BaseMigration extends BaseObject
 {
+	string name = "";
 	Connection connection = null;
+	Collection<string> required = [];
+	Collection<string> migrations = [];
+	fn up = null;
+	fn down = null;
 	
 	
 	/**
 	 * Create migration
 	 */
-	void constructor(Connection connection)
+	void constructor(Dict params = null)
 	{
 		parent();
+		this._assign_values(params);
+	}
+	
+	
+	/**
+	 * Set connection
+	 */
+	void setConnection(Connection connection)
+	{
 		this.connection = connection;
 	}
 	
@@ -41,13 +56,56 @@ class BaseMigration extends BaseObject
 	/**
 	 * Returns name
 	 */
-	string getName() => "";
+	string getName() => this.name;
 	
 	
 	/**
 	 * Returns required migrations
 	 */
-	Collection<string> getRequired() => [];
+	Collection<string> getRequired() => this.required.copy();
+	
+	
+	/**
+	 * Returns migrations
+	 */
+	Collection<string> getMigrations() => this.migrations.copy();
+	
+	
+	/**
+	 * Returns migrations
+	 */
+	Collection<BaseMigration> buildMigrations()
+	{
+		string current_name = this.name;
+		Collection<BaseMigration> result = [];
+		Collection<string> prev_required = this.getRequired();
+		
+		/* Add child migrations */
+		Collection<string> items = this.getMigrations();
+		for (int i=0; i<items.count(); i++)
+		{
+			string migration_name = items.get(i);
+			Callback f = new Callback(this, items.get(i));
+			if (not f.exists()) continue;
+			
+			/* Get migration */
+			BaseMigration migration = f.apply();
+			migration.name = this.name ~ "." ~ migration_name;
+			migration.required = migration.required.concat(prev_required);
+			prev_required = [migration.name];
+			
+			/* Build migrations */
+			result.appendItems(migration.buildMigrations());
+			
+			/* Add new migration */
+			result.push(migration);
+		}
+		
+		/* Change require */
+		this.required = prev_required;
+		
+		return result;
+	}
 	
 	
 	/**
