@@ -468,6 +468,15 @@ class Relation extends BaseObject implements MapInterface
 	
 	
 	/**
+	 * Returns select query
+	 */
+	static Query select() => new Query()
+		.relation(static::getClassName())
+		.select([static::getTableName() ~ ".*"])
+	;
+	
+	
+	/**
 	 * Find relations by filter
 	 */
 	static async Vector<Relation> findItems
