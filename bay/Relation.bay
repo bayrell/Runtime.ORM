@@ -477,6 +477,33 @@ class Relation extends BaseObject implements MapInterface
 	
 	
 	/**
+	 * Fetch all
+	 */
+	static async QueryResult fetchAll(Connection conn, Query q, Dict params = null)
+	{
+		Cursor c = await conn.execute(q, params);
+		QueryResult items = await c.fetchAll();
+		await c.close();
+		return items.toRelation();
+	}
+	
+	
+	/**
+	 * Fetch
+	 */
+	static async Relation fetch(Connection conn, Query q, Dict params = null)
+	{
+		Cursor c = await conn.execute(q, params);
+		Relation item = await c.fetchRelation();
+		await c.close();
+		return item;
+	}
+	static async Dict fetchOne(Connection conn, Query q, Dict params = null) =>
+		await this.fetch(conn, q, params)
+	;
+	
+	
+	/**
 	 * Find relations by filter
 	 */
 	static async Vector<Relation> findItems
@@ -496,7 +523,7 @@ class Relation extends BaseObject implements MapInterface
 	/**
 	 * Find relation by filter
 	 */
-	static async Relation findByFilter
+	static async Relation findItem
 		(Connection conn, Collection<QueryFilter> filter, Dict params = null)
 	{
 		string table_name = static::getTableName();
@@ -520,7 +547,7 @@ class Relation extends BaseObject implements MapInterface
 		Vector filter = static::getPrimaryFilter(pk, false);
 		
 		/* Find relation */
-		return await static::findByFilter(conn, filter, params);
+		return await static::findItem(conn, filter, params);
 	}
 	
 	
@@ -539,7 +566,7 @@ class Relation extends BaseObject implements MapInterface
 		];
 		
 		/* Find relation */
-		return await static::findByFilter(conn, filter, params);
+		return await static::findItem(conn, filter, params);
 	}
 	
 	
@@ -560,7 +587,7 @@ class Relation extends BaseObject implements MapInterface
 		);
 		
 		/* Find item */
-		Relation relation = await static::findByFilter(conn, search, params);
+		Relation relation = await static::findItem(conn, search, params);
 		if (relation) return relation;
 		
 		/* Create if not found */
