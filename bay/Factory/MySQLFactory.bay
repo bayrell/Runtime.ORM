@@ -25,7 +25,7 @@ use Runtime.ORM.Factory.ConnectionFactory;
 use Runtime.ORM.MySQL.ConnectionMySQL;
 
 
-struct MySQLFactory extends ConnectionFactory
+class MySQLFactory extends ConnectionFactory
 {
 	string host = "";
 	string login = "";

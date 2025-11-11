@@ -18,10 +18,10 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.BaseStruct;
+use Runtime.BaseObject;
 
 
-struct ManyToMany extends BaseStruct
+class ManyToMany extends BaseObject
 {
 	
 }

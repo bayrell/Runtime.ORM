@@ -18,14 +18,12 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.BaseStruct;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
 
-struct DictType extends BaseType
+class DictType extends BaseType
 {
-	
 	/**
 	 * Process item from database
 	 */
@@ -35,7 +33,7 @@ struct DictType extends BaseType
 		{
 			string value = item[this.name];
 			Dict obj = rtl::json_decode(value);
-			item <= { this.name } <= obj;
+			item.set(this.name, obj);
 			item = await conn.fromDatabase(this, item, this.name);
 		}
 		return item;
@@ -50,10 +48,9 @@ struct DictType extends BaseType
 		Dict value = item[this.name];
 		if (value)
 		{
-			item <= { this.name } <= rtl::json_encode(value, false);
+			item.set(this.name, rtl::json_encode(value, false));
 		}
 		item = await conn.toDatabase(this, item, this.name);
 		return item;
 	}
-	
 }

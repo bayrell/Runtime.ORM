@@ -18,12 +18,11 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.BaseStruct;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
 
-struct TinyIntType extends BaseType
+class TinyIntType extends BaseType
 {
 	/**
 	 * Process item from database
@@ -35,11 +34,11 @@ struct TinyIntType extends BaseType
 			string value = item[this.name];
 			if (value === null and this.nullable)
 			{
-				item <= { this.name } <= null;
+				item.set(this.name, null);
 			}
 			else
 			{
-				item <= { this.name } <= (int)value;
+				item.set(this.name, rtl::toInt(value));
 			}
 		}
 		return item;

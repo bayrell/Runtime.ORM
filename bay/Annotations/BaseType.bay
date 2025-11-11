@@ -18,11 +18,11 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.BaseStruct;
+use Runtime.BaseObject;
 use Runtime.ORM.ConnectionInterface as Connection;
 
 
-struct BaseType extends BaseStruct
+class BaseType extends BaseObject
 {
 	var default = null;
 	string table_name = "";
@@ -56,10 +56,9 @@ struct BaseType extends BaseStruct
 			not item.has(this.name)
 		)
 		{
-			item <= { this.name } <= this.default;
+			item.set(this.name, this.default);
 		}
 		item = await conn.toDatabase(this, item, this.name);
 		return item;
 	}
-	
 }

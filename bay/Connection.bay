@@ -27,6 +27,7 @@ use Runtime.ORM.Query;
 use Runtime.ORM.QueryFilter;
 use Runtime.ORM.QueryLog;
 use Runtime.ORM.QueryResult;
+use Runtime.ORM.Record;
 use Runtime.ORM.Relation;
 
 
@@ -231,8 +232,8 @@ class Connection
 		}
 		
 		Query q = new Query()
-			|> .delete(table_name)
-			|> .setFilter(filter)
+			.delete(table_name)
+			.setFilter(filter)
 		;
 		
 		Cursor c = await this.execute(q, params);
@@ -267,14 +268,14 @@ class Connection
 	/**
 	 * Fetch
 	 */
-	async QueryResult fetch(Query q, Dict params = null)
+	async Record fetch(Query q, Dict params = null)
 	{
 		Cursor c = await this.execute(q, params);
 		QueryResult items = await c.fetch();
 		await c.close();
 		return items;
 	}
-	async Dict fetchOne(Query q, Dict params = null) => await this.fetch(q, params);
+	async Record fetchOne(Query q, Dict params = null) => await this.fetch(q, params);
 	
 	
 	/**
@@ -286,29 +287,5 @@ class Connection
 		var item = await cursor.fetchVar(var_name);
 		await cursor.close();
 		return item;
-	}
-	
-	
-	/**
-	 * Find relation by query
-	 */
-	async Relation findRelation(Query q, Dict params = null)
-	{
-		Cursor c = await this.execute(q, params);
-		Relation item = await c.fetchRelation(q, params);
-		await c.close();
-		return item;
-	}
-	
-	
-	/**
-	 * Find relations by query
-	 */
-	async Relation findRelations(Query q, Dict params = null)
-	{
-		Cursor c = await this.execute(q, params);
-		QueryResult items = await c.fetchAll(q, params);
-		await c.close();
-		return items.toRelation();
 	}
 }

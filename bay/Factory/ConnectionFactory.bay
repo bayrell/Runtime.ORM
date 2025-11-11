@@ -25,7 +25,7 @@ use Runtime.ORM.Connection;
 use Runtime.ORM.Provider;
 
 
-struct ConnectionFactory extends Entity
+class ConnectionFactory extends Entity
 {
 	/**
 	 * Create connection

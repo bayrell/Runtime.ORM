@@ -122,7 +122,7 @@ class MigrationBuilder extends BaseObject
 	 */
 	async void createTable()
 	{
-		Query q = (new Query())
+		Query q = new Query()
 			.select()
 			.from("`information_schema`.`tables`", "t")
 			.addRawField("count(*) as c")
@@ -142,8 +142,8 @@ class MigrationBuilder extends BaseObject
 			"  `id` bigint(20) NOT NULL AUTO_INCREMENT,",
 			"  `name` varchar(255) NOT NULL,",
 			"  `gmtime_add` datetime NOT NULL,",
-			"  PRIMARY KEY (`id`),"
-			"  UNIQUE KEY name (`name`)"
+			"  PRIMARY KEY (`id`),",
+			"  UNIQUE KEY name (`name`)",
 			") ENGINE=InnoDB",
 		];
 		await this.connection.executeSQL(rs::join("\n", sql));
@@ -155,7 +155,7 @@ class MigrationBuilder extends BaseObject
 	 */
 	async void loadHistory()
 	{
-		Query q = (new Query())
+		Query q = new Query()
 			.select(["id", "name", "gmtime_add"])
 			.from("database_migrations")
 			.orderBy("id", "asc")
@@ -286,7 +286,7 @@ class MigrationBuilder extends BaseObject
 		string name = migration.getName();
 		
 		/* Remove record */
-		Query q = (new Query)
+		Query q = new Query
 			.delete("database_migrations")
 			.where("name", "=", name)
 		;

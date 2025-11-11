@@ -18,11 +18,10 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.BaseStruct;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
 
-struct BooleanType extends BaseType
+class BooleanType extends BaseType
 {	
 }
