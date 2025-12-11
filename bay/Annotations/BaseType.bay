@@ -26,7 +26,7 @@ class BaseType extends BaseObject
 {
 	var default = null;
 	string table_name = "";
-	string class_name = "";
+	string relation_name = "";
 	string name = "";
 	string comment = "";
 	bool nullable = false;

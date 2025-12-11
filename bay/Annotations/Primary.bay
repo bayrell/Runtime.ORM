@@ -24,4 +24,6 @@ use Runtime.BaseObject;
 class Primary extends BaseObject
 {
 	Collection<string> keys = null;
+	string table_name = "";
+	string relation_name = "";
 }

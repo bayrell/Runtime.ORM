@@ -21,7 +21,7 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseObject;
 use Runtime.BaseProvider;
-use Runtime.Callback;
+use Runtime.Method;
 use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
@@ -30,7 +30,6 @@ use Runtime.ORM.QueryFilter;
 use Runtime.ORM.Annotations.AutoIncrement;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Annotations.Database;
-use Runtime.ORM.Annotations.ForeignKey;
 use Runtime.ORM.Annotations.Primary;
 use Runtime.ORM.Annotations.Rule;
 use Runtime.ORM.Annotations.Table;
@@ -51,9 +50,9 @@ class Provider extends BaseProvider
 	{
 		if (not this.connection_list.has(name))
 		{
-			throw new RuntimeException("Connection " ~ name ~ " not found");
+			throw new ItemNotFound(name, "Connection");
 		}
-		return this.connection_list[name];
+		return this.connection_list.get(name);
 	}
 	
 	
@@ -72,7 +71,7 @@ class Provider extends BaseProvider
 	string getRelationName(string table_name)
 	{
 		if (not this.tables.has(table_name)) return "";
-		return this.tables.get(table_name).get("class_name");
+		return this.tables.get(table_name).get("relation_name");
 	}
 	
 	
@@ -83,16 +82,6 @@ class Provider extends BaseProvider
 	{
 		if (not this.tables.has(table_name)) return [];
 		return this.tables.get(table_name).get("annotations");
-	}
-	
-	
-	/**
-	 * Returns foreign_key by name
-	 */
-	ForeignKey getForeignKey(string name)
-	{
-		if (not this.foreign_keys.has(name)) return null;
-		return this.foreign_keys.get(name);
 	}
 	
 	
@@ -120,36 +109,18 @@ class Provider extends BaseProvider
 	/**
 	 * Add table
 	 */
-	void addTable(string table_name, string class_name, Vector rules)
+	void addTable(string table_name, string relation_name, Vector rules)
 	{
-		for (int i=0; i<rules.count(); i++)
-		{
-			BaseObject rule = rules.get(i);
-			rule.class_name = class_name;
-			rule.table_name = table_name;
-			rules.set(i, rule);
-		}
-		
 		this.tables.set(table_name, {
-			"annotations": rules.toCollection(),
-			"class_name": class_name,
-			"table_name": table_name,
+			"relation_name": relation_name,
+			"annotations": rules,
 		});
 		
 		for (int i=0; i<rules.count(); i++)
 		{
 			BaseObject rule = rules.get(i);
-			if (rule instanceof ForeignKey)
-			{
-				if (rule.name != "")
-				{
-					if (this.foreign_keys.has(rule.name))
-					{
-						throw new RuntimeException("Duplicate foreign_key name");
-					}
-					this.foreign_keys.set(rule.name, rule);
-				}
-			}
+			rule.table_name = table_name;
+			rule.relation_name = relation_name;
 		}
 	}
 	
@@ -174,16 +145,16 @@ class Provider extends BaseProvider
 		for (int i=0; i<items.count(); i++)
 		{
 			Table table = items[i];
-			string class_name = table.name;
-			string table_name = new Callback(class_name, "getTableName").apply();
+			string relation_name = table.name;
+			string table_name = new Method(relation_name, "getTableName").apply();
 			
 			/* Add schema */
-			Vector rules = new Callback(class_name, "schema").apply();
-			this.addTable(table_name, class_name, rules);
+			Vector rules = new Method(relation_name, "schema").apply();
+			this.addTable(table_name, relation_name, rules);
 		}
 		
 		/* Call register event */
-		await @.callHookAsync(DatabaseSchema::REGISTER, {
+		await @.hook(DatabaseSchema::REGISTER, {
 			"item": this,
 		});
 	}

@@ -18,7 +18,6 @@
 
 namespace Runtime.ORM;
 
-use Runtime.lib;
 use Runtime.BaseObject;
 use Runtime.DateTime;
 use Runtime.ORM.Annotations.Migration;
@@ -37,7 +36,6 @@ class MigrationBuilder extends BaseObject
 	Connection connection_query = null;
 	Collection<BaseMigration> migrations = null;
 	string connection_name = "";
-	bool execute = false;
 	Collection<Dict> history = [];
 	Dict history_cache = {};
 	
@@ -63,7 +61,7 @@ class MigrationBuilder extends BaseObject
 	 */
 	Collection<string> getSQL()
 	{
-		Collection<string> items = this.getQueryLog().map(lib::attr("sql"));
+		Collection<string> items = this.getQueryLog().map(string (Map item) => item.get("sql"));
 		Collection<string> result = [];
 		
 		for (int i=0; i<items.count(); i++)
@@ -99,12 +97,6 @@ class MigrationBuilder extends BaseObject
 		
 		/* Set query log */
 		this.connection_query.setQueryLog(new QueryLog);
-		
-		/* Execute migration */
-		if (not this.execute)
-		{
-			this.connection_query.setCursorFactory(new CursorFactory(classof Cursor));
-		}
 		
 		/* Get migrations */
 		this.migrations = this.getMigrations();
@@ -143,7 +135,7 @@ class MigrationBuilder extends BaseObject
 			"  `name` varchar(255) NOT NULL,",
 			"  `gmtime_add` datetime NOT NULL,",
 			"  PRIMARY KEY (`id`),",
-			"  UNIQUE KEY name (`name`)",
+			"  UNIQUE KEY (`name`)",
 			") ENGINE=InnoDB",
 		];
 		await this.connection.executeSQL(rs::join("\n", sql));
@@ -218,7 +210,7 @@ class MigrationBuilder extends BaseObject
 			(
 				BaseMigration (string name) use (index) => index.get(name)
 			);
-			required = required.filter(lib::equalNot(null));
+			required = required.filter(bool (string item) => item != null);
 			
 			/* Add required migrations */
 			for (int i=0; i<required.count(); i++)
@@ -272,7 +264,7 @@ class MigrationBuilder extends BaseObject
 			"database_migrations",
 			{
 				"name": name,
-				"gmtime_add": DateTime::now().setOffset(0).getDateTimeString(),
+				"gmtime_add": DateTime::now().setOffset(0).format(),
 			}
 		);
 	}
@@ -298,21 +290,30 @@ class MigrationBuilder extends BaseObject
 	/**
 	 * Up migrations
 	 */
-	async void up()
+	async void up(bool execute = false)
 	{
+		if (not execute)
+		{
+			this.connection_query.setCursorFactory(new CursorFactory(classof Cursor));
+		}
+		
 		for (int i=0; i<this.migrations.count(); i++)
 		{
 			BaseMigration migration = this.migrations.get(i);
 			
 			/* Check allow migration */
-			int allow = this.allowMigration(migration, "up");
-			if (allow == 0) continue;
+			bool allow = this.allowMigration(migration, "up");
+			if (not allow) continue;
 			
 			/* Up migration */
-			if (migration.up) await rtl::apply(migration.up);
+			if (migration.up)
+			{
+				fn up = migration.up;
+				await up();
+			}
 			
 			/* Add migration */
-			if (this.execute)
+			if (execute)
 			{
 				await this.addMigration(migration);
 			}
@@ -323,21 +324,30 @@ class MigrationBuilder extends BaseObject
 	/**
 	 * Down migrations
 	 */
-	async void down()
+	async void down(bool execute = false)
 	{
+		if (not execute)
+		{
+			this.connection_query.setCursorFactory(new CursorFactory(classof Cursor));
+		}
+		
 		for (int i=this.migrations.count() - 1; i>=0; i--)
 		{
 			BaseMigration migration = this.migrations.get(i);
 			
 			/* Check allow migration */
-			int allow = this.allowMigration(migration, "down");
-			if (allow == 0) continue;
+			bool allow = this.allowMigration(migration, "down");
+			if (not allow) continue;
 			
 			/* Down */
-			if (migration.down) await rtl::apply(migration.down);
+			if (migration.down)
+			{
+				fn down = migration.down;
+				await down();
+			}
 			
 			/* Remove migration */
-			if (this.execute)
+			if (execute)
 			{
 				await this.removeMigration(migration);
 			}

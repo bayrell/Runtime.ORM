@@ -70,12 +70,9 @@ class QueryResult extends Vector<Dict>
 	 */
 	Vector<Dict> toDict(Collection fields = null) => this
 		.map(
-			BaseStruct (Dict item) use (fields)
-				=> (fields == null)
-					? item.toDict()
-					: item.intersect(fields)
+			BaseStruct (Map item) use (fields)
+				=> (fields != null) ? item.intersect(fields) : item
 		)
-		.toVector()
 	;
 	
 	
@@ -90,7 +87,6 @@ class QueryResult extends Vector<Dict>
 				BaseStruct (Dict item) use (class_name)
 					=> Relation::newInstance(class_name, item)
 			)
-			.toVector()
 		;
 	}
 }

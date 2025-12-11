@@ -213,7 +213,7 @@ class SQLBuilder extends BaseObject
 									field_name ~= " as `" ~ item.alias ~ "`";
 								}
 							}
-							else if (rtl::isCallable(item))
+							else if (rtl::isFunction(item))
 							{
 								return item(this);
 							}
@@ -246,11 +246,11 @@ class SQLBuilder extends BaseObject
 				{
 					Dict join = q._join[i];
 					
-					string kind = join["kind"];
-					string table_name = join["table_name"];
-					string alias_name = join["alias_name"];
+					string kind = join.map("kind");
+					string table_name = join.map("table_name");
+					string alias_name = join.map("alias_name");
 					
-					Collection filter = join["filter"];
+					Collection filter = join.map("filter");
 					list res = this.convertFilter(filter, data, field_index);
 					string where = res[0];
 					field_index = res[1];
@@ -322,7 +322,7 @@ class SQLBuilder extends BaseObject
 			this.sql = "INSERT INTO " ~ this.getTableName() ~
 				" (" ~ rs::join(",", keys) ~ ") VALUES (" ~ rs::join(",", values) ~ ")"
 			;
-			this.data = q._data.clone();
+			this.data = q._data.copy();
 		}
 		
 		else if (q._kind == Query::QUERY_UPDATE)
@@ -415,9 +415,7 @@ class SQLBuilder extends BaseObject
 		}
 		else
 		{
-			field_name = item[0];
-			op = item[1];
-			value = item[2];
+			return ["", field_index];
 		}
 		
 		/* OR */
@@ -456,7 +454,7 @@ class SQLBuilder extends BaseObject
 			}
 		}
 		
-		else if (value instanceof Collection)
+		else if (value instanceof Vector)
 		{
 			if (op == "=")
 			{

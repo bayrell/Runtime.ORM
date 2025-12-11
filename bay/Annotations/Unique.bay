@@ -23,4 +23,6 @@ use Runtime.BaseObject;
 
 class Unique extends BaseObject
 {
+	string table_name = "";
+	string relation_name = "";
 }

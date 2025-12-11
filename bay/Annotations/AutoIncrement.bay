@@ -23,5 +23,7 @@ use Runtime.BaseObject;
 
 class AutoIncrement extends BaseObject
 {
-    string name = "";
+	string name = "";
+	string table_name = "";
+	string relation_name = "";
 }

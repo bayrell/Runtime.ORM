@@ -173,7 +173,7 @@ class Cursor extends BaseObject
 			{
 				break;
 			}
-			items.append(row);
+			items.push(row);
 		}
 		
 		return items;
@@ -188,7 +188,7 @@ class Cursor extends BaseObject
 		Dict row = await this.fetchMap();
 		if (row)
 		{
-			return row[var_name];
+			return row.get(var_name);
 		}
 		return null;
 	}

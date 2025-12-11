@@ -21,7 +21,6 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseObject;
 use Runtime.BaseStruct;
-use Runtime.MapInterface;
 use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
@@ -38,7 +37,7 @@ use Runtime.ORM.Annotations.ForeignKey;
 use Runtime.ORM.Annotations.Primary;
 
 
-class Relation extends BaseObject implements MapInterface
+class Relation extends BaseObject
 {
 	protected Connection connection = null;
 	
@@ -82,7 +81,7 @@ class Relation extends BaseObject implements MapInterface
 	/**
 	 * Create Instance of class
 	 */
-	Record newInstance(Dict data = null)
+	static Record createRecord(Dict data = null)
 	{
 		Record instance = new Record(static::getTableName());
 		instance._initData(data);

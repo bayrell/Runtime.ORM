@@ -86,12 +86,12 @@ class Query extends BaseObject
 		q._relation_name = this._relation_name;
 		q._table_name = this._table_name;
 		q._table_alias = this._table_alias;
-		q._fields = this._fields.toVector();
-		q._join = this._join.toVector();
-		q._order = this._order.toVector();
-		q._filter = this._filter.toVector();
+		q._fields = this._fields.slice();
+		q._join = this._join.slice();
+		q._order = this._order.slice();
+		q._filter = this._filter.slice();
 		q._sql = this._sql;
-		q._data = this._data ? this._data.toMap() : null;
+		q._data = this._data ? this._data.copy() : null;
 		q._start = this._start;
 		q._limit = this._limit;
 		q._debug = this._debug;
@@ -333,13 +333,13 @@ class Query extends BaseObject
 					field.annotation = annotation;
 					field.field_name = annotation.name;
 					field.table_name = table_name;
-					this._fields.append(field);
+					this._fields.push(field);
 				}
 			}
 		}
 		else
 		{
-			this._fields.append(field);
+			this._fields.push(field);
 		}
 		
 		return this;
@@ -351,7 +351,7 @@ class Query extends BaseObject
 	 */
 	Query addRawField(string field_name)
 	{
-		this._fields.append(field_name);
+		this._fields.push(field_name);
 		return this;
 	}
 	
@@ -385,7 +385,7 @@ class Query extends BaseObject
 	 */
 	Query values(Dict data)
 	{
-		this._data = data.toMap();
+		this._data = data;
 		return this;
 	}
 	
@@ -395,7 +395,7 @@ class Query extends BaseObject
 	 */
 	Query data(Dict data)
 	{
-		this._data = data.toMap();
+		this._data = data;
 		return this;
 	}
 	
@@ -484,7 +484,7 @@ class Query extends BaseObject
 	 */
 	Query orderBy(string name, string sort)
 	{
-		this._order.append([ name, sort ]);
+		this._order.push([ name, sort ]);
 		return this;
 	}
 	
@@ -498,7 +498,7 @@ class Query extends BaseObject
 		filter.key = key;
 		filter.op = op;
 		filter.value = value;
-		this._filter.append(filter);
+		this._filter.push(filter);
 		return this;
 	}
 	
@@ -508,7 +508,7 @@ class Query extends BaseObject
 	 */
 	Query setFilter(Collection<QueryFilter> filter)
 	{
-		this._filter = filter.toVector();
+		this._filter = filter;
 		return this;
 	}
 	
@@ -518,14 +518,7 @@ class Query extends BaseObject
 	 */
 	Query addFilter(var filter)
 	{
-		if (filter instanceof QueryFilter)
-		{
-			this._filter.append(filter);
-		}
-		else if (filter instanceof Collection)
-		{
-			this._filter.appendItems(filter);
-		}
+		this._filter.push(filter);
 		return this;
 	}
 	
@@ -535,7 +528,7 @@ class Query extends BaseObject
 	 */
 	Query addOrFilter(Collection filter)
 	{
-		this._filter.append(["$or", null, filter]);
+		this._filter.push(new QueryFilter("$or", null, filter));
 		return this;
 	}
 	
@@ -556,7 +549,7 @@ class Query extends BaseObject
 	Query innerJoin(string table_name, Collection filter, string alias_name = "")
 	{
 		if (alias_name == "") alias_name = table_name;
-		this._join.append({
+		this._join.push({
 			"kind": "join",
 			"alias_name": alias_name,
 			"table_name": table_name,
@@ -572,7 +565,7 @@ class Query extends BaseObject
 	Query leftJoin(string table_name, Collection filter, string alias_name = "")
 	{
 		if (alias_name == "") alias_name = table_name;
-		this._join.append({
+		this._join.push({
 			"kind": "left",
 			"alias_name": alias_name,
 			"table_name": table_name,
