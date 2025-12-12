@@ -18,12 +18,10 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.BaseObject;
+use Runtime.ORM.Annotations.BaseStruct;
 
 
-class Primary extends BaseObject
+class Primary extends BaseStruct
 {
 	Collection<string> keys = null;
-	string table_name = "";
-	string relation_name = "";
 }

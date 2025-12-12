@@ -31,8 +31,8 @@ class CollectionType extends BaseType
 	{
 		if (item.has(this.name))
 		{
-			string value = item[this.name];
-			Dict obj = rtl::json_decode(value);
+			string value = item.get(this.name);
+			Dict obj = rtl::jsonDecode(value);
 			item.set(this.name, obj);
 			item = await conn.fromDatabase(this, item, this.name);
 		}
@@ -45,10 +45,10 @@ class CollectionType extends BaseType
 	 */
 	async var toDatabase(Connection conn, Dict item, bool is_update)
 	{
-		Dict value = item[this.name];
+		Dict value = item.get(this.name);
 		if (value)
 		{
-			item.set(this.name, rtl::json_encode(value, false));
+			item.set(this.name, rtl::jsonEncode(value, false));
 		}
 		item = await conn.toDatabase(this, item, this.name);
 		return item;

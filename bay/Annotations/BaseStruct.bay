@@ -18,9 +18,20 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.ORM.Annotations.BaseStruct;
+use Runtime.BaseObject;
 
 
-class AutoIncrement extends BaseStruct
+class BaseStruct extends BaseObject
 {
+	string table_name = "";
+	
+	
+	/**
+	 * Create object
+	 */
+	void constructor(Map params = null)
+	{
+		parent();
+		this._assign_values(params);
+	}
 }

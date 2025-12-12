@@ -31,7 +31,7 @@ class TinyIntType extends BaseType
 	{
 		if (item.has(this.name))
 		{
-			string value = item[this.name];
+			string value = item.get(this.name);
 			if (value === null and this.nullable)
 			{
 				item.set(this.name, null);

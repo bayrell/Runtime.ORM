@@ -40,7 +40,7 @@ class Provider extends BaseProvider
 {
 	protected Map foreign_keys = new Map;
 	protected Map connection_list = new Map;
-	protected Map tables = new Map;
+	protected Map annotations = new Map;
 	
 	
 	/**
@@ -66,22 +66,12 @@ class Provider extends BaseProvider
 	
 	
 	/**
-	 * Returns relation name by table name
-	 */
-	string getRelationName(string table_name)
-	{
-		if (not this.tables.has(table_name)) return "";
-		return this.tables.get(table_name).get("relation_name");
-	}
-	
-	
-	/**
 	 * Returns table annotations
 	 */
 	Collection<BaseType> getAnotations(string table_name)
 	{
-		if (not this.tables.has(table_name)) return [];
-		return this.tables.get(table_name).get("annotations");
+		if (not this.annotations.has(table_name)) return [];
+		return this.annotations.get(table_name);
 	}
 	
 	
@@ -109,18 +99,14 @@ class Provider extends BaseProvider
 	/**
 	 * Add table
 	 */
-	void addTable(string table_name, string relation_name, Vector rules)
+	void addTable(string table_name, Vector annotations)
 	{
-		this.tables.set(table_name, {
-			"relation_name": relation_name,
-			"annotations": rules,
-		});
+		this.annotations.set(table_name, annotations);
 		
-		for (int i=0; i<rules.count(); i++)
+		for (int i=0; i<annotations.count(); i++)
 		{
-			BaseObject rule = rules.get(i);
+			BaseObject rule = annotations.get(i);
 			rule.table_name = table_name;
-			rule.relation_name = relation_name;
 		}
 	}
 	
@@ -150,7 +136,7 @@ class Provider extends BaseProvider
 			
 			/* Add schema */
 			Vector rules = new Method(relation_name, "schema").apply();
-			this.addTable(table_name, relation_name, rules);
+			this.addTable(table_name, rules);
 		}
 		
 		/* Call register event */

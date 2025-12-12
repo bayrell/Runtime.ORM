@@ -195,7 +195,7 @@ class Relation extends BaseObject
 		string table_name = static::getTableName();
 		Dict pk = this.getPrimaryKey(data);
 		Vector filter = pk.transition(
-			QueryFilter (var value, string key) use (use_full_key)
+			QueryFilter (var value, string key) use (table_name, use_full_key)
 			{
 				QueryFilter item = new QueryFilter;
 				item.key = key;
@@ -220,8 +220,10 @@ class Relation extends BaseObject
 		string table_name = static::getTableName();
 		
 		/* Call before save */
-		await @.callHookAsync(DatabaseSchema::SAVE_BEFORE, {
-			"item": this.item,
+		await @.hook(DatabaseSchema::SAVE_BEFORE, {
+			"table_name": table_name,
+			"relation": this,
+			"item": item,
 		});
 		
 		bool is_update = item.isUpdate();
@@ -229,7 +231,7 @@ class Relation extends BaseObject
 		
 		if (is_update)
 		{
-			Collection updated_data_keys = updated_data.keys();
+			Collection updated_data_keys = rtl::list(updated_data.keys());
 			if (updated_data_keys.count() > 0)
 			{
 				Collection filter = this.getPrimaryFilter(item.old_data, false);
@@ -237,7 +239,7 @@ class Relation extends BaseObject
 				{
 					Dict db_updated_data = await this.toDatabase(updated_data, is_update);
 					
-					await conn.update(
+					await this.connection.update(
 						table_name,
 						filter,
 						db_updated_data,
@@ -252,7 +254,7 @@ class Relation extends BaseObject
 				for (int i=0; i<updated_data_keys.count(); i++)
 				{
 					string field_name = updated_data_keys[i];
-					this.old_data.set(field_name, updated_data[field_name]);
+					item.old_data.set(field_name, updated_data.get(field_name));
 				}
 			}
 		}
@@ -260,7 +262,7 @@ class Relation extends BaseObject
 		{
 			Dict db_updated_data = this.toDatabase(updated_data, is_update);
 			
-			var last_id = await conn.insert(
+			var last_id = await this.connection.insert(
 				table_name,
 				db_updated_data,
 				true,
@@ -278,7 +280,9 @@ class Relation extends BaseObject
 		}
 		
 		/* Call before after */
-		await @.callHookAsync(DatabaseSchema::SAVE_AFTER, {
+		await @.hook(DatabaseSchema::SAVE_AFTER, {
+			"table_name": table_name,
+			"relation": this,
 			"item": item,
 		});
 	}
@@ -301,7 +305,7 @@ class Relation extends BaseObject
 		/* Delete record */
 		if (filter.count() > 0)
 		{
-			await conn.delete(
+			await this.connection.delete(
 				table_name,
 				filter,
 				params

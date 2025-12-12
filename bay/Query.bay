@@ -267,7 +267,7 @@ class Query extends BaseObject
 	/**
 	 * Set fields
 	 */
-	Query fields(Collection fields)
+	Query fields(Vector fields)
 	{
 		this._fields = new Vector();
 		for (int i=0; i<fields.count(); i++)
@@ -320,13 +320,13 @@ class Query extends BaseObject
 			string table_name = field.table_name;
 			if (table_name == "") return this;
 			
-			Collection<BaseStruct> annotations = this._provider.getAnotations(table_name);
+			Collection<BaseObject> annotations = this._provider.getAnotations(table_name);
 			if (not annotations) return this;
 			
 			/* Add fields from annotation */
 			for (int i=0; i<annotations.count(); i++)
 			{
-				BaseStruct annotation = annotations[i];
+				BaseObject annotation = annotations[i];
 				if (annotation instanceof BaseType)
 				{
 					QueryField field = new QueryField();

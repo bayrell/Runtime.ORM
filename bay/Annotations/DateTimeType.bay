@@ -34,7 +34,7 @@ class DateTimeType extends BaseType
 	async var fromDatabase(Connection conn, Dict item)
 	{
 		if (not item.has(this.name)) return item;
-		string value = item[this.name];
+		string value = item.get(this.name);
 		this.set(this.name, static::convertFromDatabase(value));
 		item = await conn.fromDatabase(this, item, this.name);
 		return item;
@@ -47,7 +47,7 @@ class DateTimeType extends BaseType
 	async var toDatabase(Connection conn, Dict item, bool is_update)
 	{
 		if (not item.has(this.name)) return item;
-		DateTime value = item[this.name];
+		DateTime value = item.get(this.name);
 		this.set(this.name, static::convertToDatabase(value));
 		item = await conn.toDatabase(this, item, this.name);
 		return item;

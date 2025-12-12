@@ -18,28 +18,13 @@
 
 namespace Runtime.ORM;
 
-use Runtime.BaseStruct;
-use Runtime.ORM.Connection;
 use Runtime.ORM.Query;
-use Runtime.ORM.QueryField;
-use Runtime.ORM.Relation;
-use Runtime.ORM.Annotations.ForeignKey;
 
 
 class QueryResult extends Vector<Dict>
 {
 	Query q = null;
-	Connection conn = null;
 	int rows = 0;
-	
-	
-	/**
-	 * Create new QueryResult
-	 */
-	void constructor()
-	{
-		parent();
-	}
 	
 	
 	/**
@@ -52,41 +37,4 @@ class QueryResult extends Vector<Dict>
 	 * Returns page
 	 */
 	async int getPage() => this.q ? this.q.getPage() : 0;
-	
-	
-	/**
-	 * Returns relation by index
-	 */
-	Relation getRelation(int index)
-	{
-		string class_name = this.q.getRelationName();
-		Dict item = this.get(index);
-		return Relation::newInstance(class_name, item);
-	}
-	
-	
-	/**
-	 * Convert to Vector
-	 */
-	Vector<Dict> toDict(Collection fields = null) => this
-		.map(
-			BaseStruct (Map item) use (fields)
-				=> (fields != null) ? item.intersect(fields) : item
-		)
-	;
-	
-	
-	/**
-	 * Transform item to Relation
-	 */
-	Vector<Relation> toRelation()
-	{
-		string class_name = this.q.getRelationName();
-		return this
-			.map(
-				BaseStruct (Dict item) use (class_name)
-					=> Relation::newInstance(class_name, item)
-			)
-		;
-	}
 }

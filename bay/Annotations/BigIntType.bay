@@ -31,14 +31,14 @@ class BigIntType extends BaseType
 	{
 		if (item.has(this.name))
 		{
-			var value = item[this.name];
+			var value = item.get(this.name);
 			if (value === null and this.nullable)
 			{
 				item.set(this.name, null);
 			}
 			else
 			{
-				item.set(this.name, rt::toInt(value));
+				item.set(this.name, rtl::toInt(value));
 			}
 		}
 		return item;

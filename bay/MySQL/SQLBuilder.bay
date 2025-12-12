@@ -340,7 +340,7 @@ class SQLBuilder extends BaseObject
 						string field_key = "update_" ~ key;
 						string field_name = this.prepareField(key)
 						update_arr.push(field_name ~ " = " ~ this.formatKey(field_key));
-						data = data.set(field_key, value);
+						data.set(field_key, value);
 					}
 				);
 			}

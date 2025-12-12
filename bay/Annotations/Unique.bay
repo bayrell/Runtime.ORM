@@ -18,11 +18,9 @@
 
 namespace Runtime.ORM.Annotations;
 
-use Runtime.BaseObject;
+use Runtime.ORM.Annotations.BaseStruct;
 
 
-class Unique extends BaseObject
+class Unique extends BaseStruct
 {
-	string table_name = "";
-	string relation_name = "";
 }

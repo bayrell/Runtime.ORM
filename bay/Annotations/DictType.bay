@@ -31,7 +31,7 @@ class DictType extends BaseType
 	{
 		if (item.has(this.name))
 		{
-			string value = item[this.name];
+			string value = item.get(this.name);
 			Dict obj = rtl::json_decode(value);
 			item.set(this.name, obj);
 			item = await conn.fromDatabase(this, item, this.name);
@@ -45,7 +45,7 @@ class DictType extends BaseType
 	 */
 	async var toDatabase(Connection conn, Dict item, bool is_update)
 	{
-		Dict value = item[this.name];
+		Dict value = item.get(this.name);
 		if (value)
 		{
 			item.set(this.name, rtl::json_encode(value, false));
