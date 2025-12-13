@@ -83,8 +83,7 @@ class Relation extends BaseObject
 	 */
 	static Record createRecord(Dict data = null)
 	{
-		Record instance = new Record(static::getTableName());
-		instance._initData(data);
+		Record instance = new Record(data);
 		return instance;
 	}
 	
@@ -179,11 +178,18 @@ class Relation extends BaseObject
 		/* Check if primary keys if exists */
 		if (primary_keys == null)
 		{
-			throw new ItemNotFound("Primary keys");
+			string table_name = static::getTableName();
+			throw new RuntimeException("Primary key does not exists in " ~ table_name);
 		}
 		
 		/* Intersect values */
-		return data ? data.intersect(primary_keys) : {};
+		Map pk = {};
+		for (int i=0; i<primary_keys.count(); i++)
+		{
+			string field_name = primary_keys.get(i);
+			pk.set(field_name, data ? data.get(field_name) : null);
+		}
+		return pk;
 	}
 	
 	
@@ -208,6 +214,10 @@ class Relation extends BaseObject
 				return item;
 			}
 		);
+		if (filter.count() == 0)
+		{
+			throw new RuntimeException("Primary key does not exists in " ~ table_name);
+		}
 		return filter;
 	}
 	
@@ -382,7 +392,7 @@ class Relation extends BaseObject
 	/**
 	 * Find relations by filter
 	 */
-	async QueryResult findByFilter(Collection<QueryFilter> filter, Dict params = null)
+	async QueryResult find(Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = this.select().setFilter(filter);
 		return await this.connection.fetchAll(q, params);
