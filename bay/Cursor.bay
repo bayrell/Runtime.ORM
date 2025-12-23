@@ -134,7 +134,7 @@ class Cursor extends BaseObject
 		Dict row = await this.fetchMap();
 		if (!row) return null;
 		row = this.convertItem(row);
-		return new Record(row);
+		return row;
 	}
 	
 	

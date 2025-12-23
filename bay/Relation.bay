@@ -48,12 +48,10 @@ class Relation extends BaseObject
 	void constructor(Dict params = null)
 	{
 		parent();
-		if (params.has("connection")) this.connection = params.get("connection");
-		else if (params.has("connection_name"))
-		{
-			Provider provider = @.provider(classof Provider);
-			this.connection = provider.get(params.get("connection_name"));
-		}
+		if (params and params.has("connection")) this.connection = params.get("connection");
+		else this.connection = Connection::get(
+			params ? params.get("connection_name", "default") : "default"
+		);
 	}
 	
 	
@@ -81,9 +79,9 @@ class Relation extends BaseObject
 	/**
 	 * Create Instance of class
 	 */
-	static Record createRecord(Dict data = null)
+	Record<Relation> createRecord(Dict data = null)
 	{
-		Record instance = new Record(data);
+		Record<Relation> instance = new Record(data, this);
 		return instance;
 	}
 	
@@ -91,7 +89,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns table annotations
 	 */
-	Collection<BaseStruct> getAnotations()
+	Collection<BaseObject> getAnotations()
 	{
 		Provider provider = @.provider(classof Provider);
 		return provider.getAnotations(static::getTableName());
@@ -225,7 +223,7 @@ class Relation extends BaseObject
 	/**
 	 * Save model
 	 */
-	async void save(Record item, Dict params = null)
+	async void save(Record<Relation> item, Dict params = null)
 	{
 		string table_name = static::getTableName();
 		
@@ -244,7 +242,7 @@ class Relation extends BaseObject
 			Collection updated_data_keys = rtl::list(updated_data.keys());
 			if (updated_data_keys.count() > 0)
 			{
-				Collection filter = this.getPrimaryFilter(item.old_data, false);
+				Collection filter = this.getPrimaryFilter(item.old(), false);
 				if (filter.count() > 0)
 				{
 					Dict db_updated_data = await this.toDatabase(updated_data, is_update);
@@ -264,7 +262,7 @@ class Relation extends BaseObject
 				for (int i=0; i<updated_data_keys.count(); i++)
 				{
 					string field_name = updated_data_keys[i];
-					item.old_data.set(field_name, updated_data.get(field_name));
+					item.set(field_name, updated_data.get(field_name));
 				}
 			}
 		}
@@ -279,15 +277,14 @@ class Relation extends BaseObject
 				params
 			);
 			
-			item._initData(item.new_data);
-			
 			AutoIncrement auto_increment = this.getAutoIncrement(table_name);
 			if (auto_increment and auto_increment.name)
 			{
-				item.old_data.set(auto_increment.name, last_id);
-				item.new_data.set(auto_increment.name, last_id);
+				item.set(auto_increment.name, last_id);
 			}
 		}
+		
+		item._initData(item.all());
 		
 		/* Call before after */
 		await @.hook(DatabaseSchema::SAVE_AFTER, {
@@ -301,7 +298,7 @@ class Relation extends BaseObject
 	/**
 	 * Delete model
 	 */
-	async void delete(Record item, Dict params = null)
+	async void delete(Record<Relation> item, Dict params = null)
 	{
 		if (item.isNew())
 		{
@@ -331,14 +328,13 @@ class Relation extends BaseObject
 	/**
 	 * Refresh model from database
 	 */
-	async Record refresh(Record item, Dict params = null)
+	async void refresh(Record<Relation> item, Dict params = null)
 	{
-		item = this.findByPk(item, params);
-		if (item)
+		Record<Relation> new_item = this.findByPk(item, params);
+		if (new_item)
 		{
-			item._initData(item.toDict());
+			item._initData(new_item.all());
 		}
-		return item;
 	}
 	
 	
@@ -351,11 +347,12 @@ class Relation extends BaseObject
 	/**
 	 * Returns select query
 	 */
-	Query select()
+	Query select(Vector fields = null)
 	{
 		string table_name = static::getTableName();
+		if (fields == null) fields = [table_name ~ ".*"];
 		Query q = new Query()
-			.select([table_name ~ ".*"])
+			.select(fields)
 			.from(table_name)
 		;
 		return q;
@@ -375,22 +372,43 @@ class Relation extends BaseObject
 	
 	
 	/**
+	 * Fetch all records
+	 */
+	async QueryResult<Record<Relation>> fetchAllRecords(Query q, Map params = null)
+	{
+		QueryResult result = await this.fetchAll(q);
+		return result.map(Record (Map row) => this.createRecord(row));
+	}
+	
+	
+	/**
 	 * Fetch
 	 */
-	async Record fetch(Query q, Dict params = null)
+	async Map fetch(Query q, Dict params = null)
 	{
+		q.limit(1);
 		Cursor c = await this.connection.execute(q, params);
 		Record item = await c.fetch();
 		await c.close();
 		return item;
 	}
-	async Record fetchOne(Query q, Dict params = null) =>
+	async Map fetchOne(Query q, Dict params = null) =>
 		await this.fetch(q, params)
 	;
 	
 	
 	/**
-	 * Find relations by filter
+	 * Fetch record
+	 */
+	async Record<Relation> fetchRecord(Query q, Map params = null)
+	{
+		Map row = await this.fetch(q, params);
+		return row ? this.createRecord(row) : null;
+	}
+	
+	
+	/**
+	 * Find rows by filter
 	 */
 	async QueryResult find(Collection<QueryFilter> filter, Dict params = null)
 	{
@@ -402,30 +420,30 @@ class Relation extends BaseObject
 	/**
 	 * Find relation by filter
 	 */
-	async Record findItem(Collection<QueryFilter> filter, Dict params = null)
+	async Record<Relation> findRecord(Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = this.select().setFilter(filter).limit(1);
-		return await this.connection.fetch(q, params);
+		return await this.connection.fetchRecord(q, params);
 	}
 	
 	
 	/**
 	 * Find relation by primary key
 	 */
-	async Record findByPk(Dict pk, Dict params = null)
+	async Record<Relation> findByPk(Dict pk, Dict params = null)
 	{
 		/* Returns primary filter */
 		Vector filter = this.getPrimaryFilter(pk, false);
 		
 		/* Find record */
-		return await this.findItem(filter, params);
+		return await this.findRecord(filter, params);
 	}
 	
 	
 	/**
 	 * Find relation by object
 	 */
-	async Record findById(var id, Dict params = null)
+	async Record<Relation> findById(var id, Dict params = null)
 	{
 		/* Get primary keys */
 		Vector pk = this.getPrimaryKeyNames();
@@ -437,14 +455,14 @@ class Relation extends BaseObject
 		];
 		
 		/* Find record */
-		return await this.findItem(filter, params);
+		return await this.findRecord(filter, params);
 	}
 	
 	
 	/**
 	 * Find or create
 	 */
-	async Record findOrCreate(Dict filter, Dict update, Dict params = null)
+	async Record<Relation> findOrCreate(Dict filter, Dict params = null)
 	{
 		string class_name = static::getClassName();
 		
@@ -457,15 +475,14 @@ class Relation extends BaseObject
 		);
 		
 		/* Find item */
-		Record record = await this.findItem(search, params);
+		Record<Relation> record = await this.findRecord(search, params);
 		if (record) return record;
 		
 		/* Create if not found */
-		record = Record::newInstance(class_name);
+		record = this.createRecord();
 		
 		/* Set new data */
 		record.setData(filter);
-		record.setData(update);
 		
 		return record;
 	}

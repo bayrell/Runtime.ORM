@@ -35,7 +35,7 @@ class DateTimeType extends BaseType
 	{
 		if (not item.has(this.name)) return item;
 		string value = item.get(this.name);
-		this.set(this.name, static::convertFromDatabase(value));
+		item.set(this.name, static::convertFromDatabase(value));
 		item = await conn.fromDatabase(this, item, this.name);
 		return item;
 	}
@@ -48,7 +48,7 @@ class DateTimeType extends BaseType
 	{
 		if (not item.has(this.name)) return item;
 		DateTime value = item.get(this.name);
-		this.set(this.name, static::convertToDatabase(value));
+		item.set(this.name, static::convertToDatabase(value));
 		item = await conn.toDatabase(this, item, this.name);
 		return item;
 	}
@@ -70,7 +70,7 @@ class DateTimeType extends BaseType
 	static string convertToDatabase(DateTime value)
 	{
 		if (not(value instanceof DateTime)) return null;
-		return value.setOffset(0).getDateTimeString();
+		return value.setOffset(0).format();
 	}
 	
 }

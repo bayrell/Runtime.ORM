@@ -22,29 +22,37 @@ use Runtime.BaseObject;
 use Runtime.ORM.Provider;
 
 
-class Record extends BaseObject
+class Record<Relation> extends BaseObject
 {
-	Map old_data = null;
-	Map new_data = new Map;
+	protected Map _old_data = null;
+	protected Map _new_data = new Map;
+	protected Relation _relation = null;
 	
 	
 	/**
 	 * Create new Record
 	 */
-	void constructor(Map data)
+	void constructor(Map data, Relation relation)
 	{
 		parent();
+		this._relation = relation;
 		this._initData(data);
 	}
 	
 	
 	/**
+	 * Returns relation
+	 */
+	Relation relation() => this._relation;
+	
+	
+	/**
 	 * Convert to Dict
 	 */
-	Map all() => this.new_data.copy();
-	Map old() => this.old_data.copy();
-	Map getData() => this.new_data.copy();
-	Map intersect(Collection fields = null) => this.new_data.intersect(fields);
+	Map all() => this._new_data.copy();
+	Map old() => this._old_data.copy();
+	Map getData() => this._new_data.copy();
+	Map intersect(Collection fields = null) => this._new_data.intersect(fields);
 	
 	
 	/**
@@ -53,14 +61,14 @@ class Record extends BaseObject
 	public Map getPrimaryKey()
 	{
 		Provider provider = @.provider(classof Provider);
-		return provider.getPrimaryFromData(static::getTableName(), this.new_data);
+		return provider.getPrimaryFromData(static::getTableName(), this._new_data);
 	}
 	
 	
 	/**
 	 * Returns value
 	 */
-	var get(string name, var def_value = null) => this.new_data.get(name, def_value);
+	var get(string name, var def_value = null) => this._new_data.get(name, def_value);
 	
 	
 	/**
@@ -68,7 +76,7 @@ class Record extends BaseObject
 	 */
 	void set(string name, var value)
 	{
-		this.new_data.set(name, value);
+		this._new_data.set(name, value);
 	}
 	
 	
@@ -92,29 +100,29 @@ class Record extends BaseObject
 	 */
 	Map getUpdatedData()
 	{
-		if (this.new_data == null) return {};
+		if (this._new_data == null) return {};
 		
 		Map res = new Map;
 		
-		Collection new_data_keys = rtl::list(this.new_data.keys());
+		Collection new_data_keys = rtl::list(this._new_data.keys());
 		for (int i=0; i<new_data_keys.count(); i++)
 		{
 			string field_name = new_data_keys[i];
-			var new_value = this.new_data.get(field_name);
+			var new_value = this._new_data.get(field_name);
 			
-			if (this.old_data == null)
+			if (this._old_data == null)
 			{
 				res.set(field_name, new_value);
 			}
 			else
 			{
-				if (not this.old_data.has(field_name))
+				if (not this._old_data.has(field_name))
 				{
 					res.set(field_name, new_value);
 				}
 				else
 				{
-					var old_value = this.old_data.get(field_name);
+					var old_value = this._old_data.get(field_name);
 					if (new_value != old_value)
 					{
 						res.set(field_name, new_value);
@@ -130,10 +138,10 @@ class Record extends BaseObject
 	/**
 	 * Init data
 	 */
-	protected void _initData(Dict data = null)
+	void _initData(Dict data = null)
 	{
-		this.old_data = data != null ? new Map(data) : null;
-		this.new_data = data != null ? new Map(data) : new Map();
+		this._old_data = data != null ? new Map(data) : null;
+		this._new_data = data != null ? new Map(data) : new Map();
 	}
 	
 	
@@ -142,7 +150,7 @@ class Record extends BaseObject
 	 */
 	bool isNew()
 	{
-		return this.old_data ? false : true;
+		return this._old_data ? false : true;
 	}
 	
 	
@@ -151,7 +159,7 @@ class Record extends BaseObject
 	 */
 	bool isUpdate()
 	{
-		return this.old_data ? true : false;
+		return this._old_data ? true : false;
 	}
 	
 	
@@ -160,8 +168,8 @@ class Record extends BaseObject
 	 */
 	bool isChanged()
 	{
-		Dict d1 = this.old_data;
-		Dict d2 = this.new_data;
+		Dict d1 = this._old_data;
+		Dict d2 = this._new_data;
 		
 		if (d1 == null) return true;
 		if (d2 == null) return true;
@@ -199,4 +207,53 @@ class Record extends BaseObject
 		
 		return false;
 	}
+	
+	
+	/**
+	 * Save object
+	 */
+	async void save()
+	{
+		await this._relation.save(this);
+	}
+	
+	
+	/**
+	 * Delete object
+	 */
+	async void delete()
+	{
+		await this._relation.delete(this);
+	}
+	
+	
+	/**
+	 * Refresh object
+	 */
+	async void refresh()
+	{
+		await this._relation.refresh(this);
+	}
+	
+	
+	#ifcode PHP then
+	
+	/**
+	 * Returns value
+	 */
+	function __get($key)
+	{
+		return $this->get($key);
+	}
+	
+	
+	/**
+	 * Set value
+	 */
+	function __set($key, $value)
+	{
+		return $this->set($key, $value);
+	}
+	
+	#endif
 }
