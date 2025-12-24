@@ -300,14 +300,9 @@ class Relation extends BaseObject
 	 */
 	async void delete(Record<Relation> item, Dict params = null)
 	{
-		if (item.isNew())
-		{
-			return;
-		}
-		
 		/* Get primary filter */
 		string table_name = static::getTableName();
-		Collection filter = this.getPrimaryFilter(item.old_data, false);
+		Collection filter = this.getPrimaryFilter(item.old(), false);
 		
 		/* Delete record */
 		if (filter.count() > 0)
