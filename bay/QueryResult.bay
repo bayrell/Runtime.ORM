@@ -30,11 +30,23 @@ class QueryResult extends Vector<Dict>
 	/**
 	 * Returns pages
 	 */
-	async int getPages() => this.q ? this.q.getPages(this.rows) : 0;
+	int getPages() => this.q ? this.q.getPages(this.rows) : 0;
 	
 	
 	/**
 	 * Returns page
 	 */
-	async int getPage() => this.q ? this.q.getPage() : 0;
+	int getPage() => this.q ? this.q.getPage() : 0;
+	
+	
+	/**
+	 * Returns count
+	 */
+	int getCount() => this.rows;
+	
+	
+	/**
+	 * Returns limit
+	 */
+	int getLimit() => this.q ? this.q._limit : 1;
 }

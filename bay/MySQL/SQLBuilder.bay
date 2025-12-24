@@ -246,14 +246,17 @@ class SQLBuilder extends BaseObject
 				{
 					Dict join = q._join[i];
 					
-					string kind = join.map("kind");
-					string table_name = join.map("table_name");
-					string alias_name = join.map("alias_name");
+					string kind = join.get("kind");
+					string table_name = join.get("table_name");
+					string alias_name = join.get("alias_name");
 					
-					Collection filter = join.map("filter");
-					list res = this.convertFilter(filter, data, field_index);
-					string where = res[0];
-					field_index = res[1];
+					string where = join.get("filter");
+					if (where instanceof Vector)
+					{
+						list res = this.convertFilter(where, data, field_index);
+						where = res[0];
+						field_index = res[1];
+					}
 					
 					if (kind == "left") sql ~= " LEFT JOIN ";
 					else sql ~= " INNER JOIN ";
