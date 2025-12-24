@@ -518,7 +518,8 @@ class Query extends BaseObject
 	 */
 	Query addFilter(var filter)
 	{
-		this._filter.push(filter);
+		if (filter instanceof Vector) this._filter.appendItems(filter);
+		else this._filter.push(filter);
 		return this;
 	}
 	
