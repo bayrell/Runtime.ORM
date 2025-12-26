@@ -43,7 +43,7 @@ class DictType extends BaseType
 	/**
 	 * Process item to database
 	 */
-	async var toDatabase(Connection conn, Dict item, bool is_update)
+	async var toDatabase(Connection conn, Dict item)
 	{
 		Dict value = item.get(this.name);
 		if (value)

@@ -19,6 +19,7 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.DateTime;
+use Runtime.Serializer.DateTimeType as RuntimeRule;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
@@ -26,6 +27,31 @@ use Runtime.ORM.Connection;
 class DateTimeType extends BaseType
 {
 	string tz = "UTC";
+	bool autocreate = false;
+	bool autoupdate = false;
+	
+	
+	/**
+	 * Returns rule
+	 */
+	BaseType getRule() => new RuntimeRule();
+	
+	
+	/**
+	 * Prepare data before save
+	 */
+	Map prepare(Map item, bool is_update)
+	{
+		if (not is_update and this.autocreate)
+		{
+			if (not item.has(this.name)) item.set(this.name, DateTime::now());
+		}
+		if (is_update and this.autoupdate)
+		{
+			item.set(this.name, DateTime::now());
+		}
+		return item;
+	}
 	
 	
 	/**
@@ -44,10 +70,10 @@ class DateTimeType extends BaseType
 	/**
 	 * Process item to database
 	 */
-	async var toDatabase(Connection conn, Dict item, bool is_update)
+	async var toDatabase(Connection conn, Dict item)
 	{
-		if (not item.has(this.name)) return item;
 		DateTime value = item.get(this.name);
+		if (value == null) return item;
 		item.set(this.name, static::convertToDatabase(value));
 		item = await conn.toDatabase(this, item, this.name);
 		return item;

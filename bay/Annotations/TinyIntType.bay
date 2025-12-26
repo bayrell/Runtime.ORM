@@ -18,12 +18,19 @@
 
 namespace Runtime.ORM.Annotations;
 
+use Runtime.Serializer.IntegerType;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
 
 class TinyIntType extends BaseType
 {
+	/**
+	 * Returns rule
+	 */
+	BaseType getRule() => new IntegerType;
+	
+	
 	/**
 	 * Process item from database
 	 */

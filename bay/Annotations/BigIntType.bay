@@ -18,6 +18,7 @@
 
 namespace Runtime.ORM.Annotations;
 
+use Runtime.Serializer.IntegerType;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
@@ -25,9 +26,15 @@ use Runtime.ORM.Connection;
 class BigIntType extends BaseType
 {
 	/**
+	 * Returns schema
+	 */
+	BaseType getRule() => new IntegerType();
+	
+	
+	/**
 	 * Process item from database
 	 */
-	async var fromDatabase(Connection conn, Dict item)
+	async var fromDatabase(Connection conn, Map item)
 	{
 		if (item.has(this.name))
 		{

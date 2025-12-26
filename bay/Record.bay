@@ -60,8 +60,7 @@ class Record<Relation> extends BaseObject
 	 */
 	public Map getPrimaryKey()
 	{
-		Provider provider = @.provider(classof Provider);
-		return provider.getPrimaryFromData(static::getTableName(), this._new_data);
+		return this.relation.getPrimaryKey(this._new_data);
 	}
 	
 	

@@ -18,10 +18,15 @@
 
 namespace Runtime.ORM.Annotations;
 
+use Runtime.Serializer.BooleanType as RuntimeType;
 use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Connection;
 
 
 class BooleanType extends BaseType
-{	
+{
+    /**
+	 * Returns schema
+	 */
+	BaseType getSchema() => new RuntimeType();
 }

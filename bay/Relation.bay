@@ -23,6 +23,7 @@ use Runtime.BaseObject;
 use Runtime.BaseStruct;
 use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
+use Runtime.Serializer.MapType;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.DatabaseSchema;
@@ -79,7 +80,7 @@ class Relation extends BaseObject
 	/**
 	 * Create Instance of class
 	 */
-	Record<Relation> createRecord(Dict data = null)
+	Record<Relation> createRecord(Map data = null)
 	{
 		Record<Relation> instance = new Record(data, this);
 		return instance;
@@ -89,7 +90,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns table annotations
 	 */
-	Collection<BaseObject> getAnotations()
+	Vector<BaseObject> getAnotations()
 	{
 		Provider provider = @.provider(classof Provider);
 		return provider.getAnotations(static::getTableName());
@@ -99,17 +100,17 @@ class Relation extends BaseObject
 	/**
 	 * To database
 	 */
-	async Dict toDatabase(Dict data, bool is_update)
+	async Map toDatabase(Map data)
 	{
 		if (data == null) return null;
 		
 		Collection<BaseType> annotations = this.getAnotations();
 		for (int i=0; i<annotations.count(); i++)
 		{
-			BaseType annotation = annotations[i];
-			if (annotation instanceof BaseType)
+			BaseType annotation = annotations.get(i);
+			if (annotation instanceof BaseType and data.has(annotation.name))
 			{
-				data = await annotation.toDatabase(this.connection, data, is_update);
+				data = await annotation.toDatabase(this.connection, data);
 			}
 		}
 		
@@ -120,15 +121,15 @@ class Relation extends BaseObject
 	/**
 	 * From database
 	 */
-	Dict fromDatabase(Connection conn, Dict data)
+	async Map fromDatabase(Map data)
 	{
 		if (data == null) return null;
 		
 		Collection<BaseType> annotations = this.getAnotations();
 		for (int i=0; i<annotations.count(); i++)
 		{
-			BaseType annotation = annotations[i];
-			if (annotation instanceof BaseType)
+			BaseType annotation = annotations.get(i);
+			if (annotation instanceof BaseType and data.has(annotation.name))
 			{
 				data = await annotation.fromDatabase(this.connection, data);
 			}
@@ -152,12 +153,47 @@ class Relation extends BaseObject
 	
 	
 	/**
+	 * Returns primary rules
+	 */
+	MapType getPrimaryRules()
+	{
+		MapType rules = new MapType();
+		
+		Vector<BaseStruct> annotations = this.getAnotations();
+		Primary primary = annotations.find(bool (BaseObject item) => item instanceof Primary);
+		if (primary == null) return rules;
+		
+		annotations = annotations.filter(
+			bool (BaseObject item) use (primary)
+			{
+				if (not (item instanceof BaseType)) return false;
+				if (primary.keys.indexOf(item.name) == -1) return false;
+				return true;
+			}
+		);
+		
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseType annotation = annotations.get(i);
+			BaseObject rule = annotation.getRule();
+			if (not rule)
+			{
+				throw new RuntimeException("Rule is not defined");
+			}
+			rules.addType(annotation.name, rule);
+		}
+		
+		return rules;
+	}
+	
+	
+	/**
 	 * Returns primary keys of table
 	 */
-	Collection<string> getPrimaryKeys()
+	Vector<string> getPrimaryKeys()
 	{
 		/* Get primary annotation */
-		Collection<BaseStruct> annotations = this.getAnotations();
+		Vector<BaseStruct> annotations = this.getAnotations();
 		Primary primary = annotations.find(bool (BaseObject item) => item instanceof Primary);
 		
 		if (primary == null) return null;
@@ -168,10 +204,10 @@ class Relation extends BaseObject
 	/**
 	 * Returns primary data
 	 */
-	Dict getPrimaryKey(Dict data)
+	Map getPrimaryKey(Map data)
 	{
 		/* Get primary annotation */
-		Collection<string> primary_keys = this.getPrimaryKeys();
+		Vector<string> primary_keys = this.getPrimaryKeys();
 		
 		/* Check if primary keys if exists */
 		if (primary_keys == null)
@@ -223,7 +259,7 @@ class Relation extends BaseObject
 	/**
 	 * Save model
 	 */
-	async void save(Record<Relation> item, Dict params = null)
+	async void save(Record<Relation> item, Map params = null)
 	{
 		string table_name = static::getTableName();
 		
@@ -235,7 +271,18 @@ class Relation extends BaseObject
 		});
 		
 		bool is_update = item.isUpdate();
-		Dict updated_data = item.getUpdatedData();
+		Map updated_data = item.getUpdatedData();
+		
+		/* Prepare */
+		Vector annotations = this.getAnotations();
+		for (int i=0; i<annotations.count(); i++)
+		{
+			BaseType annotation = annotations.get(i);
+			if (annotation instanceof BaseType)
+			{
+				updated_data = annotation.prepare(updated_data, is_update);
+			}
+		}
 		
 		if (is_update)
 		{
@@ -245,7 +292,7 @@ class Relation extends BaseObject
 				Collection filter = this.getPrimaryFilter(item.old(), false);
 				if (filter.count() > 0)
 				{
-					Dict db_updated_data = await this.toDatabase(updated_data, is_update);
+					Map db_updated_data = await this.toDatabase(updated_data);
 					
 					await this.connection.update(
 						table_name,
@@ -268,7 +315,7 @@ class Relation extends BaseObject
 		}
 		else
 		{
-			Dict db_updated_data = this.toDatabase(updated_data, is_update);
+			Map db_updated_data = this.toDatabase(updated_data);
 			
 			var last_id = await this.connection.insert(
 				table_name,
