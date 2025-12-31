@@ -324,7 +324,7 @@ class Relation extends BaseObject
 				params
 			);
 			
-			AutoIncrement auto_increment = this.getAutoIncrement(table_name);
+			AutoIncrement auto_increment = this.getAutoIncrement();
 			if (auto_increment and auto_increment.name)
 			{
 				item.set(auto_increment.name, last_id);

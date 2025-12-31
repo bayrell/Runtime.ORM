@@ -23,4 +23,5 @@ use Runtime.ORM.Annotations.BaseStruct;
 
 class AutoIncrement extends BaseStruct
 {
+    string name = "";
 }
