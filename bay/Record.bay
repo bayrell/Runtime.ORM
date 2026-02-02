@@ -32,10 +32,14 @@ class Record<Relation> extends BaseObject
 	/**
 	 * Create new Record
 	 */
-	void constructor(Map data, Relation relation)
+	void constructor(Map data = null, Relation relation = null)
 	{
 		parent();
-		this._relation = relation;
+		
+		/* Setup relation */
+		this.setRelation(relation);
+		
+		/* Init data */
 		this._initData(data);
 	}
 	
@@ -44,6 +48,19 @@ class Record<Relation> extends BaseObject
 	 * Returns relation
 	 */
 	Relation relation() => this._relation;
+	
+	
+	/**
+	 * Set new relation
+	 */
+	void setRelation(Relation relation)
+	{
+		this._relation = relation;
+		if (this._relation == null)
+		{
+			this._relation = new Relation(static::getClassName());
+		}
+	}
 	
 	
 	/**

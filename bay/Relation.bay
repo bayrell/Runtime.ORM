@@ -21,6 +21,7 @@ namespace Runtime.ORM;
 use Runtime.lib;
 use Runtime.BaseObject;
 use Runtime.BaseStruct;
+use Runtime.Method;
 use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.Serializer.MapType;
@@ -41,25 +42,21 @@ use Runtime.ORM.Annotations.Primary;
 class Relation extends BaseObject
 {
 	protected Connection connection = null;
+	string record_name = "";
 	
 	
 	/**
 	 * Constructor
 	 */
-	void constructor(Dict params = null)
+	void constructor(string record_name, Dict params = null)
 	{
 		parent();
+		this.record_name = record_name;
 		if (params and params.has("connection")) this.connection = params.get("connection");
 		else this.connection = Connection::get(
 			params ? params.get("connection_name", "default") : "default"
 		);
 	}
-	
-	
-	/**
-	 * Returns table name
-	 */
-	pure string getTableName() => "";
 	
 	
 	/**
@@ -80,10 +77,22 @@ class Relation extends BaseObject
 	/**
 	 * Create Instance of class
 	 */
-	Record<Relation> createRecord(Map data = null)
+	Record<Relation> createRecord(Map data = null) =>
+		rtl::newInstance(this.record_name, [data, this])
+	;
+	
+	
+	/**
+	 * Returns table name
+	 */
+	string getTableName()
 	{
-		Record<Relation> instance = new Record(data, this);
-		return instance;
+		if (this.record_name == "")
+		{
+			throw new ItemNotFound("Record name");
+		}
+		Method f = new Method(this.record_name, "getTableName");
+		return f.apply();
 	}
 	
 	
@@ -93,7 +102,7 @@ class Relation extends BaseObject
 	Vector<BaseObject> getAnotations()
 	{
 		Provider provider = @.provider(classof Provider);
-		return provider.getAnotations(static::getTableName());
+		return provider.getAnotations(this.getTableName());
 	}
 	
 	
@@ -212,7 +221,7 @@ class Relation extends BaseObject
 		/* Check if primary keys if exists */
 		if (primary_keys == null)
 		{
-			string table_name = static::getTableName();
+			string table_name = this.getTableName();
 			throw new RuntimeException("Primary key does not exists in " ~ table_name);
 		}
 		
@@ -232,7 +241,7 @@ class Relation extends BaseObject
 	 */
 	Vector<QueryFilter> getPrimaryFilter(Dict data, bool use_full_key = true)
 	{
-		string table_name = static::getTableName();
+		string table_name = this.getTableName();
 		Dict pk = this.getPrimaryKey(data);
 		Vector filter = pk.transition(
 			QueryFilter (var value, string key) use (table_name, use_full_key)
@@ -261,7 +270,7 @@ class Relation extends BaseObject
 	 */
 	async void save(Record<Relation> item, Map params = null)
 	{
-		string table_name = static::getTableName();
+		string table_name = this.getTableName();
 		
 		/* Call before save */
 		await @.hook(DatabaseSchema::SAVE_BEFORE, {
@@ -348,7 +357,7 @@ class Relation extends BaseObject
 	async void delete(Record<Relation> item, Dict params = null)
 	{
 		/* Get primary filter */
-		string table_name = static::getTableName();
+		string table_name = this.getTableName();
 		Collection filter = this.getPrimaryFilter(item.old(), false);
 		
 		/* Delete record */
@@ -383,7 +392,7 @@ class Relation extends BaseObject
 	/**
 	 * Returns query
 	 */
-	Query query() => new Query().from(static::getTableName());
+	Query query() => new Query().from(this.getTableName());
 	
 	
 	/**
@@ -391,7 +400,7 @@ class Relation extends BaseObject
 	 */
 	Query select(Vector fields = null)
 	{
-		string table_name = static::getTableName();
+		string table_name = this.getTableName();
 		if (fields == null) fields = [table_name ~ ".*"];
 		Query q = new Query()
 			.select(fields)
@@ -465,7 +474,7 @@ class Relation extends BaseObject
 	async Record<Relation> findRecord(Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = this.select().setFilter(filter).limit(1);
-		return await this.connection.fetchRecord(q, params);
+		return await this.fetchRecord(q, params);
 	}
 	
 	

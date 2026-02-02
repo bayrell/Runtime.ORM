@@ -131,11 +131,11 @@ class Provider extends BaseProvider
 		for (int i=0; i<items.count(); i++)
 		{
 			Table table = items[i];
-			string relation_name = table.name;
-			string table_name = new Method(relation_name, "getTableName").apply();
+			string record_name = table.name;
+			string table_name = new Method(record_name, "getTableName").apply();
 			
 			/* Add schema */
-			Vector rules = new Method(relation_name, "schema").apply();
+			Vector rules = new Method(record_name, "schema").apply();
 			this.addTable(table_name, rules);
 		}
 		
