@@ -46,7 +46,7 @@ class DateTimeType extends BaseType
 		{
 			if (not item.has(this.name)) item.set(this.name, DateTime::now());
 		}
-		if (is_update and this.autoupdate)
+		if (this.autoupdate)
 		{
 			item.set(this.name, DateTime::now());
 		}
