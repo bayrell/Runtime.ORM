@@ -49,4 +49,10 @@ class QueryResult extends Vector<Dict>
 	 * Returns limit
 	 */
 	int getLimit() => this.q ? this.q._limit : 1;
+	
+	
+	/**
+	 * Intersect
+	 */
+	Vector intersect(Vector fields) => this.map(Map (var item) => item.intersect(fields));
 }
