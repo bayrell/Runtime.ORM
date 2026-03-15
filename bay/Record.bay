@@ -82,6 +82,12 @@ class Record<Relation> extends BaseObject
 	
 	
 	/**
+	 * Returns true if name is exists
+	 */
+	bool has(string name) => this._new_data.has(name);
+	
+	
+	/**
 	 * Returns value
 	 */
 	var get(string name, var def_value = null) => this._new_data.get(name, def_value);
