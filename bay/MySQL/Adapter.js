@@ -140,16 +140,29 @@ class Adapter
 		let sql = builder.getSQL();
 		let data = builder.getData();
 		
-		/* Ensure connection is established */
-		if (!this.connection)
-		{
-			await this.getConnection();
-		}
+		/* Clear */
+		this.st = null;
 		
 		/* Execute query */
-		let [rows, fields] = await this.connection.execute(
-			sql, data ? data.toObject() : null
-		);
+		let rows = null;
+		try
+		{
+			if (data)
+			{
+				[rows] = await this.connection.execute(
+					sql, data ? data.toObject() : null
+				);
+			}
+			else
+			{
+				[rows] = await this.connection.query(sql);
+			}
+		}
+		catch (error)
+		{
+			const OrmException = use("Runtime.ORM.Exceptions.OrmException");
+			throw new OrmException(error.message);
+		}
 		
 		/* Store result for affectedRows/lastInsertId */
 		this.st = {
