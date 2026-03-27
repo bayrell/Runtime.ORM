@@ -25,6 +25,7 @@ use Runtime.Method;
 use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.ORM.Connection;
+use Runtime.ORM.ConnectionPool;
 use Runtime.ORM.DatabaseSchema;
 use Runtime.ORM.QueryFilter;
 use Runtime.ORM.Annotations.AutoIncrement;
@@ -46,7 +47,7 @@ class Provider extends BaseProvider
 	/**
 	 * Returns connection
 	 */
-	Connection getConnection(string name)
+	ConnectionPool get(string name)
 	{
 		if (not this.connection_list.has(name))
 		{
@@ -59,7 +60,7 @@ class Provider extends BaseProvider
 	/**
 	 * Add new connection
 	 */
-	void addConnection(Connection conn)
+	void add(ConnectionPool conn)
 	{
 		this.connection_list.set(conn.getName(), conn);
 	}
@@ -80,7 +81,7 @@ class Provider extends BaseProvider
 	 */
 	BaseType getFieldType(string table_name, string field_name)
 	{
-		Collection<BaseType> annotations = static::getAnotations(table_name);
+		Collection<BaseType> annotations = this.getAnotations(table_name);
 		for (int i=0; i<annotations.count(); i++)
 		{
 			BaseType annotation = annotations[i];
@@ -117,15 +118,15 @@ class Provider extends BaseProvider
 	async void start()
 	{
 		await parent::start();
-		this.registerTables();
-		this.registerConnections();
+		await this.registerTables();
+		await this.registerConnections();
 	}
 	
 	
 	/**
 	 * Register tables
 	 */
-	protected void registerTables()
+	protected async void registerTables()
 	{
 		Collection<Table> items = @.getEntities(classof Table);
 		for (int i=0; i<items.count(); i++)
@@ -149,13 +150,13 @@ class Provider extends BaseProvider
 	/**
 	 * Register connections
 	 */
-	protected void registerConnections()
+	protected async void registerConnections()
 	{
 		Collection<ConnectionFactory> items = @.getEntities(classof ConnectionFactory);
 		for (int i=0; i<items.count(); i++)
 		{
 			ConnectionFactory factory = items.get(i);
-			factory.registerConnections(this);
+			await factory.registerConnections(this);
 		}
 	}
 }

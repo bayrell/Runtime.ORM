@@ -16,29 +16,36 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM.Factory;
+namespace Runtime.ORM.Commands;
 
-use Runtime.BaseObject;
-use Runtime.BaseProvider;
-use Runtime.Entity.Entity;
-use Runtime.ORM.Factory.ConnectionFactory;
-use Runtime.ORM.SQLite.ConnectionSQLite;
+use Runtime.Console.BaseCommand;
+use Runtime.ORM.MigrationBuilder;
 
 
-class SQLiteFactory extends ConnectionFactory
+class MigrationUp extends BaseCommand
 {
-	string path = "";
+	/**
+	 * Returns name
+	 */
+	static string getName() => "database:migration:up";
 	
 	
 	/**
-	 * Create connection
+	 * Returns description
 	 */
-	async ConnectionSQLite createConnection()
+	static string getDescription() => "Migration up";
+	
+	
+	/**
+	 * Run task
+	 */
+	async static int run()
 	{
-		ConnectionSQLite conn = new ConnectionSQLite(this.name);
-		conn.database = this.path;
-		await conn.connect();
-		await conn.executeSQL("PRAGMA journal_mode = WAL;");
-		return conn;
+		MigrationBuilder builder = new MigrationBuilder();
+		await builder.init();
+		await builder.up();
+		
+		string sql = builder.getSQL();
+		rtl::print(sql);
 	}
 }

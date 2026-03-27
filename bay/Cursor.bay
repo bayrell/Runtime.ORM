@@ -32,6 +32,7 @@ class Cursor extends BaseObject
 {
 	Connection conn = null;
 	Query q = null;
+	var adapter = null;
 	
 	
 	/**
@@ -56,6 +57,7 @@ class Cursor extends BaseObject
 	void setConnection(Connection connection)
 	{
 		this.conn = connection;
+		this.adapter = connection.adapter.copy();
 	}
 	
 	

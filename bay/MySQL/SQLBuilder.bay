@@ -39,6 +39,7 @@ class SQLBuilder extends BaseObject
 	 */
 	void constructor(Connection conn, Query q)
 	{
+		parent();
 		this.conn = conn;
 		this.q = q;
 	}
@@ -471,7 +472,7 @@ class SQLBuilder extends BaseObject
 					
 					for (int j=0; j<value.count(); j++)
 					{
-						string field_key = convert_key( field_index ~ "_where_" ~ field_name );
+						string field_key = convert_key("where_" ~ field_name ~ "_" ~ field_index);
 						data.set( field_key, value[j] );
 						res.push( this.formatKey(field_key) );
 						field_index++;
@@ -488,7 +489,7 @@ class SQLBuilder extends BaseObject
 		else
 		{
 			string s = "";
-			string field_key = convert_key(field_index ~ "_where_" ~ field_name);
+			string field_key = convert_key("where_" ~ field_name ~ "_" ~ field_index);
 			field_name = this.prepareField(field_name);
 			
 			list res = this.prepareValue(value, op);

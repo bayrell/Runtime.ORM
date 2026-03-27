@@ -30,7 +30,7 @@ class ConnectionFactory extends Entity
 	/**
 	 * Create connection
 	 */
-	Connection createConnection()
+	async Connection createConnection()
 	{
 		return null;
 	}
@@ -39,12 +39,12 @@ class ConnectionFactory extends Entity
 	/**
 	 * Register connections
 	 */
-	void registerConnections(Provider provider)
+	async void registerConnections(Provider provider)
 	{
 		/* Create connection */
-		Connection conn = this.createConnection();
+		Connection conn = await this.createConnection();
 		
 		/* Add connection */
-		provider.addConnection(conn);
+		provider.add(conn);
 	}
 }

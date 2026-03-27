@@ -26,6 +26,7 @@ use Runtime.Exceptions.ItemNotFound;
 use Runtime.Exceptions.RuntimeException;
 use Runtime.Serializer.MapType;
 use Runtime.ORM.Connection;
+use Runtime.ORM.ConnectionPool;
 use Runtime.ORM.Cursor;
 use Runtime.ORM.DatabaseSchema;
 use Runtime.ORM.Provider;
@@ -41,7 +42,7 @@ use Runtime.ORM.Annotations.Primary;
 
 class Relation extends BaseObject
 {
-	protected Connection connection = null;
+	protected ConnectionPool pool = null;
 	string record_name = "";
 	
 	
@@ -52,8 +53,8 @@ class Relation extends BaseObject
 	{
 		parent();
 		this.record_name = record_name;
-		if (params and params.has("connection")) this.connection = params.get("connection");
-		else this.connection = Connection::get(
+		if (params and params.has("pool")) this.pool = params.get("pool");
+		else this.pool = ConnectionPool::get(
 			params ? params.get("connection_name", "default") : "default"
 		);
 	}
@@ -62,15 +63,15 @@ class Relation extends BaseObject
 	/**
 	 * Returns connection;
 	 */
-	Connection getConnection() => this.connection;
+	ConnectionPool getConnectionPool() => this.pool;
 	
 	
 	/**
 	 * Set connection
 	 */
-	void setConnection(Connection connection)
+	void setConnectionPool(ConnectionPool pool)
 	{
-		this.connection = connection;
+		this.pool = pool;
 	}
 	
 	
@@ -303,12 +304,20 @@ class Relation extends BaseObject
 				{
 					Map db_updated_data = await this.toDatabase(updated_data);
 					
-					await this.connection.update(
-						table_name,
-						filter,
-						db_updated_data,
-						params
-					);
+					Connection connection = await this.pool.getConnection();
+					try
+					{
+						await connection.update(
+							table_name,
+							filter,
+							db_updated_data,
+							params
+						);
+					}
+					finally
+					{
+						await connection.release();
+					}
 				}
 				else
 				{
@@ -326,17 +335,26 @@ class Relation extends BaseObject
 		{
 			Map db_updated_data = this.toDatabase(updated_data);
 			
-			var last_id = await this.connection.insert(
-				table_name,
-				db_updated_data,
-				true,
-				params
-			);
-			
-			AutoIncrement auto_increment = this.getAutoIncrement();
-			if (auto_increment and auto_increment.name)
+			/* Get connection and release it after use */
+			Connection connection = await this.pool.getConnection();
+			try
 			{
-				item.set(auto_increment.name, last_id);
+				var last_id = await connection.insert(
+					table_name,
+					db_updated_data,
+					true,
+					params
+				);
+				
+				AutoIncrement auto_increment = this.getAutoIncrement();
+				if (auto_increment and auto_increment.name)
+				{
+					item.set(auto_increment.name, last_id);
+				}
+			}
+			finally
+			{
+				await connection.release();
 			}
 		}
 		
@@ -363,11 +381,20 @@ class Relation extends BaseObject
 		/* Delete record */
 		if (filter.count() > 0)
 		{
-			await this.connection.delete(
-				table_name,
-				filter,
-				params
-			);
+			/* Get connection and release it after use */
+			Connection connection = await this.pool.getConnection();
+			try
+			{
+				await connection.delete(
+					table_name,
+					filter,
+					params
+				);
+			}
+			finally
+			{
+				await connection.release();
+			}
 		}
 		else
 		{
@@ -415,9 +442,19 @@ class Relation extends BaseObject
 	 */
 	async QueryResult fetchAll(Query q, Dict params = null)
 	{
-		Cursor c = await this.connection.execute(q, params);
-		QueryResult items = await c.fetchAll();
-		await c.close();
+		QueryResult items = null;
+		
+		/* Get connection and release it after use */
+		Connection connection = await this.pool.getConnection();
+		try
+		{
+			items = connection.fetchAll(q, params);
+		}
+		finally
+		{
+			await connection.release();
+		}
+		
 		return items;
 	}
 	
@@ -428,7 +465,9 @@ class Relation extends BaseObject
 	async QueryResult<Record<Relation>> fetchAllRecords(Query q, Map params = null)
 	{
 		QueryResult result = await this.fetchAll(q);
-		return result.map(Record (Map row) => this.createRecord(row));
+		return result.map(
+			Record (Map row) => this.createRecord(row)
+		);
 	}
 	
 	
@@ -438,10 +477,18 @@ class Relation extends BaseObject
 	async Map fetch(Query q, Dict params = null)
 	{
 		q.limit(1);
-		Cursor c = await this.connection.execute(q, params);
-		Record item = await c.fetch();
-		await c.close();
-		return item;
+		
+		/* Get connection and release it after use */
+		Connection connection = await this.pool.getConnection();
+		try
+		{
+			Record item = await connection.fetch(q, params);
+			return item;
+		}
+		finally
+		{
+			await connection.release();
+		}
 	}
 	async Map fetchOne(Query q, Dict params = null) =>
 		await this.fetch(q, params)
@@ -464,7 +511,17 @@ class Relation extends BaseObject
 	async QueryResult find(Collection<QueryFilter> filter, Dict params = null)
 	{
 		Query q = this.select().setFilter(filter);
-		return await this.connection.fetchAll(q, params);
+		
+		/* Get connection and release it after use */
+		Connection connection = await this.pool.getConnection();
+		try
+		{
+			return await connection.fetchAll(q, params);
+		}
+		finally
+		{
+			await connection.release();
+		}
 	}
 	
 	

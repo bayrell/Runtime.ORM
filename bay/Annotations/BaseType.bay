@@ -19,10 +19,10 @@
 namespace Runtime.ORM.Annotations;
 
 use Runtime.ORM.ConnectionInterface as Connection;
-use Runtime.ORM.Annotations.BaseAnnotation;
+use Runtime.ORM.Annotations.BaseStruct;
 
 
-class BaseType extends BaseAnnotation
+class BaseType extends BaseStruct
 {
 	var default = null;
 	string name = "";

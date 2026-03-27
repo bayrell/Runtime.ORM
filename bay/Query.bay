@@ -380,7 +380,7 @@ class Query extends BaseObject
 	 */
 	Query page(int page, int limit = null)
 	{
-		int limit = (limit > 0) ? limit : this._limit;
+		limit = (limit > 0) ? limit : this._limit;
 		int start = page * limit;
 		if (start < 0) start = 0;
 		
