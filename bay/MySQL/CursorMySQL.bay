@@ -30,42 +30,6 @@ class CursorMySQL extends Cursor
 	var q = null;
 	int found_rows = -1;
 	Adapter adapter = null;
-		
-	
-	/**
-	 * Returns found rows
-	 */
-	async int foundRows()
-	{
-		if (this.found_rows >= 0) return this.found_rows;
-		
-		if (not this.q)
-		{
-			return 0;
-		}
-		
-		if (not this.q._calc_found_rows)
-		{
-			return 0;
-		}
-		
-		Query q = this.q.copy()
-			.clearFields()
-			.addRawField('count(1) as c')
-			.limit(-1)
-			.start(-1)
-			.clearOrder()
-		;
-		
-		Cursor cursor = await this.conn.execute(q);
-		
-		int res = await cursor.fetchVar('c');
-		await cursor.close();
-		
-		this.found_rows = res;
-		
-		return res;
-	}
 	
 	
 	/**

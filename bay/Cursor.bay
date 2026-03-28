@@ -57,14 +57,40 @@ class Cursor extends BaseObject
 	void setConnection(Connection connection)
 	{
 		this.conn = connection;
-		this.adapter = connection.adapter.copy();
+		this.adapter = connection.adapter;
 	}
 	
 	
 	/**
 	 * Returns found rows
 	 */
-	async int foundRows() => 0;
+	async int foundRows()
+	{
+		if (this.found_rows >= 0) return this.found_rows;
+		
+		if (not this.q)
+		{
+			return 0;
+		}
+		
+		if (not this.q._calc_found_rows)
+		{
+			return 0;
+		}
+		
+		Query q = this.q.copy()
+			.clearFields()
+			.addRawField('count(1) as c')
+			.limit(-1)
+			.start(-1)
+			.clearOrder()
+		;
+		
+		int res = await this.conn.fetchVar(q, "c");
+		this.found_rows = res;
+		
+		return res;
+	}
 	
 	
 	/**
@@ -112,7 +138,7 @@ class Cursor extends BaseObject
 	/**
 	 * Convert item
 	 */
-	Dict convertItem(Dict item)
+	async Dict convertItem(Dict item)
 	{
 		Vector fields = this.q._fields;
 		for (int i=0; i<fields.count(); i++)
@@ -120,7 +146,7 @@ class Cursor extends BaseObject
 			var field = fields[i];
 			if (field instanceof QueryField and field.annotation)
 			{
-				item = field.annotation.fromDatabase(this.conn, item);
+				item = await field.annotation.fromDatabase(this.conn.pool, item);
 			}
 		}
 		
@@ -135,7 +161,7 @@ class Cursor extends BaseObject
 	{
 		Dict row = await this.fetchMap();
 		if (!row) return null;
-		row = this.convertItem(row);
+		row = await this.convertItem(row);
 		return row;
 	}
 	
@@ -151,9 +177,6 @@ class Cursor extends BaseObject
 		/* Copy settings */
 		items.q = this.q ? this.q.copy() : null;
 		
-		/* Get rows */
-		items.rows = await this.foundRows();
-		
 		/* Get items */
 		while (true)
 		{
@@ -164,6 +187,9 @@ class Cursor extends BaseObject
 			}
 			items.push(row);
 		}
+		
+		/* Get rows */
+		items.rows = await this.foundRows();
 		
 		return items;
 	}

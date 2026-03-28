@@ -122,7 +122,7 @@ class ConnectionMySQL extends Connection
 		/* Print debug SQL */
 		if (is_debug)
 		{
-			io::print(sql_debug);
+			rtl::print(sql_debug);
 		}
 		
 		/* Query log */

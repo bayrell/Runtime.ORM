@@ -120,7 +120,7 @@ class Relation extends BaseObject
 			BaseType annotation = annotations.get(i);
 			if (annotation instanceof BaseType and data.has(annotation.name))
 			{
-				data = await annotation.toDatabase(this.connection, data);
+				data = await annotation.toDatabase(this.pool, data);
 			}
 		}
 		
@@ -141,7 +141,7 @@ class Relation extends BaseObject
 			BaseType annotation = annotations.get(i);
 			if (annotation instanceof BaseType and data.has(annotation.name))
 			{
-				data = await annotation.fromDatabase(this.connection, data);
+				data = await annotation.fromDatabase(this.pool, data);
 			}
 		}
 		
@@ -333,7 +333,7 @@ class Relation extends BaseObject
 		}
 		else
 		{
-			Map db_updated_data = this.toDatabase(updated_data);
+			Map db_updated_data = await this.toDatabase(updated_data);
 			
 			/* Get connection and release it after use */
 			Connection connection = await this.pool.getConnection();

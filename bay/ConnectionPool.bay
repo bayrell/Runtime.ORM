@@ -115,7 +115,6 @@ class ConnectionPool extends BaseObject
 	{
 		Connection connection = this.createConnection();
 		connection.adapter = this.adapter.copy();
-		await connection.adapter.getConnection();
 		return connection;
 	}
 	

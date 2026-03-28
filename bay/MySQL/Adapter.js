@@ -17,6 +17,7 @@
  */
 
 const use = require("bay-lang").use;
+const RuntimeMap = use("Runtime.Map");
 
 class Adapter
 {
@@ -143,6 +144,12 @@ class Adapter
 		/* Clear */
 		this.st = null;
 		
+		/* Get connection */
+		if (!this.connection)
+		{
+			await this.getConnection();
+		}
+		
 		/* Execute query */
 		let rows = null;
 		try
@@ -162,6 +169,10 @@ class Adapter
 		{
 			const OrmException = use("Runtime.ORM.Exceptions.OrmException");
 			throw new OrmException(error.message);
+		}
+		finally
+		{
+			this.release();
 		}
 		
 		/* Store result for affectedRows/lastInsertId */
@@ -203,7 +214,7 @@ class Adapter
 		if (!this.st || !this.st.rows || this.st.rows.length === 0) return null;
 		
 		let row = this.st.rows.shift();
-		return row ? new Map(Object.entries(row)) : null;
+		return row ? RuntimeMap.from(row) : null;
 	}
 }
 use.add(Adapter);
