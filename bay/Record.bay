@@ -162,8 +162,8 @@ class Record<Relation> extends BaseObject
 	 */
 	void _initData(Dict data = null)
 	{
-		this._old_data = data != null ? new Map(data) : null;
-		this._new_data = data != null ? new Map(data) : new Map();
+		this._old_data = data != null ? data.copy() : null;
+		this._new_data = data != null ? data.copy() : new Map();
 	}
 	
 	
