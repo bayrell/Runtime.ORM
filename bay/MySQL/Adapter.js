@@ -113,6 +113,43 @@ class Adapter
 	
 	
 	/**
+	 * Start transaction
+	 */
+	async beginTransaction()
+	{
+		if (!this.connection)
+		{
+			await this.getConnection();
+		}
+		await this.connection.beginTransaction();
+	}
+	
+	
+	/**
+	 * Commit transaction
+	 */
+	async commit()
+	{
+		if (this.connection)
+		{
+			await this.connection.commit();
+		}
+	}
+	
+	
+	/**
+	 * Rollback transaction
+	 */
+	async rollback()
+	{
+		if (this.connection)
+		{
+			await this.connection.rollback();
+		}
+	}
+	
+	
+	/**
 	 * Returns affected rows
 	 */
 	affectedRows()
@@ -172,7 +209,7 @@ class Adapter
 		}
 		finally
 		{
-			this.release();
+			/*this.release();*/
 		}
 		
 		/* Store result for affectedRows/lastInsertId */

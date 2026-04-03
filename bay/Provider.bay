@@ -133,10 +133,16 @@ class Provider extends BaseProvider
 		{
 			Table table = items[i];
 			string record_name = table.name;
-			string table_name = new Method(record_name, "getTableName").apply();
+			
+			/* Get table name */
+			Method getTableName = new Method(record_name, "getTableName");
+			if (not getTableName.exists()) continue;
+			string table_name = getTableName.apply();
 			
 			/* Add schema */
-			Vector rules = new Method(record_name, "schema").apply();
+			Method schema = new Method(record_name, "schema");
+			if (not schema.exists()) continue;
+			Vector rules = schema.apply();
 			this.addTable(table_name, rules);
 		}
 		

@@ -20,6 +20,7 @@ namespace Runtime.ORM;
 
 use Runtime.BaseObject;
 use Runtime.ORM.Provider;
+use Runtime.ORM.Relation;
 
 
 class Record<Relation> extends BaseObject

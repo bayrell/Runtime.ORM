@@ -35,7 +35,7 @@ class ConnectionPool extends BaseObject
 	/**
 	 * Returns connection pool by name
 	 */
-	static ConnectionPool get(string name)
+	static ConnectionPool get(string name = "default")
 	{
 		Provider provider = @.provider(classof Provider);
 		return provider.get(name);

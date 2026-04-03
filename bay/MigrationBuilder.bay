@@ -118,7 +118,7 @@ class MigrationBuilder extends BaseObject
 		this.log = new QueryLog();
 		
 		/* Get migrations */
-		this.migrations = this.getMigrations();
+		this.migrations = await this.getMigrations();
 		
 		/* Create table */
 		await this.createTable();
@@ -198,7 +198,7 @@ class MigrationBuilder extends BaseObject
 	/**
 	 * Returns migrations
 	 */
-	Collection<BaseMigration> getMigrations()
+	async Collection<BaseMigration> getMigrations()
 	{
 		Collection<Migration> items = @.getEntities(classof Migration);
 		items = items.map(
@@ -262,6 +262,9 @@ class MigrationBuilder extends BaseObject
 		{
 			addItem(items.get(i));
 		}
+		
+		/* Release connection */
+		await connection.release();
 		
 		return migrations;
 	}

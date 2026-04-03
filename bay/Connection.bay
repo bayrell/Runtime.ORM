@@ -37,6 +37,7 @@ class Connection extends BaseObject
 	CursorFactory cursor = null;
 	QueryLog log = null;
 	var adapter = null;
+	bool in_transaction = false;
 	
 	
 	/**
@@ -130,6 +131,45 @@ class Connection extends BaseObject
 	 */
 	string getTableName(string table_name) =>
 		this.pool.params.get("prefix") ~ table_name;
+		
+		
+	/**
+	 * Start transaction
+	 */
+	async void beginTransaction()
+	{
+		if (not this.in_transaction)
+		{
+			await this.adapter.beginTransaction();
+			this.in_transaction = true;
+		}
+	}
+	
+	
+	/**
+	 * Commit transaction
+	 */
+	async void commit()
+	{
+		if (this.in_transaction)
+		{
+			await this.adapter.commit();
+			this.in_transaction = false;
+		}
+	}
+	
+	
+	/**
+	 * Rollback transaction
+	 */
+	async void rollback()
+	{
+		if (this.in_transaction)
+		{
+			await this.adapter.rollback();
+			this.in_transaction = false;
+		}
+	}
 	
 	
 	/**

@@ -1,7 +1,7 @@
 /*!
  *  BayLang Technology
  *
- *  (c) Copyright 2016-2024 "Ildar Bikmamatov" <support@bayrell.org>
+ *  (c) Copyright 2016-2025 "Ildar Bikmamatov" <support@bayrell.org>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,27 +16,10 @@
  *  limitations under the License.
  */
 
-namespace Runtime.ORM.MySQL;
+const use = require("bay-lang").use;
+const rtl = use("Runtime.rtl");
 
-use Runtime.ORM.Cursor;
-use Runtime.ORM.Query;
-use Runtime.ORM.MySQL.Adapter;
-use Runtime.ORM.MySQL.SQLBuilder;
+exports.MODULE_NAME = "Runtime.ORM";
+const add = rtl.add(__dirname, exports);
 
-
-class CursorMySQL extends Cursor
-{
-	var st = null;
-	var q = null;
-	int found_rows = -1;
-	Adapter adapter = null;
-	
-	
-	/**
-	 * Execute sql query
-	 */
-	async void executeSQL(SQLBuilder builder)
-	{
-		await this.adapter.executeSQL(builder);
-	}
-}
+add("Runtime.ORM.ModuleDescription");

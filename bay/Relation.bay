@@ -42,6 +42,7 @@ use Runtime.ORM.Annotations.Primary;
 
 class Relation extends BaseObject
 {
+	protected Connection connection = null;
 	protected ConnectionPool pool = null;
 	string record_name = "";
 	
@@ -61,8 +62,9 @@ class Relation extends BaseObject
 	
 	
 	/**
-	 * Returns connection;
+	 * Returns connection
 	 */
+	ConnectionPool getPool() => this.pool;
 	ConnectionPool getConnectionPool() => this.pool;
 	
 	
@@ -72,6 +74,22 @@ class Relation extends BaseObject
 	void setConnectionPool(ConnectionPool pool)
 	{
 		this.pool = pool;
+	}
+	
+	
+	/**
+	 * Returns connection
+	 */
+	Connection getConnection(Connection connection) =>
+		this.connection
+	
+	
+	/**
+	 * Set connection
+	 */
+	void setConnection(Connection connection)
+	{
+		this.connection = connection;
 	}
 	
 	
@@ -304,7 +322,8 @@ class Relation extends BaseObject
 				{
 					Map db_updated_data = await this.toDatabase(updated_data);
 					
-					Connection connection = await this.pool.getConnection();
+					Connection connection = this.connection;
+					if (not connection) connection = await this.pool.getConnection();
 					try
 					{
 						await connection.update(
@@ -316,7 +335,8 @@ class Relation extends BaseObject
 					}
 					finally
 					{
-						await connection.release();
+						if (not this.connection)
+							await connection.release();
 					}
 				}
 				else
@@ -336,7 +356,8 @@ class Relation extends BaseObject
 			Map db_updated_data = await this.toDatabase(updated_data);
 			
 			/* Get connection and release it after use */
-			Connection connection = await this.pool.getConnection();
+			Connection connection = this.connection;
+			if (not connection) connection = await this.pool.getConnection();
 			try
 			{
 				var last_id = await connection.insert(
@@ -354,7 +375,8 @@ class Relation extends BaseObject
 			}
 			finally
 			{
-				await connection.release();
+				if (not this.connection)
+					await connection.release();
 			}
 		}
 		
@@ -382,7 +404,8 @@ class Relation extends BaseObject
 		if (filter.count() > 0)
 		{
 			/* Get connection and release it after use */
-			Connection connection = await this.pool.getConnection();
+			Connection connection = this.connection;
+			if (not connection) connection = await this.pool.getConnection();
 			try
 			{
 				await connection.delete(
@@ -393,7 +416,8 @@ class Relation extends BaseObject
 			}
 			finally
 			{
-				await connection.release();
+				if (not this.connection)
+					await connection.release();
 			}
 		}
 		else
@@ -445,14 +469,16 @@ class Relation extends BaseObject
 		QueryResult items = null;
 		
 		/* Get connection and release it after use */
-		Connection connection = await this.pool.getConnection();
+		Connection connection = this.connection;
+		if (not connection) connection = await this.pool.getConnection();
 		try
 		{
-			items = connection.fetchAll(q, params);
+			items = await connection.fetchAll(q, params);
 		}
 		finally
 		{
-			await connection.release();
+			if (not this.connection)
+				await connection.release();
 		}
 		
 		return items;
@@ -479,7 +505,8 @@ class Relation extends BaseObject
 		q.limit(1);
 		
 		/* Get connection and release it after use */
-		Connection connection = await this.pool.getConnection();
+		Connection connection = this.connection;
+		if (not connection) connection = await this.pool.getConnection();
 		try
 		{
 			Record item = await connection.fetch(q, params);
@@ -487,7 +514,8 @@ class Relation extends BaseObject
 		}
 		finally
 		{
-			await connection.release();
+			if (not this.connection)
+				await connection.release();
 		}
 	}
 	async Map fetchOne(Query q, Dict params = null) =>
@@ -513,14 +541,16 @@ class Relation extends BaseObject
 		Query q = this.select().setFilter(filter);
 		
 		/* Get connection and release it after use */
-		Connection connection = await this.pool.getConnection();
+		Connection connection = this.connection;
+		if (not connection) connection = await this.pool.getConnection();
 		try
 		{
 			return await connection.fetchAll(q, params);
 		}
 		finally
 		{
-			await connection.release();
+			if (not this.connection)
+				await connection.release();
 		}
 	}
 	
@@ -554,7 +584,7 @@ class Relation extends BaseObject
 	async Record<Relation> findById(var id, Dict params = null)
 	{
 		/* Get primary keys */
-		Vector pk = this.getPrimaryKeyNames();
+		Vector pk = this.getPrimaryKeys();
 		string pk_name = pk.get(0);
 		
 		/* Build filter */

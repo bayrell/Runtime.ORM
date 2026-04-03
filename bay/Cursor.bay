@@ -96,13 +96,15 @@ class Cursor extends BaseObject
 	/**
 	 * Returns affected rows
 	 */
-	async int affectedRows() => 0;
+	async int affectedRows() =>
+		await this.adapter.affectedRows();
 	
 	
 	/**
 	 * Returns last insert id
 	 */
-	async int lastInsertId() => 0;
+	async int lastInsertId() =>
+		await this.adapter.lastInsertId()
 	
 	
 	/**
@@ -126,13 +128,14 @@ class Cursor extends BaseObject
 	 */
 	async void close()
 	{
+		await this.adapter.close();
 	}
 	
 	
 	/**
 	 * Fetch next row
 	 */
-	async Dict fetchMap() => null;
+	async Dict fetchMap() => await this.adapter.fetchMap();
 	
 	
 	/**
