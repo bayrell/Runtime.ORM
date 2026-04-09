@@ -53,6 +53,8 @@ class Query extends BaseObject
 	Vector<Dict> _join = new Vector();
 	Vector<Collection> _order = new Vector();
 	Vector<QueryFilter> _filter = new Vector();
+	Vector<string> _group_by = new Vector();
+	Vector<QueryFilter> _having = new Vector();
 	string _sql = "";
 	Map _data = new Map();
 	int _start = 0;
@@ -87,6 +89,8 @@ class Query extends BaseObject
 		q._join = this._join.slice();
 		q._order = this._order.slice();
 		q._filter = this._filter.slice();
+		q._group_by = this._group_by.slice();
+		q._having = this._having.slice();
 		q._sql = this._sql;
 		q._data = this._data ? this._data.copy() : null;
 		q._start = this._start;
@@ -159,6 +163,7 @@ class Query extends BaseObject
 	{
 		this._kind = static::QUERY_SELECT;
 		if (fields) this.fields(fields);
+		else this.fields([this._table_name ~ ".*"]);
 		return this;
 	}
 	
@@ -515,6 +520,64 @@ class Query extends BaseObject
 	Query clearFilter()
 	{
 		this._filter = [];
+		return this;
+	}
+	
+	
+	/**
+	 * Clear group by
+	 */
+	Query clearGroupBy()
+	{
+		this._group_by = new Vector;
+		return this;
+	}
+	
+	
+	/**
+	 * Add group by
+	 */
+	Query groupBy(string field)
+	{
+		this._group_by.push(field);
+		return this;
+	}
+	
+	
+	/**
+	 * Add group by fields
+	 */
+	Query addGroupBy(Collection<string> fields)
+	{
+		for (int i=0; i<fields.count(); i++)
+		{
+			string field_name = fields[i];
+			this._group_by.push(field_name);
+		}
+		return this;
+	}
+	
+	
+	/**
+	 * Clear having
+	 */
+	Query clearHaving()
+	{
+		this._having = new Vector;
+		return this;
+	}
+	
+	
+	/**
+	 * Add having
+	 */
+	Query having(string key, string op, var value)
+	{
+		QueryFilter filter = new QueryFilter;
+		filter.key = key;
+		filter.op = op;
+		filter.value = value;
+		this._having.push(filter);
 		return this;
 	}
 	

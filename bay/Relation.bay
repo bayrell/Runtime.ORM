@@ -430,9 +430,11 @@ class Relation extends BaseObject
 	/**
 	 * Refresh model from database
 	 */
-	async void refresh(Record<Relation> item, Dict params = null)
+	async void refresh(
+		Record<Relation> item, Dict params = null
+	)
 	{
-		Record<Relation> new_item = this.findByPk(item, params);
+		Record<Relation> new_item = await this.findByPk(item, params);
 		if (new_item)
 		{
 			item._initData(new_item.all());
@@ -458,6 +460,25 @@ class Relation extends BaseObject
 			.from(table_name)
 		;
 		return q;
+	}
+	
+	
+	/**
+	 * Execute query
+	 */
+	async void execute(Query q)
+	{
+		Connection connection = this.connection;
+		if (not connection) connection = await this.pool.getConnection();
+		try
+		{
+			await connection.execute(q);
+		}
+		finally
+		{
+			if (not this.connection)
+				await connection.release();
+		}
 	}
 	
 	
