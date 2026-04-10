@@ -248,6 +248,7 @@ class Query extends BaseObject
 	 */
 	Query fields(Vector fields)
 	{
+		if (rtl::isString(fields)) fields = [fields];
 		this._fields = new Vector();
 		for (int i=0; i<fields.count(); i++)
 		{
