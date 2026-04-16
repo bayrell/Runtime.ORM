@@ -149,7 +149,7 @@ class Cursor extends BaseObject
 			var field = fields[i];
 			if (field instanceof QueryField and field.annotation)
 			{
-				item = await field.annotation.fromDatabase(this.conn.pool, item);
+				item = await field.annotation.fromDatabase(this.conn, item);
 			}
 		}
 		

@@ -20,6 +20,7 @@ namespace Runtime.ORM.MySQL;
 
 use Runtime.io;
 use Runtime.re;
+use Runtime.ORM.Annotations.BaseType;
 use Runtime.ORM.Factory.CursorFactory;
 use Runtime.ORM.Connection;
 use Runtime.ORM.Cursor;
@@ -67,6 +68,23 @@ class ConnectionMySQL extends Connection
 	bool isConnected()
 	{
 		return this.adapter.isConnected();
+	}
+	
+	
+	/**
+	 * Convert item from database
+	 */
+	var fromDatabase(BaseType annotation, Map item, string field_name)
+	{
+		#ifcode NODEJS then
+		const DateTimeType = use("Runtime.ORM.Annotations.DateTimeType");
+		if (annotation instanceof DateTimeType)
+		{
+			let value = item.get(field_name);
+			item.set(field_name, value.toISOString());
+		}
+		#endif
+		return item;
 	}
 	
 	

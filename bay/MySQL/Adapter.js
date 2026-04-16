@@ -75,7 +75,8 @@ class Adapter
 				namedPlaceholders: true,
 				waitForConnections: true,
 				connectionLimit: 10,
-				queueLimit: 0
+				queueLimit: 0,
+				timezone: 'Z'
 			};
 			
 			const mysql = require("mysql2/promise");
@@ -108,6 +109,20 @@ class Adapter
 			throw new Error("Pool is not initialized");
 		}
 		this.connection = await this.pool.getConnection();
+		
+		/* Set session variables for UTF8 and UTC */
+		try
+		{
+			/* Set character set to UTF8 */
+			await this.connection.query("SET NAMES utf8mb4");
+			
+			/* Set session time to UTC */
+			await this.connection.query("SET time_zone = '+00:00'");
+		}
+		catch (error)
+		{
+		}
+		
 		return this.connection;
 	}
 	

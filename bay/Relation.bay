@@ -128,7 +128,7 @@ class Relation extends BaseObject
 	/**
 	 * To database
 	 */
-	async Map toDatabase(Map data)
+	async Map toDatabase(Connection conn, Map data)
 	{
 		if (data == null) return null;
 		
@@ -138,7 +138,7 @@ class Relation extends BaseObject
 			BaseType annotation = annotations.get(i);
 			if (annotation instanceof BaseType and data.has(annotation.name))
 			{
-				data = await annotation.toDatabase(this.pool, data);
+				data = await annotation.toDatabase(conn, data);
 			}
 		}
 		
@@ -320,12 +320,11 @@ class Relation extends BaseObject
 				Collection filter = this.getPrimaryFilter(item.old(), false);
 				if (filter.count() > 0)
 				{
-					Map db_updated_data = await this.toDatabase(updated_data);
-					
 					Connection connection = this.connection;
 					if (not connection) connection = await this.pool.getConnection();
 					try
 					{
+						Map db_updated_data = await this.toDatabase(connection, updated_data);
 						await connection.update(
 							table_name,
 							filter,
@@ -353,13 +352,12 @@ class Relation extends BaseObject
 		}
 		else
 		{
-			Map db_updated_data = await this.toDatabase(updated_data);
-			
 			/* Get connection and release it after use */
 			Connection connection = this.connection;
 			if (not connection) connection = await this.pool.getConnection();
 			try
 			{
+				Map db_updated_data = await this.toDatabase(connection, updated_data);
 				var last_id = await connection.insert(
 					table_name,
 					db_updated_data,

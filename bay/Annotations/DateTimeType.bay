@@ -60,9 +60,9 @@ class DateTimeType extends BaseType
 	async var fromDatabase(Connection conn, Dict item)
 	{
 		if (not item.has(this.name)) return item;
+		item = await conn.fromDatabase(this, item, this.name);
 		string value = item.get(this.name);
 		item.set(this.name, static::convertFromDatabase(value));
-		item = await conn.fromDatabase(this, item, this.name);
 		return item;
 	}
 	

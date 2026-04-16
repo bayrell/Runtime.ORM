@@ -117,16 +117,4 @@ class ConnectionPool extends BaseObject
 		connection.adapter = this.adapter.copy();
 		return connection;
 	}
-	
-	
-	/**
-	 * Convert item from database
-	 */
-	var fromDatabase(BaseObject annotation, Dict item, string field_name) => item;
-	
-	
-	/**
-	 * Convert item to database
-	 */
-	var toDatabase(BaseObject annotation, Dict item, string field_name) => item;
 }

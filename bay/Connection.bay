@@ -76,6 +76,18 @@ class Connection extends BaseObject
 	
 	
 	/**
+	 * Convert item from database
+	 */
+	var fromDatabase(BaseObject annotation, Dict item, string field_name) => item;
+	
+	
+	/**
+	 * Convert item to database
+	 */
+	var toDatabase(BaseObject annotation, Dict item, string field_name) => item;
+	
+	
+	/**
 	 * Check is connected
 	 */
 	bool isConnected() => false;
