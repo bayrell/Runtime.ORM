@@ -89,7 +89,6 @@ class SQLBuilder extends BaseObject
 					if (not rtl::isInteger(value))
 					{
 						value = this.quote(value);
-						value = "'" ~ value ~ "'";
 					}
 					sql = rs::replace(this.formatKey(key), value, sql);
 				}
@@ -160,7 +159,7 @@ class SQLBuilder extends BaseObject
 		#ifcode PHP then
 		$value = $this->conn->pdo->quote($value);
 		#endif
-		return value;
+		return "'" ~ value ~ "'";
 	}
 	
 	
@@ -171,7 +170,8 @@ class SQLBuilder extends BaseObject
 	{
 		if (rs::substr(this.q._table_name, 0, 1) != "`")
 		{
-			return "`" ~ this.conn.prefix ~ this.q._table_name ~ "`";
+			return "`" ~ this.conn.pool.params.get("prefix") ~
+				this.q._table_name ~ "`";
 		}
 		return this.q._table_name;
 	}
@@ -310,7 +310,7 @@ class SQLBuilder extends BaseObject
 					if (kind == "left") sql ~= " LEFT JOIN ";
 					else sql ~= " INNER JOIN ";
 					
-					sql ~= "`" ~ this.conn.prefix ~ table_name ~ "`";
+					sql ~= "`" ~ this.conn.pool.params.get("prefix") ~ table_name ~ "`";
 					if (alias_name != "") sql ~= " AS `" ~ alias_name ~ "`";
 					sql ~= " ON (" ~ where ~ ")";
 					
@@ -511,6 +511,22 @@ class SQLBuilder extends BaseObject
 			}
 			
 			string s = "(" ~ rs::join(" OR ", where_or) ~ ")";
+			return [s, field_index];
+		}
+		
+		/* And */
+		if (field_name == "$and")
+		{
+			Vector where_and = new Vector();
+			
+			for (int j=0; j<value.count(); j++)
+			{
+				list res_and = this.convertFilterItem(value[j], data, field_index);
+				where_and.push( res_and[0] );
+				field_index = res_and[1];
+			}
+			
+			string s = "(" ~ rs::join(" AND ", where_and) ~ ")";
 			return [s, field_index];
 		}
 		

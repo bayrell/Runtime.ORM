@@ -59,7 +59,7 @@ class ConnectionMySQL extends Connection
 	/**
 	 * Create adapter
 	 */
-	static void createAdapter() => new Adapter();
+	static Adapter createAdapter() => new Adapter();
 	
 	
 	/**

@@ -114,7 +114,6 @@ class ConnectionPool extends BaseObject
 	async Connection getConnection()
 	{
 		Connection connection = this.createConnection();
-		connection.adapter = this.adapter.copy();
 		return connection;
 	}
 }
