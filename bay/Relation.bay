@@ -132,6 +132,7 @@ class Relation extends BaseObject
 	{
 		if (data == null) return null;
 		
+		Map new_data = {};
 		Collection<BaseType> annotations = this.getAnotations();
 		for (int i=0; i<annotations.count(); i++)
 		{
@@ -139,10 +140,11 @@ class Relation extends BaseObject
 			if (annotation instanceof BaseType and data.has(annotation.name))
 			{
 				data = await annotation.toDatabase(conn, data);
+				new_data.set(annotation.name, data.get(annotation.name));
 			}
 		}
 		
-		return data;
+		return new_data;
 	}
 	
 	
