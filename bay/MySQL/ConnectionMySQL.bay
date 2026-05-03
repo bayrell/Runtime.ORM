@@ -81,7 +81,14 @@ class ConnectionMySQL extends Connection
 		if (annotation instanceof DateTimeType)
 		{
 			let value = item.get(field_name);
-			item.set(field_name, value.toISOString());
+			try
+			{
+				item.set(field_name, value.toISOString());
+			}
+			catch (e)
+			{
+				item.set(field_name, null);
+			}
 		}
 		#endif
 		return item;
