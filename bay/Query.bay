@@ -320,6 +320,10 @@ class Query extends BaseObject
 		else
 		{
 			field.annotation = this._provider.getFieldType(field.table_name, field.field_name);
+			if (field.annotation == null)
+			{
+				field.annotation = this._provider.getFieldType(this._table_name, field.field_name);
+			}
 			this._fields.push(field);
 		}
 		
